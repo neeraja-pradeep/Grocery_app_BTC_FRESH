@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# ============================================
-# grocery_app pre-commit hook (Windows + Flutter)
-# ============================================
-
-# --- Flutter & Dart PATH setup (adjust if needed) ---
-export PATH="$PATH:/c/Users/anjel/flutter/bin:/c/Users/anjel/flutter/bin/cache/dart-sdk/bin"
+# ================================================
+# grocery_app Pre-commit Hook (Advanced Version)
+# ================================================
 
 RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; BLUE="\033[0;34m"; NC="\033[0m"
 ok(){ echo -e "${GREEN}✔ $1${NC}"; }
@@ -14,48 +11,36 @@ header(){ echo -e "\n${BLUE}🚀 $1${NC}"; }
 
 header "Running grocery_app Pre-commit Checks"
 
-# ----------------------------------------------------
-# 1️⃣ Gather staged files
-# ----------------------------------------------------
+# Get staged Dart files
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+DART_FILES=$(echo "$STAGED_FILES" | grep '\.dart$' || true)
+
 if [ -z "$STAGED_FILES" ]; then
   warn "No files staged for commit."
   exit 0
 fi
 
-# ----------------------------------------------------
-# 2️⃣ Format Dart files
-# ----------------------------------------------------
+# 1️⃣ Formatting
 header "Formatting Dart files"
-DART_FILES=$(echo "$STAGED_FILES" | grep '\.dart$' || true)
-
 if [ -n "$DART_FILES" ]; then
-  echo "Ensuring UTF-8 encoding & formatting Dart files..."
-  for f in $DART_FILES; do
-    flutter format "$f" >/dev/null 2>&1 || {
-      err "Formatting failed for $f. Run 'flutter format .'"
-      exit 1
-    }
-    git add "$f"
-  done
-  ok "Formatted & re-staged all Dart files"
+  flutter format $DART_FILES >/dev/null 2>&1 || {
+    err "Formatting failed. Run: flutter format ."
+    exit 1
+  }
+  ok "All Dart files formatted"
 else
   warn "No Dart files found to format"
 fi
 
-# ----------------------------------------------------
-# 3️⃣ Flutter analyze
-# ----------------------------------------------------
+# 2️⃣ Analyzer
 header "Running flutter analyze"
 flutter analyze >/dev/null 2>&1 || {
-  err "Analyzer found issues. Run 'flutter analyze' manually."
+  err "Analyzer found issues"
   exit 1
 }
 ok "Analyzer passed"
 
-# ----------------------------------------------------
-# 4️⃣ custom_lint
-# ----------------------------------------------------
+# 3️⃣ custom_lint
 header "Running custom_lint"
 dart run custom_lint >/dev/null 2>&1 || {
   err "custom_lint found issues"
@@ -63,27 +48,75 @@ dart run custom_lint >/dev/null 2>&1 || {
 }
 ok "custom_lint passed"
 
-# ----------------------------------------------------
-# 5️⃣ Check for print() or debugPrint()
-# ----------------------------------------------------
-header "Checking for debug prints / TODOs"
+# 4️⃣ Check for debug prints
+header "Checking for print() or debugPrint()"
 DEBUG_FOUND=false
 for f in $DART_FILES; do
   if grep -E "print\(|debugPrint\(" "$f" | grep -v "^[[:space:]]*//" >/dev/null 2>&1; then
-    echo " ⚠ $f"
+    echo "⚠️  Found in: $f"
     DEBUG_FOUND=true
   fi
 done
-
 if [ "$DEBUG_FOUND" = true ]; then
-  err "Remove print()/debugPrint() before committing."
+  err "Remove print()/debugPrint() before committing"
   exit 1
 fi
 ok "No debug prints found"
 
-# ----------------------------------------------------
+# 5️⃣ Folder structure validation
+header "Validating folder structure"
+INVALID_FILES=()
+for file in $STAGED_FILES; do
+  if [[ "$file" == lib/* ]]; then
+    if ! [[ "$file" =~ ^lib/(app|core|features)/ || "$file" == "lib/main.dart" || "$file" == "lib/globals.dart" ]]; then
+      INVALID_FILES+=("$file")
+    fi
+  fi
+done
+
+if [ ${#INVALID_FILES[@]} -gt 0 ]; then
+  err "Invalid folder structure detected:"
+  for f in "${INVALID_FILES[@]}"; do echo "  ✖ $f"; done
+  echo "Allowed: lib/app/, lib/core/, lib/features/, lib/main.dart, lib/globals.dart"
+  exit 1
+fi
+ok "Folder structure valid"
+
+# 6️⃣ File naming validation
+header "Validating file names (snake_case.dart)"
+BAD_FILES=()
+for file in $DART_FILES; do
+  filename=$(basename "$file")
+  if ! [[ "$filename" =~ ^[a-z0-9_]+\.dart$ ]]; then
+    BAD_FILES+=("$file")
+  fi
+done
+
+if [ ${#BAD_FILES[@]} -gt 0 ]; then
+  err "Invalid Dart filenames detected:"
+  for f in "${BAD_FILES[@]}"; do echo "  ✖ $f"; done
+  echo "Use snake_case for Dart filenames (e.g. my_widget.dart)"
+  exit 1
+fi
+ok "File names validated"
+
+# 7️⃣ TODO/FIXME validation
+header "Checking for untracked TODO/FIXME"
+TODO_FOUND=false
+for f in $DART_FILES; do
+  if grep -E "TODO|FIXME" "$f" | grep -vE "(#\d+|https?://)" >/dev/null 2>&1; then
+    echo "⚠️  Found untracked TODO/FIXME in: $f"
+    TODO_FOUND=true
+  fi
+done
+
+if [ "$TODO_FOUND" = true ]; then
+  err "Each TODO/FIXME must reference an issue ID (e.g. TODO #123) or URL"
+  exit 1
+fi
+ok "No untracked TODO/FIXME found"
+
 # ✅ All checks passed
-# ----------------------------------------------------
 header "✅ All Checks Passed"
 ok "Proceeding with commit..."
 exit 0
