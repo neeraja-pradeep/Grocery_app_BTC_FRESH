@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -31,7 +31,7 @@ class AppBootstrap {
       (error, stackTrace) {
         if (kDebugMode) {
           // ignore: avoid_print
-          // log('Uncaught zone error: $error\n$stackTrace');
+          log('Uncaught zone error: $error\n$stackTrace');
         }
       },
     );

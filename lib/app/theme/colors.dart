@@ -4,8 +4,10 @@ class AppColors {
   const AppColors._();
 
   static const Color green = Color.fromARGB(255, 132, 195, 24);
-  static const Color green60 = Color.fromARGB(200, 228, 249, 212);
+  static const Color green60 = Color(0xFFD7F1C6);
   static const Color white = Colors.white;
   static const Color black = Colors.black;
   static const Color grey = Colors.grey;
+  static const Color green100 = Color(0xFF016064);
+  static const Color green10 = Color.fromARGB(255, 239, 244, 235);
 }

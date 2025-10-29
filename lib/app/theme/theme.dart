@@ -7,11 +7,29 @@ class AppTheme {
 
   static ThemeData get light => ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.green,
-      brightness: Brightness.light,
-    ),
+    colorScheme:
+        ColorScheme.fromSeed(
+          seedColor: AppColors.green,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: AppColors.green,
+          surface: AppColors.white,
+          surfaceTint: Colors.transparent,
+          onSurfaceVariant: const Color(0xFFE2E2E2),
+        ),
     scaffoldBackgroundColor: AppColors.white,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.white,
+      foregroundColor: AppColors.black,
+      elevation: 0,
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.green,
+        foregroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
     textTheme: Typography.blackMountainView,
   );
 
@@ -22,6 +40,18 @@ class AppTheme {
       brightness: Brightness.dark,
     ),
     scaffoldBackgroundColor: AppColors.black,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.black,
+      foregroundColor: AppColors.white,
+      elevation: 0,
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.green,
+        foregroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
     textTheme: Typography.whiteMountainView,
   );
 }

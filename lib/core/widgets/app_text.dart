@@ -18,6 +18,25 @@ class AppText extends StatelessWidget {
     super.key,
   });
 
+  const AppText.pageTitle({
+    required String text,
+    Color? color,
+    int maxLines = 1,
+    TextAlign? textAlign,
+    Key? key,
+  }) : this(
+         text: text,
+         color: color,
+         maxLines: maxLines,
+         textAlign: textAlign,
+         fontSize: 16,
+         fontWeight: FontWeight.w600,
+         fontStyle: FontStyle.normal,
+         height: 1.0,
+         letterSpacing: 0.0,
+         key: key,
+       );
+
   final String text;
   final double fontSize;
   final FontWeight fontWeight;

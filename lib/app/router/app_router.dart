@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/auth/presentation/screen/login_screen.dart';
-import '../../features/category/presentation/screen/home_screen.dart';
+import '../../features/home/screen/home_screen.dart';
 
 class AppRouter {
   const AppRouter();
