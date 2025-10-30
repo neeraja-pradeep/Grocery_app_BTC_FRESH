@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../../features/auth/presentation/screen/login_screen.dart';
-import '../../features/home/screen/home_screen.dart';
+import '../../features/bottomnavbar/bottom_navbar.dart';
 
 class AppRouter {
   const AppRouter();
 
   static const String home = '/';
   static const String login = '/auth/login';
+  static const String bottomNavBar = '/auth/login/bottomNavBar';
 
   static const String initialRoute = home;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
-      case home:
-        return _buildRoute<void>(settings, const HomeScreen());
       case login:
         return _buildRoute<void>(settings, const LoginScreen());
+      case home:
+        return _buildRoute<void>(settings, const BottomNavigation());
+      case bottomNavBar:
+        return _buildRoute<void>(settings, const BottomNavigation());
+
       default:
         return _buildRoute<void>(
           settings,
