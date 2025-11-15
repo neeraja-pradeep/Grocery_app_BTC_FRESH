@@ -2,321 +2,281 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/extensions/context_extensions.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/category/presentation/components/category_list.dart';
+import 'package:grocery_app/features/category/domain/entities/category_product.dart';
 
-class ProductGrid extends StatefulWidget {
+const String _rupeeSymbol = '\u20B9';
+
+class ProductGrid extends StatelessWidget {
   const ProductGrid({
     super.key,
-    required this.categories,
-    required this.selectedCategoryIndex,
-    required this.onCategoryInViewChanged,
+    required this.products,
     required this.onAddToCart,
   });
 
-  final List<CategoryItem> categories;
-  final int selectedCategoryIndex;
-  final ValueChanged<int> onCategoryInViewChanged;
-  final VoidCallback onAddToCart;
-
-  @override
-  ProductGridState createState() => ProductGridState();
-}
-
-class ProductGridState extends State<ProductGrid> {
-  final ScrollController _scrollController = ScrollController();
-  late List<GlobalKey> _sectionKeys;
-  bool _isProgrammaticScroll = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _buildSectionKeys();
-    _scrollController.addListener(_handleScroll);
-  }
-
-  @override
-  void didUpdateWidget(ProductGrid oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.categories.length != widget.categories.length) {
-      _buildSectionKeys();
-    }
-  }
-
-  void _buildSectionKeys() {
-    _sectionKeys = List<GlobalKey>.generate(
-      widget.categories.length,
-      (_) => GlobalKey(),
-    );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_handleScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  Future<void> scrollToCategory(int index) async {
-    if (!_scrollController.hasClients) return;
-    if (index < 0 || index >= _sectionKeys.length) return;
-
-    final targetContext = _sectionKeys[index].currentContext;
-    if (targetContext == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          scrollToCategory(index);
-        }
-      });
-      return;
-    }
-
-    final renderBox = targetContext.findRenderObject() as RenderBox?;
-    final scrollBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null || scrollBox == null) return;
-
-    final offsetWithinScroll = renderBox
-        .localToGlobal(Offset.zero, ancestor: scrollBox)
-        .dy;
-    final targetOffset = _scrollController.offset + offsetWithinScroll;
-    final position = _scrollController.position;
-    final clampedOffset = targetOffset.clamp(
-      position.minScrollExtent,
-      position.maxScrollExtent,
-    );
-
-    _isProgrammaticScroll = true;
-
-    await _scrollController.animateTo(
-      clampedOffset,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-
-    _isProgrammaticScroll = false;
-  }
-
-  void _handleScroll() {
-    if (_isProgrammaticScroll || !_scrollController.hasClients) return;
-
-    final scrollBox = context.findRenderObject() as RenderBox?;
-    if (scrollBox == null) return;
-
-    final viewportHeight = scrollBox.size.height;
-    final viewportCenter = viewportHeight / 2;
-
-    const double threshold = 32.0;
-    int? belowThresholdIndex;
-    double bestBelowTop = double.negativeInfinity;
-    int? aboveThresholdIndex;
-    double closestAbove = double.infinity;
-    int? nearestIndex;
-    double nearestDistance = double.infinity;
-
-    for (var i = 0; i < _sectionKeys.length; i++) {
-      final sectionContext = _sectionKeys[i].currentContext;
-      if (sectionContext == null) continue;
-      final sectionBox = sectionContext.findRenderObject() as RenderBox?;
-      if (sectionBox == null || !sectionBox.attached) continue;
-
-      final top = sectionBox.localToGlobal(Offset.zero, ancestor: scrollBox).dy;
-      final center = top + sectionBox.size.height / 2;
-      final distance = (center - viewportCenter).abs();
-
-      if (top <= threshold && top > bestBelowTop) {
-        bestBelowTop = top;
-        belowThresholdIndex = i;
-      } else if (top > threshold && (top - threshold) < closestAbove) {
-        closestAbove = top - threshold;
-        aboveThresholdIndex = i;
-      }
-
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = i;
-      }
-    }
-
-    final newIndex = belowThresholdIndex ?? aboveThresholdIndex ?? nearestIndex;
-    if (newIndex != null && newIndex != widget.selectedCategoryIndex) {
-      widget.onCategoryInViewChanged(newIndex);
-    }
-  }
+  final List<CategoryProduct> products;
+  final ValueChanged<CategoryProduct> onAddToCart;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = context.isDarkMode;
 
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        for (var i = 0; i < widget.categories.length; i++) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              key: _sectionKeys[i],
-              padding: EdgeInsets.only(
-                top: i == 0 ? 0.h : 5.h,
-                bottom: 5.h,
-                left: 4.w,
-                right: 4.w,
-              ),
-              child: Container(
-                height: 25.h,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: AppColors.grey.withValues(alpha: 0.2),
-                  ),
-                  color: AppColors.white,
-                ),
-                child: Center(
-                  child: AppText(
-                    text: widget.categories[i].title,
-                    color: AppColors.green100,
-                    fontSize: 12.sp,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.zero,
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 4.w,
-                mainAxisSpacing: 5.h,
-                mainAxisExtent: 175.h,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, _) => _ProductCard(
-                  colorScheme: colorScheme,
-                  isDark: isDark,
-                  onAddToCart: widget.onAddToCart,
-                  isActiveSection: widget.selectedCategoryIndex == i,
-                ),
-                childCount: 4,
-              ),
-            ),
-          ),
-        ],
-        SliverToBoxAdapter(child: SizedBox(height: 24.h)),
-      ],
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 4.w,
+        mainAxisSpacing: 5.h,
+        mainAxisExtent: 175.h,
+      ),
+
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        final product = products[index];
+        return _ProductCard(
+          product: product,
+          colorScheme: colorScheme,
+          onAddToCart: () => onAddToCart(product),
+        );
+      },
     );
   }
 }
 
 class _ProductCard extends StatelessWidget {
   const _ProductCard({
+    required this.product,
     required this.colorScheme,
-    required this.isDark,
     required this.onAddToCart,
-    required this.isActiveSection,
   });
 
+  final CategoryProduct product;
   final ColorScheme colorScheme;
-  final bool isDark;
   final VoidCallback onAddToCart;
-  final bool isActiveSection;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: isActiveSection ? 1.0 : 0.93,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeInOut,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(color: AppColors.grey.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Padding(
-                      padding: EdgeInsets.all(12.w),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(14.r),
-                        child: Image.asset(
-                          'assets/images/fruits.png',
-                          fit: BoxFit.fitHeight,
-                        ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final image = product.imageUrl ?? product.thumbnailUrl;
+    final formattedWeight = _formatWeight(product.weight);
+    final priceValue = _formatPriceValue(product.price);
+    final originalPriceValue = _formatPriceValue(product.originalPrice);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: AppColors.grey.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(18.r),
+                      ),
+                      color: AppColors.green10,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(18.r),
+                      ),
+                      child: _ProductImage(image: image),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8.h,
+                  right: 5.w,
+                  child: GestureDetector(
+                    onTap: onAddToCart,
+                    child: Container(
+                      width: 29.w,
+                      height: 29.w,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.add,
+                        color: AppColors.white,
+                        size: 17,
                       ),
                     ),
                   ),
-                  Positioned(
-                    top: 8.h,
-                    right: 5.w,
-                    child: GestureDetector(
-                      onTap: onAddToCart,
-                      child: Container(
-                        width: 29.w,
-                        height: 29.w,
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.add,
-                          color: AppColors.white,
-                          size: 17,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 8.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const AppText.pageTitle(text: 'Apple...'),
-                  AppSpacing.h8,
+          ),
+          Padding(
+            padding: EdgeInsets.all(10.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppText.pageTitle(text: product.variantName, maxLines: 1),
+
+                AppSpacing.h8,
+                if (formattedWeight != null)
                   AppText(
-                    text: '500 g',
+                    text: formattedWeight,
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
                     color: AppColors.grey,
                   ),
-                  AppSpacing.h8,
-                  Row(
-                    children: [
-                      const AppText.pageTitle(text: '₹150'),
-                      AppSpacing.w8,
-                      AppText(
-                        text: '₹200',
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.grey,
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.favorite_border,
-                        size: 24.sp,
-                        color: isDark
-                            ? colorScheme.outline
-                            : AppColors.green100,
-                      ),
+                if (formattedWeight != null) AppSpacing.h8,
+                Row(
+                  children: [
+                    if (priceValue != null) ...[
+                      const AppText.pageTitle(text: _rupeeSymbol),
+                      AppSpacing.w4,
+                      AppText.pageTitle(text: priceValue),
+                      if (originalPriceValue != null &&
+                          originalPriceValue != priceValue) ...[
+                        AppSpacing.w8,
+                        AppText(
+                          text: '$_rupeeSymbol$originalPriceValue',
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.grey,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ],
+                    ] else ...[
+                      const AppText.pageTitle(text: 'N/A'),
                     ],
-                  ),
-                ],
-              ),
+                    const Spacer(),
+                    Icon(
+                      Icons.favorite_border,
+                      size: 22.sp,
+                      color: isDark ? colorScheme.outline : AppColors.green100,
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
+
+class _ProductImage extends StatelessWidget {
+  const _ProductImage({required this.image});
+
+  final String? image;
+
+  @override
+  Widget build(BuildContext context) {
+    if (image == null || image!.isEmpty) {
+      return Container(
+        color: AppColors.green10,
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.local_grocery_store_outlined,
+          size: 28,
+          color: AppColors.green100,
+        ),
+      );
+    }
+
+    if (image!.startsWith('assets/')) {
+      return Image.asset(image!, fit: BoxFit.cover);
+    }
+
+    return Image.network(
+      image!,
+      fit: BoxFit.fitHeight,
+      errorBuilder: (context, error, stackTrace) => Container(
+        color: AppColors.green10,
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.broken_image_outlined,
+          size: 28,
+          color: AppColors.green100,
+        ),
+      ),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Container(
+          color: AppColors.green10,
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: 20.w,
+            height: 20.w,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              value: progress.expectedTotalBytes != null
+                  ? progress.cumulativeBytesLoaded /
+                        progress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+String? _formatWeight(String? weight) {
+  if (weight == null) return null;
+
+  final trimmed = weight.trim();
+  if (trimmed.isEmpty) return null;
+
+  final numeric = double.tryParse(trimmed);
+  if (numeric != null) {
+    final value = numeric % 1 == 0
+        ? numeric.toInt().toString()
+        : _trimTrailingZeros(numeric.toStringAsFixed(2));
+    return '$value g';
+  }
+
+  final hasUnit = RegExp(r'[A-Za-z]').hasMatch(trimmed);
+  if (hasUnit) {
+    return trimmed;
+  }
+
+  return '$trimmed g';
+}
+
+String? _formatPriceValue(String? price) {
+  if (price == null) return null;
+
+  final trimmed = price.trim();
+  if (trimmed.isEmpty) return null;
+
+  var normalized = trimmed;
+  if (normalized.startsWith(_rupeeSymbol)) {
+    normalized = normalized.substring(_rupeeSymbol.length).trim();
+  }
+
+  if (normalized.isEmpty) return null;
+  if (normalized.toUpperCase() == 'N/A') return null;
+
+  final numeric = double.tryParse(normalized.replaceAll(',', ''));
+  if (numeric != null) {
+    return numeric % 1 == 0
+        ? numeric.toInt().toString()
+        : _trimTrailingZeros(numeric.toStringAsFixed(2));
+  }
+
+  return normalized;
+}
+
+String _trimTrailingZeros(String value) {
+  return value.replaceFirst(RegExp(r'\.?0+$'), '');
 }

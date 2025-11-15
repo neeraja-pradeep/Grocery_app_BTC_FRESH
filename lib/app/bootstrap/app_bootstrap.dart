@@ -3,6 +3,8 @@ import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'hive_init.dart';
+
 typedef AppBuilder = FutureOr<Widget> Function();
 
 /// Handles all application level bootstrapping before rendering the widget tree.
@@ -37,5 +39,7 @@ class AppBootstrap {
     );
   }
 
-  static Future<void> _initialize() async {}
+  static Future<void> _initialize() async {
+    await HiveInit.initialize();
+  }
 }

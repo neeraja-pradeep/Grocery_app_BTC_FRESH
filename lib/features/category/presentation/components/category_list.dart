@@ -5,10 +5,20 @@ import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 
 class CategoryItem {
-  const CategoryItem({required this.title, this.assetPath});
+  const CategoryItem({
+    required this.title,
+    this.id,
+    this.assetPath,
+    this.imageUrl,
+  });
 
+  final String? id;
   final String title;
   final String? assetPath;
+  final String? imageUrl;
+
+  bool get hasLocalAsset => assetPath != null && assetPath!.isNotEmpty;
+  bool get hasNetworkImage => imageUrl != null && imageUrl!.isNotEmpty;
 }
 
 class CategoryList extends StatelessWidget {
@@ -49,6 +59,42 @@ class CategoryList extends StatelessWidget {
               ? const BorderRadius.only(topRight: Radius.circular(10))
               : null;
 
+          final Widget? imageWidget;
+          if (item.hasLocalAsset) {
+            imageWidget = Image.asset(
+              item.assetPath!,
+              height: 68.h,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              alignment: Alignment.centerLeft,
+            );
+          } else if (item.hasNetworkImage) {
+            imageWidget = Image.network(
+              item.imageUrl!,
+              height: 68.h,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              alignment: Alignment.centerLeft,
+              errorBuilder: (context, error, stackTrace) =>
+                  const SizedBox.shrink(),
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const SizedBox(
+                  height: 68,
+                  child: Center(
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              },
+            );
+          } else {
+            imageWidget = null;
+          }
+
           return GestureDetector(
             onTap: () => onCategorySelected(index),
             child: Padding(
@@ -82,17 +128,8 @@ class CategoryList extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (isSelected && item.assetPath != null) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(14.r),
-                          child: Image.asset(
-                            item.assetPath!,
-                            height: 68.h,
-                            width: double.infinity,
-                            fit: BoxFit.fitHeight,
-                            alignment: Alignment.centerLeft,
-                          ),
-                        ),
+                      if (isSelected && imageWidget != null) ...[
+                        ClipRRect(child: imageWidget),
                         AppSpacing.h8,
                       ],
                       AppText(
