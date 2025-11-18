@@ -24,8 +24,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     super.initState();
     final profile = ref.read(profileControllerProvider).profile;
     _fullNameController = TextEditingController(text: profile?.fullName ?? '');
-    _mobileNumberController =
-        TextEditingController(text: profile?.mobileNumber ?? '');
+    _mobileNumberController = TextEditingController(
+      text: profile?.mobileNumber ?? '',
+    );
     _locationController = TextEditingController(text: profile?.location ?? '');
   }
 
@@ -48,11 +49,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppColors.black,
-            size: 24.sp,
-          ),
+          icon: Icon(Icons.arrow_back, color: AppColors.black, size: 24.sp),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -115,8 +112,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 width: double.infinity,
                 height: 50.h,
                 child: ElevatedButton(
-                  onPressed:
-                      profileState.isUpdating == true ? null : _handleSave,
+                  onPressed: profileState.isUpdating == true
+                      ? null
+                      : _handleSave,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.green60,
                     shape: RoundedRectangleBorder(
@@ -128,7 +126,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                       ? SizedBox(
                           height: 20.h,
                           width: 20.w,
-                          child: CircularProgressIndicator(
+                          child: const CircularProgressIndicator(
                             strokeWidth: 2,
                             color: AppColors.green100,
                           ),
@@ -180,10 +178,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               Center(
                 child: Text(
                   'Deleting your account is permanent and\ncannot be undone.',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.grey,
-                  ),
+                  style: TextStyle(fontSize: 12.sp, color: AppColors.grey),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -217,11 +212,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ? NetworkImage(profileImageUrl)
                     : null,
                 child: profileImageUrl == null
-                    ? Icon(
-                        Icons.person,
-                        size: 32.sp,
-                        color: AppColors.grey,
-                      )
+                    ? Icon(Icons.person, size: 32.sp, color: AppColors.grey)
                     : null,
               ),
               Positioned(
@@ -233,11 +224,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     color: AppColors.green,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.edit,
-                    size: 12.sp,
-                    color: AppColors.white,
-                  ),
+                  child: Icon(Icons.edit, size: 12.sp, color: AppColors.white),
                 ),
               ),
             ],
@@ -309,17 +296,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(
-                color: AppColors.green,
-                width: 1.5,
-              ),
+              borderSide: const BorderSide(color: AppColors.green, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1.5,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
             ),
             contentPadding: EdgeInsets.symmetric(
               horizontal: 12.w,
@@ -337,7 +318,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     }
 
     try {
-      await ref.read(profileControllerProvider.notifier).updateProfile(
+      await ref
+          .read(profileControllerProvider.notifier)
+          .updateProfile(
             fullName: _fullNameController.text.trim(),
             mobileNumber: _mobileNumberController.text.trim(),
             location: _locationController.text.trim().isEmpty
@@ -347,7 +330,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: const Text('Profile updated successfully'),
             backgroundColor: AppColors.green,
           ),
@@ -372,26 +355,18 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       builder: (context) => AlertDialog(
         title: Text(
           'Delete Account',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
         ),
         content: Text(
           'Are you sure you want to delete your account? This action cannot be undone.',
-          style: TextStyle(
-            fontSize: 14.sp,
-          ),
+          style: TextStyle(fontSize: 14.sp),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: AppColors.grey,
-              ),
+              style: TextStyle(fontSize: 14.sp, color: AppColors.grey),
             ),
           ),
           TextButton(

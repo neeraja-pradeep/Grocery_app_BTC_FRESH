@@ -36,11 +36,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppColors.black,
-            size: 24.sp,
-          ),
+          icon: Icon(Icons.arrow_back, color: AppColors.black, size: 24.sp),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -53,111 +49,102 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       ),
       body: profileState.isLoading && !profileState.hasData
-          ? Center(
-              child: CircularProgressIndicator(
-                color: AppColors.green,
-              ),
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.green),
             )
           : profileState.isError && !profileState.hasData
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        profileState.errorMessage ?? 'Something went wrong',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: AppColors.grey,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      AppSpacing.h16,
-                      ElevatedButton(
-                        onPressed: () {
-                          ref
-                              .read(profileControllerProvider.notifier)
-                              .fetchProfile();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.green,
-                        ),
-                        child: Text(
-                          'Retry',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    profileState.errorMessage ?? 'Something went wrong',
+                    style: TextStyle(fontSize: 14.sp, color: AppColors.grey),
+                    textAlign: TextAlign.center,
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppSpacing.h16,
-                      ProfileHeader(
-                        fullName: profileState.profile?.fullName ?? 'User',
-                        mobileNumber:
-                            profileState.profile?.mobileNumber ?? 'N/A',
-                        profileImageUrl: profileState.profile?.profileImageUrl,
-                        onEditTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const ProfileEditScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      AppSpacing.h24,
-                      ProfileMenuItem(
-                        icon: Icons.shopping_bag_outlined,
-                        title: 'Order history',
-                        onTap: () {
-                          // Navigate to order history screen
-                        },
-                      ),
-                      AppSpacing.h24,
-                      const ProfileSectionHeader(title: 'Account settings'),
-                      AppSpacing.h12,
-                      ProfileMenuItem(
-                        icon: Icons.location_on_outlined,
-                        title: 'Delivery Address',
-                        onTap: () {
-                          // Navigate to delivery address screen
-                        },
-                      ),
-                      AppSpacing.h12,
-                      ProfileMenuItem(
-                        icon: Icons.payment_outlined,
-                        title: 'Payment Methods',
-                        onTap: () {
-                          // Navigate to payment methods screen
-                        },
-                      ),
-                      AppSpacing.h24,
-                      const ProfileSectionHeader(title: 'Support'),
-                      AppSpacing.h12,
-                      ProfileMenuItem(
-                        icon: Icons.headset_mic_outlined,
-                        title: 'Contact Us',
-                        onTap: () {
-                          // Navigate to contact us screen
-                        },
-                      ),
-                      AppSpacing.h12,
-                      ProfileMenuItem(
-                        icon: Icons.logout_outlined,
-                        title: 'Log out',
-                        showChevron: false,
-                        onTap: () => _handleLogout(context),
-                      ),
-                      AppSpacing.h32,
-                    ],
+                  AppSpacing.h16,
+                  ElevatedButton(
+                    onPressed: () {
+                      ref
+                          .read(profileControllerProvider.notifier)
+                          .fetchProfile();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.green,
+                    ),
+                    child: Text(
+                      'Retry',
+                      style: TextStyle(fontSize: 14.sp, color: AppColors.white),
+                    ),
                   ),
-                ),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppSpacing.h16,
+                  ProfileHeader(
+                    fullName: profileState.profile?.fullName ?? 'User',
+                    mobileNumber: profileState.profile?.mobileNumber ?? 'N/A',
+                    profileImageUrl: profileState.profile?.profileImageUrl,
+                    onEditTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ProfileEditScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  AppSpacing.h24,
+                  ProfileMenuItem(
+                    icon: Icons.shopping_bag_outlined,
+                    title: 'Order history',
+                    onTap: () {
+                      // Navigate to order history screen
+                    },
+                  ),
+                  AppSpacing.h24,
+                  const ProfileSectionHeader(title: 'Account settings'),
+                  AppSpacing.h12,
+                  ProfileMenuItem(
+                    icon: Icons.location_on_outlined,
+                    title: 'Delivery Address',
+                    onTap: () {
+                      // Navigate to delivery address screen
+                    },
+                  ),
+                  AppSpacing.h12,
+                  ProfileMenuItem(
+                    icon: Icons.payment_outlined,
+                    title: 'Payment Methods',
+                    onTap: () {
+                      // Navigate to payment methods screen
+                    },
+                  ),
+                  AppSpacing.h24,
+                  const ProfileSectionHeader(title: 'Support'),
+                  AppSpacing.h12,
+                  ProfileMenuItem(
+                    icon: Icons.headset_mic_outlined,
+                    title: 'Contact Us',
+                    onTap: () {
+                      // Navigate to contact us screen
+                    },
+                  ),
+                  AppSpacing.h12,
+                  ProfileMenuItem(
+                    icon: Icons.logout_outlined,
+                    title: 'Log out',
+                    showChevron: false,
+                    onTap: () => _handleLogout(context),
+                  ),
+                  AppSpacing.h32,
+                ],
+              ),
+            ),
     );
   }
 
@@ -167,26 +154,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (context) => AlertDialog(
         title: Text(
           'Log out',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
         ),
         content: Text(
           'Are you sure you want to log out?',
-          style: TextStyle(
-            fontSize: 14.sp,
-          ),
+          style: TextStyle(fontSize: 14.sp),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: AppColors.grey,
-              ),
+              style: TextStyle(fontSize: 14.sp, color: AppColors.grey),
             ),
           ),
           TextButton(
