@@ -318,14 +318,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     }
 
     try {
-      await ref
-          .read(profileControllerProvider.notifier)
-          .updateProfile(
+      await ref.read(profileControllerProvider.notifier).updateProfile(
             fullName: _fullNameController.text.trim(),
-            mobileNumber: _mobileNumberController.text.trim(),
-            location: _locationController.text.trim().isEmpty
-                ? null
-                : _locationController.text.trim(),
+            phoneNumber: _mobileNumberController.text.trim(),
           );
 
       if (mounted) {

@@ -67,8 +67,7 @@ class ProfileController extends Notifier<ProfileState> {
 
   Future<void> updateProfile({
     required String fullName,
-    required String mobileNumber,
-    String? location,
+    required String phoneNumber,
   }) async {
     state = state.copyWith(
       isUpdating: true,
@@ -78,8 +77,7 @@ class ProfileController extends Notifier<ProfileState> {
     try {
       final updatedProfile = await _repository.updateProfile(
         fullName: fullName,
-        mobileNumber: mobileNumber,
-        location: location,
+        phoneNumber: phoneNumber,
       );
 
       state = state.copyWith(

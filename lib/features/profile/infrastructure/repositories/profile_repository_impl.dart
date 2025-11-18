@@ -38,13 +38,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<Profile> updateProfile({
     required String fullName,
-    required String mobileNumber,
-    String? location,
+    required String phoneNumber,
   }) async {
     final profileDto = await _remoteDs.updateProfile(
       fullName: fullName,
-      mobileNumber: mobileNumber,
-      location: location,
+      phoneNumber: phoneNumber,
     );
 
     // Update the cache with new profile data

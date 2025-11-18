@@ -28,15 +28,17 @@ class ProfileApi {
   /// Updates the user's profile information.
   Future<ProfileDto> updateProfile({
     required String fullName,
-    required String mobileNumber,
-    String? location,
+    required String phoneNumber,
   }) async {
-    final response = await _client.post<Map<String, dynamic>>(
+    // Split fullName into first_name and last_name
+    final nameParts = ProfileDto.splitFullName(fullName);
+
+    final response = await _client.patch<Map<String, dynamic>>(
       'api/auth/profile/',
       data: <String, dynamic>{
-        'full_name': fullName,
-        'mobile_number': mobileNumber,
-        if (location != null) 'location': location,
+        'first_name': nameParts['first_name'],
+        'last_name': nameParts['last_name'],
+        'phone_number': phoneNumber,
       },
       headers: {
         'dev': '2',

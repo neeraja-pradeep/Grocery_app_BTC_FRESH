@@ -7,8 +7,7 @@ abstract class ProfileRepository {
   /// Updates the user's profile information.
   Future<Profile> updateProfile({
     required String fullName,
-    required String mobileNumber,
-    String? location,
+    required String phoneNumber,
   });
 
   /// Deletes the user's account permanently.
