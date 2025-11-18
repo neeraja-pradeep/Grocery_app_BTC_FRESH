@@ -9,13 +9,11 @@ class UpdateProfile {
 
   Future<Profile> call({
     required String fullName,
-    required String mobileNumber,
-    String? location,
+    required String phoneNumber,
   }) async {
     return _repository.updateProfile(
       fullName: fullName,
-      mobileNumber: mobileNumber,
-      location: location,
+      phoneNumber: phoneNumber,
     );
   }
 }

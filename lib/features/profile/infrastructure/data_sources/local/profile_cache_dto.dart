@@ -41,22 +41,27 @@ class ProfileCacheDto {
         'cachedAt': cachedAt.toIso8601String(),
       };
 
-  ProfileDto toDto() => ProfileDto(
-        id: id,
-        fullName: fullName,
-        mobileNumber: mobileNumber,
-        email: email,
-        location: location,
-        profileImageUrl: profileImageUrl,
-      );
+  ProfileDto toDto() {
+    // Split fullName into firstName and lastName
+    final nameParts = ProfileDto.splitFullName(fullName);
+
+    return ProfileDto(
+      id: id,
+      firstName: nameParts['first_name']!,
+      lastName: nameParts['last_name']!,
+      phoneNumber: mobileNumber,
+      email: email,
+      profileImageUrl: profileImageUrl,
+    );
+  }
 
   factory ProfileCacheDto.fromDto(ProfileDto dto) {
     return ProfileCacheDto(
       id: dto.id,
-      fullName: dto.fullName,
-      mobileNumber: dto.mobileNumber,
+      fullName: '${dto.firstName} ${dto.lastName}',
+      mobileNumber: dto.phoneNumber,
       email: dto.email,
-      location: dto.location,
+      location: null,
       profileImageUrl: dto.profileImageUrl,
       cachedAt: DateTime.now(),
     );
