@@ -9,14 +9,14 @@ class ExpandableSection extends StatelessWidget {
   const ExpandableSection({
     super.key,
     required this.title,
-    required this.isExpanded,
+    this.isExpanded,
     required this.onToggle,
     required this.child,
     this.badge,
   });
 
   final String title;
-  final bool isExpanded;
+  final bool? isExpanded;
   final VoidCallback onToggle;
   final Widget child;
   final String? badge;
@@ -76,14 +76,15 @@ class ExpandableSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: AppColors.green100,
-                  size: 22.sp,
-                ),
+                if (isExpanded != null)
+                  Icon(
+                    isExpanded! ? Icons.expand_less : Icons.expand_more,
+                    color: AppColors.green100,
+                    size: 22.sp,
+                  ),
               ],
             ),
-            if (isExpanded) ...[AppSpacing.h10, child],
+            if (isExpanded ?? false) ...[AppSpacing.h10, child],
           ],
         ),
       ),

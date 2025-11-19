@@ -8,6 +8,7 @@ import 'package:grocery_app/features/category/domain/entities/category_product.d
 import '../../domain/entities/product_detail.dart' as product_detail;
 import '../components/expandable_section/expandable_section.dart';
 import '../components/product_image_section/product_image_section.dart';
+import '../components/product_list_item/product_list_item.dart';
 
 const String _rupeeSymbol = '₹';
 
@@ -27,7 +28,20 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int _quantity = 0;
   bool _isInWishlist = false;
   bool _isProductDetailExpanded = false;
-  bool _isNutritionsExpanded = false;
+
+  // Related products quantities
+  late Map<String, int> _relatedProductsQuantities = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeRelatedProductsQuantities();
+  }
+
+  void _initializeRelatedProductsQuantities() {
+    // Initialize quantities for related products (you can modify this based on your data)
+    _relatedProductsQuantities = {'yellow_cherry': 0, 'roma_vf': 0};
+  }
 
   /// Convert CategoryProduct to ProductDetail
   product_detail.ProductDetail _convertToProductDetail(
@@ -248,34 +262,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   maxLines: 10,
                 ),
               ),
-              AppSpacing.h16,
 
               // Nutritions Section (Expandable)
               ExpandableSection(
                 title: 'Nutritions',
-                isExpanded: _isNutritionsExpanded,
-                onToggle: () {
-                  setState(
-                    () => _isNutritionsExpanded = !_isNutritionsExpanded,
-                  );
-                },
+                onToggle: () {},
                 badge: '100gr',
-                child: AppText(
-                  text:
-                      'Nutritional information per 100g:\n'
-                      'Calories: 52 kcal\n'
-                      'Carbohydrates: 13.8g\n'
-                      'Fiber: 2.4g\n'
-                      'Sugar: 10.4g\n'
-                      'Protein: 0.3g\n'
-                      'Fat: 0.2g',
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.grey,
-                  maxLines: 20,
-                ),
+                child: const SizedBox(),
               ),
-              AppSpacing.h16,
 
               // Review Section
               GestureDetector(
@@ -284,41 +278,42 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 },
                 child: Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 16.h,
+                    horizontal: 14.w,
+                    vertical: 14.h,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: AppColors.grey.withValues(alpha: 0.2),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: AppColors.grey.withValues(alpha: 0.15),
+                        width: 1.h,
+                      ),
+                      top: BorderSide(
+                        color: AppColors.grey.withValues(alpha: 0.15),
+                        width: 1.h,
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppText(
-                            text: 'Review',
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.green100,
-                          ),
-                          AppSpacing.h8,
-                          Row(
-                            children: List.generate(
-                              5,
-                              (index) => Icon(
-                                Icons.star_rounded,
-                                color: Colors.amber,
-                                size: 18.sp,
-                              ),
-                            ),
-                          ),
-                        ],
+                      AppText(
+                        text: 'Review',
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.green100,
                       ),
+                      const Spacer(),
+                      Row(
+                        children: List.generate(
+                          5,
+                          (index) => Icon(
+                            Icons.star_rounded,
+                            color: Colors.deepOrange,
+                            size: 18.sp,
+                          ),
+                        ),
+                      ),
+                      AppSpacing.w4,
                       Icon(
                         Icons.arrow_forward_ios,
                         color: AppColors.grey,
@@ -328,7 +323,36 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
                 ),
               ),
-              AppSpacing.h24,
+
+              // Product List Items
+              ProductListItem(
+                productName: 'Yellow Cherry\nTomatoes 250g',
+                weight: '250g',
+                price: '1.80',
+                imageUrl: productDetail.imageUrl ?? '',
+                quantity: _relatedProductsQuantities['yellow_cherry'] ?? 0,
+                onQuantityChanged: (newQuantity) {
+                  setState(() {
+                    _relatedProductsQuantities['yellow_cherry'] = newQuantity;
+                  });
+                },
+                pricePerUnit: '3,45',
+              ),
+              AppSpacing.h12,
+
+              ProductListItem(
+                productName: 'Roma VF\nTomatoes',
+                weight: '500g',
+                price: '1.60',
+                imageUrl: productDetail.imageUrl ?? '',
+                quantity: _relatedProductsQuantities['roma_vf'] ?? 0,
+                onQuantityChanged: (newQuantity) {
+                  setState(() {
+                    _relatedProductsQuantities['roma_vf'] = newQuantity;
+                  });
+                },
+                pricePerUnit: '2,85',
+              ),
             ],
           ),
         ),
