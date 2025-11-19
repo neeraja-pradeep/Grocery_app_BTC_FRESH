@@ -29,7 +29,7 @@ class ProductListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -47,8 +47,8 @@ class ProductListItem extends StatelessWidget {
         children: [
           // Product Image
           Container(
-            width: 80.w,
-            height: 80.w,
+            width: 70.w,
+            height: 70.w,
             decoration: BoxDecoration(
               color: AppColors.grey.withValues(alpha: 0.1),
               // borderRadius: BorderRadius.circular(10.r),
@@ -73,7 +73,7 @@ class ProductListItem extends StatelessWidget {
               ),
             ),
           ),
-          AppSpacing.w12,
+          AppSpacing.w8,
 
           // Product Details
           Expanded(
@@ -83,7 +83,7 @@ class ProductListItem extends StatelessWidget {
                 // Price in green
                 AppText(
                   text: price,
-                  fontSize: 14.sp,
+                  fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.green50,
                 ),
@@ -92,25 +92,25 @@ class ProductListItem extends StatelessWidget {
                 // Product Name
                 AppText(
                   text: productName,
-                  fontSize: 14.sp,
+                  fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.black,
                   maxLines: 2,
                 ),
-                AppSpacing.h10,
+                AppSpacing.h4,
 
                 // Weight and Price Per Unit
                 Row(
                   children: [
                     AppText(
                       text: '$weight • $pricePerUnit/kg',
-                      fontSize: 12.sp,
+                      fontSize: 10.sp,
                       fontWeight: FontWeight.w500,
                       color: AppColors.grey,
                     ),
                     const Spacer(),
                     SizedBox(
-                      width: 120.w,
+                      width: 100.w,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -121,19 +121,18 @@ class ProductListItem extends StatelessWidget {
                               }
                             },
                             child: Container(
-                              width: 28.w,
-                              height: 28.w,
+                              width: 24.w,
+                              height: 24.w,
                               decoration: BoxDecoration(
                                 color: AppColors.white,
-                                borderRadius: BorderRadius.circular(6.r),
-
+                                borderRadius: BorderRadius.circular(5.r),
                                 boxShadow: [
                                   BoxShadow(
                                     color: AppColors.grey.withValues(
                                       alpha: 0.19,
                                     ),
                                     blurRadius: 4,
-                                    offset: const Offset(0, 2),
+                                    offset: const Offset(0, 1),
                                   ),
                                 ],
                               ),
@@ -141,32 +140,32 @@ class ProductListItem extends StatelessWidget {
                               child: const Icon(
                                 Icons.remove,
                                 color: AppColors.green100,
-                                size: 16,
+                                size: 14,
                                 weight: 900,
                               ),
                             ),
                           ),
                           AppSpacing.w4,
                           Container(
-                            width: 28.w,
-                            height: 28.w,
+                            width: 24.w,
+                            height: 24.w,
                             decoration: BoxDecoration(
                               color: AppColors.green100,
-                              borderRadius: BorderRadius.circular(6.r),
+                              borderRadius: BorderRadius.circular(5.r),
                               boxShadow: [
                                 BoxShadow(
                                   color: AppColors.green100.withValues(
                                     alpha: 0.3,
                                   ),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
                                 ),
                               ],
                             ),
                             alignment: Alignment.center,
                             child: AppText(
                               text: '$quantity',
-                              fontSize: 14.sp,
+                              fontSize: 12.sp,
                               fontWeight: FontWeight.w700,
                               color: AppColors.white,
                             ),
@@ -175,19 +174,18 @@ class ProductListItem extends StatelessWidget {
                           GestureDetector(
                             onTap: () => onQuantityChanged(quantity + 1),
                             child: Container(
-                              width: 28.w,
-                              height: 28.w,
+                              width: 24.w,
+                              height: 24.w,
                               decoration: BoxDecoration(
                                 color: AppColors.white,
-                                borderRadius: BorderRadius.circular(6.r),
-
+                                borderRadius: BorderRadius.circular(5.r),
                                 boxShadow: [
                                   BoxShadow(
                                     color: AppColors.grey.withValues(
                                       alpha: 0.19,
                                     ),
                                     blurRadius: 4,
-                                    offset: const Offset(0, 2),
+                                    offset: const Offset(0, 1),
                                   ),
                                 ],
                               ),
@@ -195,7 +193,7 @@ class ProductListItem extends StatelessWidget {
                               child: const Icon(
                                 Icons.add,
                                 color: AppColors.green100,
-                                size: 16,
+                                size: 14,
                                 weight: 900,
                               ),
                             ),

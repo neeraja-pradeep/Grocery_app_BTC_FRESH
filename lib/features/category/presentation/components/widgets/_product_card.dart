@@ -37,7 +37,7 @@ class ProductCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(18.r),
           border: Border.all(color: AppColors.grey.withValues(alpha: 0.2)),
           boxShadow: [
@@ -58,15 +58,15 @@ class ProductCard extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(18.r),
+                          top: Radius.circular(10.r),
                         ),
-                        color: AppColors.green10,
+                        color: AppColors.white,
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(18.r),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: _ProductImage(image: image),
                         ),
-                        child: _ProductImage(image: image),
                       ),
                     ),
                   ),
@@ -86,7 +86,7 @@ class ProductCard extends StatelessWidget {
                         child: const Icon(
                           Icons.add,
                           color: AppColors.white,
-                          size: 17,
+                          size: 20,
                         ),
                       ),
                     ),

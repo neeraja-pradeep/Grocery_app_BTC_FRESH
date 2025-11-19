@@ -323,6 +323,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
                 ),
               ),
+              AppSpacing.h12,
+
+              // Related Products Section
+              AppText(
+                text: 'Related Products',
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.black,
+              ),
+              AppSpacing.h8,
 
               // Product List Items
               ProductListItem(
@@ -338,7 +348,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 },
                 pricePerUnit: '3,45',
               ),
-              AppSpacing.h12,
+              AppSpacing.h8,
 
               ProductListItem(
                 productName: 'Roma VF\nTomatoes',
@@ -353,6 +363,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 },
                 pricePerUnit: '2,85',
               ),
+              AppSpacing.h16,
             ],
           ),
         ),

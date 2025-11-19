@@ -198,7 +198,7 @@ class ProductGridState extends ConsumerState<ProductGrid> {
           ),
           // Products in 2-column grid
           SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: 8.w),
+            padding: EdgeInsets.symmetric(horizontal: 1.w),
             sliver: _CategoryProductsSliver(
               categoryId: widget.categories[i].id ?? '',
               colorScheme: colorScheme,
@@ -275,7 +275,7 @@ class _CategoryProductsSliver extends ConsumerWidget {
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 4.w,
+        crossAxisSpacing: 3.5.w,
         mainAxisSpacing: 5.h,
         mainAxisExtent: 175.h,
       ),
