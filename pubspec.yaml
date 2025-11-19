@@ -37,3 +37,5 @@ flutter:
   assets:
     - assets/images/
     - assets/svgs/
+    - assets/svgs/nav_bar/
+    - assets/svgs/category_screen/

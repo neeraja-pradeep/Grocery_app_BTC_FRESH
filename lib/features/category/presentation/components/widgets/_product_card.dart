@@ -7,44 +7,12 @@ import 'package:grocery_app/features/category/domain/entities/category_product.d
 
 const String _rupeeSymbol = '\u20B9';
 
-class ProductGrid extends StatelessWidget {
-  const ProductGrid({
+/// Individual product card displayed in product grid
+/// Shows: Image + add-to-cart button | Name, weight, price + wishlist
+
+class ProductCard extends StatelessWidget {
+  const ProductCard({
     super.key,
-    required this.products,
-    required this.onAddToCart,
-  });
-
-  final List<CategoryProduct> products;
-  final ValueChanged<CategoryProduct> onAddToCart;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return GridView.builder(
-      padding: EdgeInsets.zero,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 4.w,
-        mainAxisSpacing: 5.h,
-        mainAxisExtent: 175.h,
-      ),
-
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return _ProductCard(
-          product: product,
-          colorScheme: colorScheme,
-          onAddToCart: () => onAddToCart(product),
-        );
-      },
-    );
-  }
-}
-
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({
     required this.product,
     required this.colorScheme,
     required this.onAddToCart,
@@ -173,6 +141,8 @@ class _ProductCard extends StatelessWidget {
     );
   }
 }
+
+/// Product image with fallback handling (local/network/placeholder)
 
 class _ProductImage extends StatelessWidget {
   const _ProductImage({required this.image});

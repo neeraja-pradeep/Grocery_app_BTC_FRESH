@@ -4,6 +4,7 @@ import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 
+/// Category data model with title, id, and optional images
 class CategoryItem {
   const CategoryItem({
     required this.title,
@@ -21,6 +22,10 @@ class CategoryItem {
   bool get hasNetworkImage => imageUrl != null && imageUrl!.isNotEmpty;
 }
 
+/// Left sidebar category navigation list
+/// - Shows all categories
+/// - Selected item has green highlight + image preview
+/// - Notifies parent when category is tapped
 class CategoryList extends StatelessWidget {
   const CategoryList({
     super.key,
@@ -43,6 +48,7 @@ class CategoryList extends StatelessWidget {
           if (index == selectedIndex) {
             return const SizedBox.shrink();
           }
+          // Divider between unselected categories
           return Divider(
             height: 1.h,
             thickness: 1.h,
@@ -59,6 +65,7 @@ class CategoryList extends StatelessWidget {
               ? const BorderRadius.only(topRight: Radius.circular(10))
               : null;
 
+          // Load category image (local asset or network)
           final Widget? imageWidget;
           if (item.hasLocalAsset) {
             imageWidget = Image.asset(
@@ -115,6 +122,7 @@ class CategoryList extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelected ? AppColors.green10 : AppColors.white,
                     borderRadius: borderRadius,
+                    // Green left border for selected item
                     border: Border(
                       left: BorderSide(
                         color: isSelected
@@ -128,10 +136,12 @@ class CategoryList extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Show image only when selected
                       if (isSelected && imageWidget != null) ...[
                         ClipRRect(child: imageWidget),
                         AppSpacing.h8,
                       ],
+                      // Category name
                       AppText(
                         text: item.title,
                         fontSize: 13.sp,

@@ -4,6 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/core/extensions/context_extensions.dart';
 
+/// Filter controls bar with icon + filter chips
+/// - Left: Filter icon (SVG)
+/// - Right: Horizontal list of filter options (Brand, Price Drop, Popular)
+/// - Selected filter highlighted in primary color
 class FilterBar extends StatelessWidget {
   const FilterBar({
     super.key,
@@ -35,6 +39,7 @@ class FilterBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Filter icon button
           Container(
             width: 32.w,
             height: 30.h,
@@ -56,6 +61,7 @@ class FilterBar extends StatelessWidget {
             ),
           ),
 
+          // Filter chips (Brand, Price Drop, Popular)
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,

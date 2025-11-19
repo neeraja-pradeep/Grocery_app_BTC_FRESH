@@ -3,12 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/features/category/application/providers/category_providers.dart';
 import 'package:grocery_app/features/category/application/states/category_state.dart';
-import 'package:grocery_app/features/category/presentation/components/product_grid/product_grid.dart';
 import 'package:grocery_app/features/category/presentation/components/views/category_empty_view.dart';
 import 'package:grocery_app/features/category/presentation/components/views/category_error_view.dart';
 import 'package:grocery_app/features/category/presentation/components/widgets/category_list.dart';
 import 'package:grocery_app/features/category/presentation/components/widgets/filter_bar.dart';
+import 'package:grocery_app/features/category/presentation/components/product_grid/product_grid.dart';
 
+/// Main category screen layout that combines:
+/// - Left sidebar: Category list for navigation
+/// - Right side: Filter bar + Product grid with category headings
+///
+/// Handles bidirectional sync:
+/// - Click category → scrolls product grid to that category
+/// - Scroll products → updates selected category in sidebar
 class CategoryScreenBody extends ConsumerStatefulWidget {
   static const List<String> _filters = ['Brand', 'Price Drop', 'Popular'];
 
@@ -36,6 +43,7 @@ class CategoryScreenBody extends ConsumerStatefulWidget {
 }
 
 class _CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
+  /// Key to access ProductGrid state and trigger scroll-to-category
   late final GlobalKey<ProductGridState> _productGridKey;
 
   @override
@@ -57,6 +65,7 @@ class _CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
     );
   }
 
+  /// Builds the layout with state handling (loading, error, empty, content)
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref, {
@@ -64,10 +73,12 @@ class _CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
     required CategoryState state,
     required List<CategoryItem> categories,
   }) {
+    // Loading state
     if (state.isLoading && !state.hasData) {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // Error state
     if (state.isError && !state.hasData) {
       return CategoryErrorView(
         message: state.errorMessage ?? 'Unable to load categories.',
@@ -77,12 +88,15 @@ class _CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
       );
     }
 
+    // Empty state
     if (state.isEmpty || categories.isEmpty) {
       return const CategoryEmptyView();
     }
 
+    // Main content: Left sidebar + Right content area
     return Row(
       children: [
+        // LEFT SIDEBAR: Category list for navigation
         Expanded(
           flex: 1,
           child: Row(
@@ -93,17 +107,20 @@ class _CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
                 selectedIndex: widget.selectedCategoryIndex,
                 onCategorySelected: (index) {
                   widget.onCategorySelected(index);
+                  // Scroll product grid to selected category
                   _productGridKey.currentState?.scrollToCategory(index);
                 },
               ),
             ],
           ),
         ),
+        // RIGHT CONTENT: Filter bar + Product grid with category headings
         Expanded(
           flex: 2,
           child: Column(
             children: [
               AppSpacing.h4,
+              // Filter controls (Brand, Price Drop, Popular)
               FilterBar(
                 filters: CategoryScreenBody._filters,
                 selectedIndex: widget.selectedFilterIndex,
@@ -111,6 +128,7 @@ class _CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
                 leadingIconAsset: 'assets/svgs/category_screen/filter_icon.svg',
               ),
               AppSpacing.h4,
+              // Products grid with category headings + scroll detection
               Expanded(
                 child: ProductGrid(
                   key: _productGridKey,

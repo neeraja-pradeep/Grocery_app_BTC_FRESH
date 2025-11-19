@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/features/category/presentation/screen/category_screen.dart';
 
 class BottomNavigation extends StatefulWidget {
@@ -49,21 +51,58 @@ class _BottomNavBar extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: currentIndex,
       onTap: onItemSelected,
-      selectedItemColor: colorScheme.primary,
-      unselectedItemColor: colorScheme.onSurfaceVariant,
+      selectedItemColor: AppColors.green100,
+      unselectedItemColor: AppColors.black,
       showUnselectedLabels: true,
-      items: const [
+      type: BottomNavigationBarType.fixed,
+      elevation: 8,
+      items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.category_outlined),
+          icon: SvgPicture.asset(
+            'assets/svgs/nav_bar/categories.svg',
+            height: 24,
+            width: 24,
+            colorFilter: ColorFilter.mode(
+              currentIndex == 0 ? AppColors.green100 : AppColors.black,
+              BlendMode.srcIn,
+            ),
+          ),
           label: 'Categories',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
         BottomNavigationBarItem(
-          icon: Icon(Icons.favorite_border),
+          icon: SvgPicture.asset(
+            'assets/svgs/nav_bar/home.svg',
+            height: 24,
+            width: 24,
+            colorFilter: ColorFilter.mode(
+              currentIndex == 1 ? AppColors.green100 : AppColors.black,
+              BlendMode.srcIn,
+            ),
+          ),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: SvgPicture.asset(
+            'assets/svgs/nav_bar/wishlist.svg',
+            height: 24,
+            width: 24,
+            colorFilter: ColorFilter.mode(
+              currentIndex == 2 ? AppColors.green100 : AppColors.black,
+              BlendMode.srcIn,
+            ),
+          ),
           label: 'Wishlist',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.shopping_bag_outlined),
+          icon: SvgPicture.asset(
+            'assets/svgs/nav_bar/cart.svg',
+            height: 24,
+            width: 24,
+            colorFilter: ColorFilter.mode(
+              currentIndex == 3 ? AppColors.green100 : AppColors.black,
+              BlendMode.srcIn,
+            ),
+          ),
           label: 'Cart',
         ),
       ],

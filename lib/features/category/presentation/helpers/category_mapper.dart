@@ -1,6 +1,6 @@
 import 'package:grocery_app/features/category/application/states/category_state.dart';
 import 'package:grocery_app/features/category/domain/entities/category.dart';
-import 'package:grocery_app/features/category/presentation/components/category_list.dart';
+import 'package:grocery_app/features/category/presentation/components/widgets/category_list.dart';
 
 /// Maps domain entities to view models
 class CategoryMapper {

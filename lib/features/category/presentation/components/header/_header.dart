@@ -32,7 +32,7 @@ class Header extends StatelessWidget {
           children: [
             AppSpacing.w12,
             SvgPicture.asset(
-              'assets/svgs/category_icon.svg',
+              'assets/svgs/category_screen/category_icon.svg',
               colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
               width: 22.w,
               height: 22.w,
@@ -52,7 +52,7 @@ class Header extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: SvgPicture.asset(
-                'assets/svgs/search_icon.svg',
+                'assets/svgs/category_screen/search_icon.svg',
                 width: 22.w,
                 height: 22.w,
               ),
