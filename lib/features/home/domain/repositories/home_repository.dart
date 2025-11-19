@@ -1,27 +1,63 @@
+// lib/features/home/domain/repositories/home_repository.dart
+
+import 'package:fpdart/fpdart.dart'; // or 'package:dartz/dartz.dart'
+import 'package:new_app/core/error/failure.dart'; // Assumed location of Failure class
+import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
-import 'package:new_app/features/home/domain/entities/product.dart';
-import 'package:new_app/features/home/domain/entities/offer.dart';
+import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
+import 'package:new_app/features/home/domain/entities/product_variant.dart';
+import 'package:new_app/features/home/domain/entities/user_address.dart';
 
-/// Defines the contract for all data operations related to the Home Screen.
+// Placeholder for UserAddress if not yet created
+// import 'package:new_app/features/home/domain/entities/user_address.dart';
+// Temporary placeholder class
+
+class PaginatedResult<T> {
+  final int count;
+  final String? next;
+  final String? previous;
+  final List<T> results;
+
+  PaginatedResult({
+    required this.count,
+    this.next,
+    this.previous,
+    required this.results,
+  });
+}
+
 abstract class HomeRepository {
-  // --- Remote Fetch Operations ---
-  Future<List<Category>> getCategories();
-  Future<List<Product>> getBestDeals();
-  Future<List<Offer>> getMegaOffers();
-  Future<List<Product>> searchProducts(String query);
+  Future<Either<Failure, PaginatedResult<Category>>> getCategories({
+    int page = 1,
+  });
 
-  // --- Cache Write Operations (Local) ---
-  Future<void> cacheCategories(List<Category> categories);
-  Future<void> cacheBestDeals(List<Product> products);
-  Future<void> cacheMegaOffers(List<Offer> offers);
+  // --- Discounted Products (Mega Fresh Offers) ---
 
-  // --- Cache Read Operations (Local) ---
-  Future<List<Category>?> loadCachedCategories();
-  Future<List<Product>?> loadCachedBestDeals();
-  Future<List<Offer>?> loadCachedMegaOffers();
+  Future<Either<Failure, List<CategoryDiscountGroup>>>
+  getDiscountedProductsByCategory({
+    String? parentCategoryName,
+    double? minPrice,
+    double? maxPrice,
+    String ordering = '-discounted_price', // highest discount first
+  });
 
-  // --- Search History Operations (Local) ---
-  Future<void> saveSearchHistory(String query);
-  Future<List<String>> getSearchHistory();
-  Future<void> clearSearchHistory();
+  // --- Banners ---
+  /// Returns paginated list of banners.
+  /// Logic: For home screen, use the first active banner from page 1.
+  Future<Either<Failure, List<Banner>>> getBanners({int page = 1});
+
+  // --- Search ---
+  /// Searches for product variants based on a query string.
+  Future<Either<Failure, List<ProductVariant>>> searchProducts({
+    required String query,
+    int page = 1,
+  });
+
+  // --- Address ---
+  /// Returns the user's selected address (or null if skipped/not set).
+  Future<Either<Failure, UserAddress?>> getSelectedAddress();
+
+  // --- Best Deals ---
+  /// Fetches a list of specific product variants marked as "Best Deals".
+  Future<Either<Failure, List<ProductVariant>>> getBestDeals({int limit = 10});
 }

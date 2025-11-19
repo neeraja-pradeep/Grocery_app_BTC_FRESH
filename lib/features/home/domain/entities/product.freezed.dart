@@ -17,18 +17,17 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$Product {
-  String get id => throw _privateConstructorUsedError;
+  int get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  double get price => throw _privateConstructorUsedError;
-  double get mrp => throw _privateConstructorUsedError;
-  String get imageUrl => throw _privateConstructorUsedError;
-  String get unitLabel => throw _privateConstructorUsedError;
-  int get discountPct => throw _privateConstructorUsedError;
-  double? get rating => throw _privateConstructorUsedError;
+  String get description => throw _privateConstructorUsedError;
+  String get slug => throw _privateConstructorUsedError;
+  List<ProductVariant> get variants =>
+      throw _privateConstructorUsedError; // Parent level media (often generic product images)
+  List<ProductMedia> get media => throw _privateConstructorUsedError;
+  DateTime get createdAt => throw _privateConstructorUsedError;
+  DateTime get updatedAt => throw _privateConstructorUsedError;
 
-  /// Create a copy of Product
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   $ProductCopyWith<Product> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -38,14 +37,14 @@ abstract class $ProductCopyWith<$Res> {
       _$ProductCopyWithImpl<$Res, Product>;
   @useResult
   $Res call({
-    String id,
+    int id,
     String name,
-    double price,
-    double mrp,
-    String imageUrl,
-    String unitLabel,
-    int discountPct,
-    double? rating,
+    String description,
+    String slug,
+    List<ProductVariant> variants,
+    List<ProductMedia> media,
+    DateTime createdAt,
+    DateTime updatedAt,
   });
 }
 
@@ -59,54 +58,52 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of Product
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? price = null,
-    Object? mrp = null,
-    Object? imageUrl = null,
-    Object? unitLabel = null,
-    Object? discountPct = null,
-    Object? rating = freezed,
+    Object? description = null,
+    Object? slug = null,
+    Object? variants = null,
+    Object? media = null,
+    Object? createdAt = null,
+    Object? updatedAt = null,
   }) {
     return _then(
       _value.copyWith(
             id: null == id
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
-                      as String,
+                      as int,
             name: null == name
                 ? _value.name
                 : name // ignore: cast_nullable_to_non_nullable
                       as String,
-            price: null == price
-                ? _value.price
-                : price // ignore: cast_nullable_to_non_nullable
-                      as double,
-            mrp: null == mrp
-                ? _value.mrp
-                : mrp // ignore: cast_nullable_to_non_nullable
-                      as double,
-            imageUrl: null == imageUrl
-                ? _value.imageUrl
-                : imageUrl // ignore: cast_nullable_to_non_nullable
+            description: null == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
                       as String,
-            unitLabel: null == unitLabel
-                ? _value.unitLabel
-                : unitLabel // ignore: cast_nullable_to_non_nullable
+            slug: null == slug
+                ? _value.slug
+                : slug // ignore: cast_nullable_to_non_nullable
                       as String,
-            discountPct: null == discountPct
-                ? _value.discountPct
-                : discountPct // ignore: cast_nullable_to_non_nullable
-                      as int,
-            rating: freezed == rating
-                ? _value.rating
-                : rating // ignore: cast_nullable_to_non_nullable
-                      as double?,
+            variants: null == variants
+                ? _value.variants
+                : variants // ignore: cast_nullable_to_non_nullable
+                      as List<ProductVariant>,
+            media: null == media
+                ? _value.media
+                : media // ignore: cast_nullable_to_non_nullable
+                      as List<ProductMedia>,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            updatedAt: null == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
           )
           as $Val,
     );
@@ -122,14 +119,14 @@ abstract class _$$ProductImplCopyWith<$Res> implements $ProductCopyWith<$Res> {
   @override
   @useResult
   $Res call({
-    String id,
+    int id,
     String name,
-    double price,
-    double mrp,
-    String imageUrl,
-    String unitLabel,
-    int discountPct,
-    double? rating,
+    String description,
+    String slug,
+    List<ProductVariant> variants,
+    List<ProductMedia> media,
+    DateTime createdAt,
+    DateTime updatedAt,
   });
 }
 
@@ -142,54 +139,52 @@ class __$$ProductImplCopyWithImpl<$Res>
     $Res Function(_$ProductImpl) _then,
   ) : super(_value, _then);
 
-  /// Create a copy of Product
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? price = null,
-    Object? mrp = null,
-    Object? imageUrl = null,
-    Object? unitLabel = null,
-    Object? discountPct = null,
-    Object? rating = freezed,
+    Object? description = null,
+    Object? slug = null,
+    Object? variants = null,
+    Object? media = null,
+    Object? createdAt = null,
+    Object? updatedAt = null,
   }) {
     return _then(
       _$ProductImpl(
         id: null == id
             ? _value.id
             : id // ignore: cast_nullable_to_non_nullable
-                  as String,
+                  as int,
         name: null == name
             ? _value.name
             : name // ignore: cast_nullable_to_non_nullable
                   as String,
-        price: null == price
-            ? _value.price
-            : price // ignore: cast_nullable_to_non_nullable
-                  as double,
-        mrp: null == mrp
-            ? _value.mrp
-            : mrp // ignore: cast_nullable_to_non_nullable
-                  as double,
-        imageUrl: null == imageUrl
-            ? _value.imageUrl
-            : imageUrl // ignore: cast_nullable_to_non_nullable
+        description: null == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
                   as String,
-        unitLabel: null == unitLabel
-            ? _value.unitLabel
-            : unitLabel // ignore: cast_nullable_to_non_nullable
+        slug: null == slug
+            ? _value.slug
+            : slug // ignore: cast_nullable_to_non_nullable
                   as String,
-        discountPct: null == discountPct
-            ? _value.discountPct
-            : discountPct // ignore: cast_nullable_to_non_nullable
-                  as int,
-        rating: freezed == rating
-            ? _value.rating
-            : rating // ignore: cast_nullable_to_non_nullable
-                  as double?,
+        variants: null == variants
+            ? _value._variants
+            : variants // ignore: cast_nullable_to_non_nullable
+                  as List<ProductVariant>,
+        media: null == media
+            ? _value._media
+            : media // ignore: cast_nullable_to_non_nullable
+                  as List<ProductMedia>,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        updatedAt: null == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
       ),
     );
   }
@@ -201,34 +196,49 @@ class _$ProductImpl implements _Product {
   const _$ProductImpl({
     required this.id,
     required this.name,
-    required this.price,
-    required this.mrp,
-    required this.imageUrl,
-    required this.unitLabel,
-    required this.discountPct,
-    this.rating,
-  });
+    required this.description,
+    required this.slug,
+    required final List<ProductVariant> variants,
+    required final List<ProductMedia> media,
+    required this.createdAt,
+    required this.updatedAt,
+  }) : _variants = variants,
+       _media = media;
 
   @override
-  final String id;
+  final int id;
   @override
   final String name;
   @override
-  final double price;
+  final String description;
   @override
-  final double mrp;
+  final String slug;
+  final List<ProductVariant> _variants;
   @override
-  final String imageUrl;
+  List<ProductVariant> get variants {
+    if (_variants is EqualUnmodifiableListView) return _variants;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_variants);
+  }
+
+  // Parent level media (often generic product images)
+  final List<ProductMedia> _media;
+  // Parent level media (often generic product images)
   @override
-  final String unitLabel;
+  List<ProductMedia> get media {
+    if (_media is EqualUnmodifiableListView) return _media;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_media);
+  }
+
   @override
-  final int discountPct;
+  final DateTime createdAt;
   @override
-  final double? rating;
+  final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'Product(id: $id, name: $name, price: $price, mrp: $mrp, imageUrl: $imageUrl, unitLabel: $unitLabel, discountPct: $discountPct, rating: $rating)';
+    return 'Product(id: $id, name: $name, description: $description, slug: $slug, variants: $variants, media: $media, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -238,15 +248,15 @@ class _$ProductImpl implements _Product {
             other is _$ProductImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
-            (identical(other.price, price) || other.price == price) &&
-            (identical(other.mrp, mrp) || other.mrp == mrp) &&
-            (identical(other.imageUrl, imageUrl) ||
-                other.imageUrl == imageUrl) &&
-            (identical(other.unitLabel, unitLabel) ||
-                other.unitLabel == unitLabel) &&
-            (identical(other.discountPct, discountPct) ||
-                other.discountPct == discountPct) &&
-            (identical(other.rating, rating) || other.rating == rating));
+            (identical(other.description, description) ||
+                other.description == description) &&
+            (identical(other.slug, slug) || other.slug == slug) &&
+            const DeepCollectionEquality().equals(other._variants, _variants) &&
+            const DeepCollectionEquality().equals(other._media, _media) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
+            (identical(other.updatedAt, updatedAt) ||
+                other.updatedAt == updatedAt));
   }
 
   @override
@@ -254,17 +264,15 @@ class _$ProductImpl implements _Product {
     runtimeType,
     id,
     name,
-    price,
-    mrp,
-    imageUrl,
-    unitLabel,
-    discountPct,
-    rating,
+    description,
+    slug,
+    const DeepCollectionEquality().hash(_variants),
+    const DeepCollectionEquality().hash(_media),
+    createdAt,
+    updatedAt,
   );
 
-  /// Create a copy of Product
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$ProductImplCopyWith<_$ProductImpl> get copyWith =>
@@ -273,37 +281,34 @@ class _$ProductImpl implements _Product {
 
 abstract class _Product implements Product {
   const factory _Product({
-    required final String id,
+    required final int id,
     required final String name,
-    required final double price,
-    required final double mrp,
-    required final String imageUrl,
-    required final String unitLabel,
-    required final int discountPct,
-    final double? rating,
+    required final String description,
+    required final String slug,
+    required final List<ProductVariant> variants,
+    required final List<ProductMedia> media,
+    required final DateTime createdAt,
+    required final DateTime updatedAt,
   }) = _$ProductImpl;
 
   @override
-  String get id;
+  int get id;
   @override
   String get name;
   @override
-  double get price;
+  String get description;
   @override
-  double get mrp;
+  String get slug;
   @override
-  String get imageUrl;
+  List<ProductVariant> get variants;
+  @override // Parent level media (often generic product images)
+  List<ProductMedia> get media;
   @override
-  String get unitLabel;
+  DateTime get createdAt;
   @override
-  int get discountPct;
+  DateTime get updatedAt;
   @override
-  double? get rating;
-
-  /// Create a copy of Product
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$ProductImplCopyWith<_$ProductImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

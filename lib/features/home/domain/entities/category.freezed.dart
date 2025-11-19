@@ -17,13 +17,17 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$Category {
-  String get id => throw _privateConstructorUsedError;
+  int get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  String get iconUrl => throw _privateConstructorUsedError;
+  String get slug => throw _privateConstructorUsedError;
+  String get description => throw _privateConstructorUsedError;
+  String? get backgroundImageUrl => throw _privateConstructorUsedError;
+  String? get backgroundImageAlt => throw _privateConstructorUsedError;
+  int? get parentId => throw _privateConstructorUsedError;
+  DateTime get createdAt => throw _privateConstructorUsedError;
+  DateTime get updatedAt => throw _privateConstructorUsedError;
 
-  /// Create a copy of Category
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   $CategoryCopyWith<Category> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -33,7 +37,17 @@ abstract class $CategoryCopyWith<$Res> {
   factory $CategoryCopyWith(Category value, $Res Function(Category) then) =
       _$CategoryCopyWithImpl<$Res, Category>;
   @useResult
-  $Res call({String id, String name, String iconUrl});
+  $Res call({
+    int id,
+    String name,
+    String slug,
+    String description,
+    String? backgroundImageUrl,
+    String? backgroundImageAlt,
+    int? parentId,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 }
 
 /// @nodoc
@@ -46,25 +60,57 @@ class _$CategoryCopyWithImpl<$Res, $Val extends Category>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of Category
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? id = null, Object? name = null, Object? iconUrl = null}) {
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? slug = null,
+    Object? description = null,
+    Object? backgroundImageUrl = freezed,
+    Object? backgroundImageAlt = freezed,
+    Object? parentId = freezed,
+    Object? createdAt = null,
+    Object? updatedAt = null,
+  }) {
     return _then(
       _value.copyWith(
             id: null == id
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
-                      as String,
+                      as int,
             name: null == name
                 ? _value.name
                 : name // ignore: cast_nullable_to_non_nullable
                       as String,
-            iconUrl: null == iconUrl
-                ? _value.iconUrl
-                : iconUrl // ignore: cast_nullable_to_non_nullable
+            slug: null == slug
+                ? _value.slug
+                : slug // ignore: cast_nullable_to_non_nullable
                       as String,
+            description: null == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String,
+            backgroundImageUrl: freezed == backgroundImageUrl
+                ? _value.backgroundImageUrl
+                : backgroundImageUrl // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            backgroundImageAlt: freezed == backgroundImageAlt
+                ? _value.backgroundImageAlt
+                : backgroundImageAlt // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            parentId: freezed == parentId
+                ? _value.parentId
+                : parentId // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            updatedAt: null == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
           )
           as $Val,
     );
@@ -80,7 +126,17 @@ abstract class _$$CategoryImplCopyWith<$Res>
   ) = __$$CategoryImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String name, String iconUrl});
+  $Res call({
+    int id,
+    String name,
+    String slug,
+    String description,
+    String? backgroundImageUrl,
+    String? backgroundImageAlt,
+    int? parentId,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 }
 
 /// @nodoc
@@ -92,25 +148,57 @@ class __$$CategoryImplCopyWithImpl<$Res>
     $Res Function(_$CategoryImpl) _then,
   ) : super(_value, _then);
 
-  /// Create a copy of Category
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? id = null, Object? name = null, Object? iconUrl = null}) {
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? slug = null,
+    Object? description = null,
+    Object? backgroundImageUrl = freezed,
+    Object? backgroundImageAlt = freezed,
+    Object? parentId = freezed,
+    Object? createdAt = null,
+    Object? updatedAt = null,
+  }) {
     return _then(
       _$CategoryImpl(
         id: null == id
             ? _value.id
             : id // ignore: cast_nullable_to_non_nullable
-                  as String,
+                  as int,
         name: null == name
             ? _value.name
             : name // ignore: cast_nullable_to_non_nullable
                   as String,
-        iconUrl: null == iconUrl
-            ? _value.iconUrl
-            : iconUrl // ignore: cast_nullable_to_non_nullable
+        slug: null == slug
+            ? _value.slug
+            : slug // ignore: cast_nullable_to_non_nullable
                   as String,
+        description: null == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String,
+        backgroundImageUrl: freezed == backgroundImageUrl
+            ? _value.backgroundImageUrl
+            : backgroundImageUrl // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        backgroundImageAlt: freezed == backgroundImageAlt
+            ? _value.backgroundImageAlt
+            : backgroundImageAlt // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        parentId: freezed == parentId
+            ? _value.parentId
+            : parentId // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        updatedAt: null == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
       ),
     );
   }
@@ -122,19 +210,37 @@ class _$CategoryImpl implements _Category {
   const _$CategoryImpl({
     required this.id,
     required this.name,
-    required this.iconUrl,
+    required this.slug,
+    required this.description,
+    this.backgroundImageUrl,
+    this.backgroundImageAlt,
+    this.parentId,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   @override
-  final String id;
+  final int id;
   @override
   final String name;
   @override
-  final String iconUrl;
+  final String slug;
+  @override
+  final String description;
+  @override
+  final String? backgroundImageUrl;
+  @override
+  final String? backgroundImageAlt;
+  @override
+  final int? parentId;
+  @override
+  final DateTime createdAt;
+  @override
+  final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'Category(id: $id, name: $name, iconUrl: $iconUrl)';
+    return 'Category(id: $id, name: $name, slug: $slug, description: $description, backgroundImageUrl: $backgroundImageUrl, backgroundImageAlt: $backgroundImageAlt, parentId: $parentId, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -144,15 +250,36 @@ class _$CategoryImpl implements _Category {
             other is _$CategoryImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
-            (identical(other.iconUrl, iconUrl) || other.iconUrl == iconUrl));
+            (identical(other.slug, slug) || other.slug == slug) &&
+            (identical(other.description, description) ||
+                other.description == description) &&
+            (identical(other.backgroundImageUrl, backgroundImageUrl) ||
+                other.backgroundImageUrl == backgroundImageUrl) &&
+            (identical(other.backgroundImageAlt, backgroundImageAlt) ||
+                other.backgroundImageAlt == backgroundImageAlt) &&
+            (identical(other.parentId, parentId) ||
+                other.parentId == parentId) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
+            (identical(other.updatedAt, updatedAt) ||
+                other.updatedAt == updatedAt));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, iconUrl);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    name,
+    slug,
+    description,
+    backgroundImageUrl,
+    backgroundImageAlt,
+    parentId,
+    createdAt,
+    updatedAt,
+  );
 
-  /// Create a copy of Category
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$CategoryImplCopyWith<_$CategoryImpl> get copyWith =>
@@ -161,22 +288,37 @@ class _$CategoryImpl implements _Category {
 
 abstract class _Category implements Category {
   const factory _Category({
-    required final String id,
+    required final int id,
     required final String name,
-    required final String iconUrl,
+    required final String slug,
+    required final String description,
+    final String? backgroundImageUrl,
+    final String? backgroundImageAlt,
+    final int? parentId,
+    required final DateTime createdAt,
+    required final DateTime updatedAt,
   }) = _$CategoryImpl;
 
   @override
-  String get id;
+  int get id;
   @override
   String get name;
   @override
-  String get iconUrl;
-
-  /// Create a copy of Category
-  /// with the given fields replaced by the non-null parameter values.
+  String get slug;
   @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  String get description;
+  @override
+  String? get backgroundImageUrl;
+  @override
+  String? get backgroundImageAlt;
+  @override
+  int? get parentId;
+  @override
+  DateTime get createdAt;
+  @override
+  DateTime get updatedAt;
+  @override
+  @JsonKey(ignore: true)
   _$$CategoryImplCopyWith<_$CategoryImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

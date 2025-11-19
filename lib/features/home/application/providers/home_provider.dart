@@ -1,189 +1,224 @@
-// application/providers/home_provider.dart
+// lib/features/home/application/providers/home_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// Infrastructure dependencies (assuming correct paths)
-import 'package:new_app/features/home/infrastructure/repositories/home_repostory_impl.dart';
-import 'package:new_app/features/home/infrastructure/data_sources/local/home_local_ds.dart'; // For cache service
-
-// Application dependencies (for State and Entities)
-// REMOVED 'as domain' ALIASES
+import 'package:fpdart/fpdart.dart';
+import 'package:new_app/core/error/failure.dart';
+import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
-import 'package:new_app/features/home/domain/entities/product.dart';
-import 'package:new_app/features/home/domain/entities/offer.dart';
+import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
+import 'package:new_app/features/home/domain/entities/product_variant.dart';
+import 'package:new_app/features/home/domain/entities/user_address.dart';
 import 'package:new_app/features/home/domain/repositories/home_repository.dart';
+import 'package:new_app/features/home/infrastructure/repositories/home_repostory_impl.dart';
 
+// Import the sealed state classes
 import '../states/home_state.dart';
-import '../states/catalog_state.dart';
 import '../states/search_state.dart';
 
 // ----------------------------------------------------------------------
-// 1. Controller Definitions
+// 1. Home Notifier (Manages the entire Home Screen State)
 // ----------------------------------------------------------------------
 
-typedef HomeCacheService = HomeLocalDataSource;
-
-// --- CatalogController (Manages CatalogState) ---
-class CatalogController extends StateNotifier<CatalogState> {
-  CatalogController({required HomeRepository repository})
-    : super(const CatalogState());
-
-  bool get hasData => state.hasData;
-
-  // Used unqualified names
-  void setCategories(List<Category> categories) {
-    state = state.copyWith(
-      categories: categories,
-      error: null,
-      lastUpdated: DateTime.now(),
-    );
-  }
-
-  void setBestDeals(List<Product> deals) {
-    state = state.copyWith(
-      bestDeals: deals,
-      error: null,
-      lastUpdated: DateTime.now(),
-    );
-  }
-
-  void setMegaOffers(List<Offer> offers) {
-    state = state.copyWith(
-      megaOffers: offers,
-      error: null,
-      lastUpdated: DateTime.now(),
-    );
-  }
-
-  void setError(String error) {
-    state = state.copyWith(error: error, isRefreshing: false);
-  }
-
-  void setAllData({
-    required List<Category> categories,
-    required List<Product> deals,
-    required List<Offer> offers,
-  }) {
-    state = state.copyWith(
-      categories: categories,
-      bestDeals: deals,
-      megaOffers: offers,
-      error: null,
-      lastUpdated: DateTime.now(),
-      isRefreshing: false,
-    );
-  }
-
-  void updateAllData(
-    List<Category> categories,
-    List<Product> deals,
-    List<Offer> offers,
-  ) {
-    setAllData(categories: categories, deals: deals, offers: offers);
-  }
-}
-
-// --- HomeBootstrapController (No change needed here) ---
-class HomeBootstrapController extends StateNotifier<HomeState> {
-  HomeBootstrapController({required HomeRepository repository})
-    : super(const HomeState());
-
-  void setLoading(bool loading) {
-    state = state.copyWith(isInitialLoading: loading, error: null);
-  }
-
-  void markBootComplete() {
-    state = state.copyWith(
-      isBootComplete: true,
-      isInitialLoading: false,
-      error: null,
-    );
-  }
-
-  void setError(String error) {
-    state = state.copyWith(
-      error: error,
-      isInitialLoading: false,
-      isBootComplete: false,
-    );
-  }
-}
-
-// --- SearchController (Updated) ---
-class SearchController extends StateNotifier<SearchState> {
+class HomeNotifier extends StateNotifier<HomeState> {
   final HomeRepository _repository;
-  SearchController({required HomeRepository repository})
+
+  HomeNotifier({required HomeRepository repository})
     : _repository = repository,
-      super(const SearchState()) {
-    _loadHistory();
+      super(const HomeState.initial()) {
+    // Load home screen data on app start
+    _loadHomeData();
   }
 
-  Future<void> _loadHistory() async {
-    final history = await _repository.getSearchHistory();
-    state = state.copyWith(history: history);
+  Future<void> _loadHomeData() async {
+    // Only set loading if we are in initial or error state
+    state.maybeMap(
+      refreshing: (_) {}, // Don't overwrite refreshing state with loading
+      orElse: () => state = const HomeState.loading(),
+    );
+
+    // Load all sections concurrently
+    final results = await Future.wait([
+      _repository.getCategories(page: 1),
+      _repository.getSelectedAddress(),
+      _repository.getBestDeals(limit: 10),
+      _repository.getDiscountedProductsByCategory(
+        ordering: '-discounted_price',
+      ),
+      _repository.getBanners(
+        page: 1,
+      ), // Used getBanners instead of getActiveAdvertisement
+    ]);
+
+    // Process results
+    final categoriesResult =
+        results[0] as Either<Failure, PaginatedResult<Category>>;
+    final addressResult = results[1] as Either<Failure, UserAddress?>;
+    final bestDealsResult = results[2] as Either<Failure, List<ProductVariant>>;
+    final discountsResult =
+        results[3] as Either<Failure, List<CategoryDiscountGroup>>;
+    final bannersResult = results[4] as Either<Failure, List<Banner>>;
+
+    // Check for critical failures (Categories are critical)
+    if (categoriesResult.isLeft()) {
+      final failure = categoriesResult.getLeft().getOrElse(
+        () => const ServerFailure('Unknown Error'),
+      );
+
+      state = HomeState.error(
+        failure: failure,
+        previousState: state, // Keep old data visible if available
+      );
+      return;
+    }
+
+    // Extract successful data (use defaults for non-critical failures)
+    final categories = categoriesResult
+        .getRight()
+        .getOrElse(() => PaginatedResult(count: 0, results: []))
+        .results;
+    final address = addressResult.getRight().getOrElse(() => null);
+    final bestDeals = bestDealsResult.getRight().getOrElse(() => []);
+    final discounts = discountsResult.getRight().getOrElse(() => []);
+
+    // Debug output
+    // print('DEBUG: Categories loaded: ${categories.length}');
+    // print('DEBUG: Best deals loaded: ${bestDeals.length}');
+    // print('DEBUG: Discount groups loaded: ${discounts.length}');
+
+    // Logic: Use the first banner as the "active ad" for now, or null
+    final banners = bannersResult.getRight().getOrElse(() => []);
+    final activeAd = banners.isNotEmpty ? banners.first : null;
+
+    state = HomeState.loaded(
+      categories: categories,
+      selectedAddress: address,
+      bestDeals: bestDeals,
+      discountGroups: discounts,
+      activeAd: activeAd,
+      categoriesLoading: false,
+      bestDealsLoading: false,
+      discountsLoading: false,
+    );
   }
 
-  void setLoading(bool loading) =>
-      state = state.copyWith(isSearching: loading, error: null);
-  // Used unqualified name
-  void setResults(List<Product> results) =>
-      state = state.copyWith(results: results, error: null);
-  void clearResults() =>
-      state = state.copyWith(results: [], query: '', error: null);
-  void setError(String error) => state = state.copyWith(error: error);
+  Future<void> refresh() async {
+    // Only refresh if we have data loaded
+    state.mapOrNull(
+      loaded: (loadedState) {
+        state = HomeState.refreshing(
+          categories: loadedState.categories,
+          selectedAddress: loadedState.selectedAddress,
+          bestDeals: loadedState.bestDeals,
+          discountGroups: loadedState.discountGroups,
+          activeAd: loadedState.activeAd,
+        );
+        _loadHomeData();
+      },
+      error: (_) => _loadHomeData(), // Retry on error
+    );
+  }
 
-  Future<void> addToHistory(String query) async {
-    await _repository.saveSearchHistory(query);
-    await _loadHistory();
+  Future<void> reloadAddress() async {
+    // Called when user updates address in profile/settings
+    final result = await _repository.getSelectedAddress();
+
+    result.fold(
+      (failure) {
+        // Keep current address on error, maybe show a snackbar in UI
+      },
+      (address) {
+        state.mapOrNull(
+          loaded: (loadedState) {
+            state = loadedState.copyWith(selectedAddress: address);
+          },
+        );
+      },
+    );
   }
 }
 
 // ----------------------------------------------------------------------
-// 2. Controller Providers
+// 2. Search Notifier (Manages Search Logic)
 // ----------------------------------------------------------------------
 
-final catalogControllerProvider =
-    StateNotifierProvider<CatalogController, CatalogState>((ref) {
-      final repository = ref.watch(homeRepositoryProvider);
-      return CatalogController(repository: repository);
-    });
+class SearchNotifier extends StateNotifier<SearchState> {
+  final HomeRepository _repository;
 
-final homeBootstrapControllerProvider =
-    StateNotifierProvider<HomeBootstrapController, HomeState>((ref) {
-      final repository = ref.watch(homeRepositoryProvider);
-      return HomeBootstrapController(repository: repository);
-    });
+  SearchNotifier({required HomeRepository repository})
+    : _repository = repository,
+      super(const SearchState.initial()) {
+    // Optional: Load history on init?
+    // _loadHistory();
+  }
 
-final searchControllerProvider =
-    StateNotifierProvider<SearchController, SearchState>((ref) {
-      final repository = ref.watch(homeRepositoryProvider);
-      return SearchController(repository: repository);
-    });
+  void startSearch(String query, {bool isVoice = false}) {
+    if (query.isEmpty) return;
 
-final homeCacheServiceProvider = Provider<HomeCacheService>((ref) {
-  return ref.watch(homeLocalDataSourceProvider);
+    state = SearchState.loading(query: query, isVoiceSearch: isVoice);
+    performSearch(query);
+  }
+
+  Future<void> performSearch(String query) async {
+    final result = await _repository.searchProducts(query: query);
+
+    result.fold(
+      (failure) => state = SearchState.error(failure: failure, query: query),
+      (products) {
+        if (products.isEmpty) {
+          state = SearchState.empty(query: query);
+        } else {
+          state = SearchState.loaded(
+            query: query,
+            results: products,
+            hasMore: false, // Pagination logic can be added later
+          );
+        }
+      },
+    );
+  }
+
+  void clearSearch() {
+    state = const SearchState.initial();
+  }
+}
+
+// ----------------------------------------------------------------------
+// 3. Providers Definition
+// ----------------------------------------------------------------------
+
+// Replaces 'homeProvider' and 'catalogControllerProvider'
+final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
+  final repository = ref.watch(homeRepositoryProvider);
+  return HomeNotifier(repository: repository);
+});
+
+// Replaces 'searchControllerProvider'
+final searchProvider = StateNotifierProvider<SearchNotifier, SearchState>((
+  ref,
+) {
+  final repository = ref.watch(homeRepositoryProvider);
+  return SearchNotifier(repository: repository);
 });
 
 // ----------------------------------------------------------------------
-// 3. Data Providers (State Selectors - Updated)
+// 4. Selectors (Helpers for UI optimization)
 // ----------------------------------------------------------------------
 
-/// Categories Provider (Reads from CatalogController state)
+// Example: Watch only categories to avoid rebuilding entire home screen
 final categoriesProvider = Provider<List<Category>>((ref) {
-  return ref.watch(
-    catalogControllerProvider.select((state) => state.categories),
+  final homeState = ref.watch(homeProvider);
+  return homeState.maybeMap(
+    loaded: (s) => s.categories,
+    refreshing: (s) => s.categories,
+    orElse: () => [],
   );
 });
 
-/// Best Deals Provider (Reads from CatalogController state)
-final bestDealsProvider = Provider<List<Product>>((ref) {
-  return ref.watch(
-    catalogControllerProvider.select((state) => state.bestDeals),
-  );
-});
-
-/// Mega Offers Provider (Reads from CatalogController state)
-final megaOffersProvider = Provider<List<Offer>>((ref) {
-  return ref.watch(
-    catalogControllerProvider.select((state) => state.megaOffers),
+final activeAdProvider = Provider<Banner?>((ref) {
+  final homeState = ref.watch(homeProvider);
+  return homeState.maybeMap(
+    loaded: (s) => s.activeAd,
+    refreshing: (s) => s.activeAd,
+    orElse: () => null,
   );
 });
