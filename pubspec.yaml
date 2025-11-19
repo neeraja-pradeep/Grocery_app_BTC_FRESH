@@ -25,7 +25,7 @@ dev_dependencies:
 
   #  Custom lint plugin (your own rule package)
   naming_conventions_lint:
-    path: ../naming_conventions_lints-main
+    path: ../naming_conventions_lint
 
   #  Lint & Analysis tools
   custom_lint: ^0.6.4

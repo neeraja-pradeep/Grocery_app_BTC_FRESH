@@ -390,7 +390,7 @@ packages:
   naming_conventions_lint:
     dependency: "direct dev"
     description:
-      path: "../naming_conventions_lints-main"
+      path: "../naming_conventions_lint"
       relative: true
     source: path
     version: "0.0.1"
