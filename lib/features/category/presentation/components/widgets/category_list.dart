@@ -4,7 +4,7 @@ import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 
-/// Category data model with title, id, and optional images
+/// Category data model with title, id, and optional images (local or network)
 class CategoryItem {
   const CategoryItem({
     required this.title,
@@ -15,11 +15,8 @@ class CategoryItem {
 
   final String? id;
   final String title;
-  final String? assetPath;
-  final String? imageUrl;
-
-  bool get hasLocalAsset => assetPath != null && assetPath!.isNotEmpty;
-  bool get hasNetworkImage => imageUrl != null && imageUrl!.isNotEmpty;
+  final String? assetPath; // Local asset path (assets/...)
+  final String? imageUrl; // Network image URL
 }
 
 /// Left sidebar category navigation list
@@ -65,43 +62,6 @@ class CategoryList extends StatelessWidget {
               ? const BorderRadius.only(topRight: Radius.circular(10))
               : null;
 
-          // Load category image (local asset or network)
-          final Widget? imageWidget;
-          if (item.hasLocalAsset) {
-            imageWidget = Image.asset(
-              item.assetPath!,
-              height: 68.h,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              alignment: Alignment.centerLeft,
-            );
-          } else if (item.hasNetworkImage) {
-            imageWidget = Image.network(
-              item.imageUrl!,
-              height: 68.h,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              alignment: Alignment.centerLeft,
-              errorBuilder: (context, error, stackTrace) =>
-                  const SizedBox.shrink(),
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const SizedBox(
-                  height: 68,
-                  child: Center(
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                );
-              },
-            );
-          } else {
-            imageWidget = null;
-          }
-
           return GestureDetector(
             onTap: () => onCategorySelected(index),
             child: Padding(
@@ -136,9 +96,14 @@ class CategoryList extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Show image only when selected
-                      if (isSelected && imageWidget != null) ...[
-                        ClipRRect(child: imageWidget),
+                      // Show image only when selected (local or network)
+                      if (isSelected &&
+                          (item.assetPath != null ||
+                              item.imageUrl != null)) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14.r),
+                          child: _buildCategoryImage(item),
+                        ),
                         AppSpacing.h8,
                       ],
                       // Category name
@@ -158,6 +123,66 @@ class CategoryList extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Build category image: local asset or network with fallback
+  Widget _buildCategoryImage(CategoryItem item) {
+    // Local asset
+    if (item.assetPath != null && item.assetPath!.isNotEmpty) {
+      return Image.asset(
+        item.assetPath!,
+        height: 68.h,
+        width: double.infinity,
+        fit: BoxFit.fitHeight,
+        alignment: Alignment.centerLeft,
+      );
+    }
+
+    // Network image
+    if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
+      return Image.network(
+        item.imageUrl!,
+        height: 68.h,
+        width: double.infinity,
+        fit: BoxFit.fitHeight,
+        alignment: Alignment.centerLeft,
+        errorBuilder: (context, error, stackTrace) => Container(
+          height: 68.h,
+          color: AppColors.green10,
+          alignment: Alignment.center,
+          child: const Icon(
+            Icons.image_not_supported_outlined,
+            color: AppColors.green100,
+            size: 20,
+          ),
+        ),
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            height: 68.h,
+            color: AppColors.green10,
+            alignment: Alignment.center,
+            child: const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+      );
+    }
+
+    // Fallback: no image
+    return Container(
+      height: 68.h,
+      color: AppColors.green10,
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.category_outlined,
+        color: AppColors.green100,
+        size: 20,
       ),
     );
   }

@@ -116,55 +116,47 @@ class ProductGridState extends ConsumerState<ProductGrid> {
   }
 
   /// Detects which category heading is visible when user scrolls
-  /// Updates parent with visible category index
+  /// Updates parent with visible category index (works in both directions)
   void _handleScroll() {
     if (_isProgrammaticScroll || !_scrollController.hasClients) return;
 
     final scrollBox = context.findRenderObject() as RenderBox?;
     if (scrollBox == null) return;
 
-    final viewportHeight = scrollBox.size.height;
-    final viewportCenter = viewportHeight / 2;
+    int? visibleIndex;
+    double smallestTop = double.infinity;
 
-    const double threshold = 32.0;
-    int? belowThresholdIndex;
-    double bestBelowTop = double.negativeInfinity;
-    int? aboveThresholdIndex;
-    double closestAbove = double.infinity;
-    int? nearestIndex;
-    double nearestDistance = double.infinity;
-
-    // Find category headings at different positions
+    // Find the topmost category heading visible in viewport
+    // (closest to top of screen but still visible)
     for (var i = 0; i < _sectionKeys.length; i++) {
       final sectionContext = _sectionKeys[i].currentContext;
       if (sectionContext == null) continue;
+
       final sectionBox = sectionContext.findRenderObject() as RenderBox?;
       if (sectionBox == null || !sectionBox.attached) continue;
 
+      // Get position relative to viewport top
       final top = sectionBox.localToGlobal(Offset.zero, ancestor: scrollBox).dy;
-      final center = top + sectionBox.size.height / 2;
-      final distance = (center - viewportCenter).abs();
+      final bottom = top + sectionBox.size.height;
+      const viewportTop = 0.0;
+      final viewportBottom = scrollBox.size.height;
 
-      // Categories near top of viewport (within threshold)
-      if (top <= threshold && top > bestBelowTop) {
-        bestBelowTop = top;
-        belowThresholdIndex = i;
-      } else if (top > threshold && (top - threshold) < closestAbove) {
-        closestAbove = top - threshold;
-        aboveThresholdIndex = i;
-      }
+      // Check if heading is visible in viewport
+      if (top < viewportBottom && bottom > viewportTop) {
+        // Prioritize the one closest to the top (but still visible)
+        // If top is negative (above viewport), use 0 for comparison
+        final effectiveTop = top < viewportTop ? viewportTop : top;
 
-      // Fallback: nearest to viewport center
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = i;
+        if (effectiveTop < smallestTop) {
+          smallestTop = effectiveTop;
+          visibleIndex = i;
+        }
       }
     }
 
-    // Priority: below threshold > above threshold > nearest
-    final newIndex = belowThresholdIndex ?? aboveThresholdIndex ?? nearestIndex;
-    if (newIndex != null && newIndex != widget.selectedCategoryIndex) {
-      widget.onCategoryInViewChanged(newIndex);
+    // Update sidebar if category changed (works for scroll up and down)
+    if (visibleIndex != null && visibleIndex != widget.selectedCategoryIndex) {
+      widget.onCategoryInViewChanged(visibleIndex);
     }
   }
 
@@ -181,16 +173,26 @@ class ProductGridState extends ConsumerState<ProductGrid> {
             child: Padding(
               key: _sectionKeys[i],
               padding: EdgeInsets.only(
-                top: i == 0 ? 0.h : 8.h,
-                bottom: 8.h,
-                left: 12.w,
-                right: 12.w,
+                top: i == 0 ? 0.h : 5.h,
+                bottom: 5.h,
+                left: 4.w,
+                right: 4.w,
               ),
-              child: AppText(
-                text: widget.categories[i].title,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.black,
+              child: Container(
+                height: 25.h,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: AppColors.grey.withValues(alpha: 0.2),
+                  ),
+                  color: AppColors.white,
+                ),
+                child: Center(
+                  child: AppText(
+                    text: widget.categories[i].title,
+                    color: AppColors.green100,
+                    fontSize: 12.sp,
+                  ),
+                ),
               ),
             ),
           ),

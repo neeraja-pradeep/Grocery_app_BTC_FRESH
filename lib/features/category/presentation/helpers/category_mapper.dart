@@ -19,7 +19,7 @@ class CategoryMapper {
       id: category.id,
       title: category.title,
       assetPath: isLocalAsset ? image : null,
-      imageUrl: isLocalAsset ? null : image,
+      imageUrl: !isLocalAsset ? image : null,
     );
   }
 }
