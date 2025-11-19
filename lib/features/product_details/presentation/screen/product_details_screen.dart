@@ -177,7 +177,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               alignment: Alignment.center,
                               child: AppText(
                                 text: 'Add',
-                                color: AppColors.green100,
+                                color: AppColors.white,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 16.sp,
                               ),
