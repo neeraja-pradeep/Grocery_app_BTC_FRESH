@@ -224,6 +224,15 @@ class _CategoryProductsSliver extends ConsumerWidget {
   final ColorScheme colorScheme;
   final ValueChanged<CategoryProduct> onAddToCart;
 
+  /// Navigate to product details screen with product object
+  void _navigateToProductDetails(
+    BuildContext context,
+    CategoryProduct product,
+  ) {
+    // Using named route navigation, pass entire product object
+    Navigator.of(context).pushNamed('/product-details', arguments: product);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productState = ref.watch(
@@ -276,6 +285,7 @@ class _CategoryProductsSliver extends ConsumerWidget {
           product: product,
           colorScheme: colorScheme,
           onAddToCart: () => onAddToCart(product),
+          onTap: () => _navigateToProductDetails(context, product),
         );
       }, childCount: products.length),
     );

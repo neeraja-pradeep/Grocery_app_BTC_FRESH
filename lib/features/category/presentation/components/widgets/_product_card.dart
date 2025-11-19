@@ -9,6 +9,7 @@ const String _rupeeSymbol = '\u20B9';
 
 /// Individual product card displayed in product grid
 /// Shows: Image + add-to-cart button | Name, weight, price + wishlist
+/// Tap card to view product details
 
 class ProductCard extends StatelessWidget {
   const ProductCard({
@@ -16,11 +17,13 @@ class ProductCard extends StatelessWidget {
     required this.product,
     required this.colorScheme,
     required this.onAddToCart,
+    this.onTap,
   });
 
   final CategoryProduct product;
   final ColorScheme colorScheme;
   final VoidCallback onAddToCart;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -30,113 +33,118 @@ class ProductCard extends StatelessWidget {
     final priceValue = _formatPriceValue(product.price);
     final originalPriceValue = _formatPriceValue(product.originalPrice);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: AppColors.grey.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(18.r),
-                      ),
-                      color: AppColors.green10,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(18.r),
-                      ),
-                      child: _ProductImage(image: image),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 8.h,
-                  right: 5.w,
-                  child: GestureDetector(
-                    onTap: onAddToCart,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(color: AppColors.grey.withValues(alpha: 0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
                     child: Container(
-                      width: 29.w,
-                      height: 29.w,
                       decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.add,
-                        color: AppColors.white,
-                        size: 17,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(10.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText.pageTitle(text: product.variantName, maxLines: 1),
-
-                AppSpacing.h8,
-                if (formattedWeight != null)
-                  AppText(
-                    text: formattedWeight,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.grey,
-                  ),
-                if (formattedWeight != null) AppSpacing.h8,
-                Row(
-                  children: [
-                    if (priceValue != null) ...[
-                      const AppText.pageTitle(text: _rupeeSymbol),
-                      AppSpacing.w4,
-                      AppText.pageTitle(text: priceValue),
-                      if (originalPriceValue != null &&
-                          originalPriceValue != priceValue) ...[
-                        AppSpacing.w8,
-                        AppText(
-                          text: '$_rupeeSymbol$originalPriceValue',
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.grey,
-                          decoration: TextDecoration.lineThrough,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(18.r),
                         ),
-                      ],
-                    ] else ...[
-                      const AppText.pageTitle(text: 'N/A'),
-                    ],
-                    const Spacer(),
-                    Icon(
-                      Icons.favorite_border,
-                      size: 22.sp,
-                      color: isDark ? colorScheme.outline : AppColors.green100,
+                        color: AppColors.green10,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(18.r),
+                        ),
+                        child: _ProductImage(image: image),
+                      ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  Positioned(
+                    top: 8.h,
+                    right: 5.w,
+                    child: GestureDetector(
+                      onTap: onAddToCart,
+                      child: Container(
+                        width: 29.w,
+                        height: 29.w,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.add,
+                          color: AppColors.white,
+                          size: 17,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: EdgeInsets.all(10.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppText.pageTitle(text: product.variantName, maxLines: 1),
+
+                  AppSpacing.h8,
+                  if (formattedWeight != null)
+                    AppText(
+                      text: formattedWeight,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.grey,
+                    ),
+                  if (formattedWeight != null) AppSpacing.h8,
+                  Row(
+                    children: [
+                      if (priceValue != null) ...[
+                        const AppText.pageTitle(text: _rupeeSymbol),
+                        AppSpacing.w4,
+                        AppText.pageTitle(text: priceValue),
+                        if (originalPriceValue != null &&
+                            originalPriceValue != priceValue) ...[
+                          AppSpacing.w8,
+                          AppText(
+                            text: '$_rupeeSymbol$originalPriceValue',
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.grey,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ],
+                      ] else ...[
+                        const AppText.pageTitle(text: 'N/A'),
+                      ],
+                      const Spacer(),
+                      Icon(
+                        Icons.favorite_border,
+                        size: 22.sp,
+                        color: isDark
+                            ? colorScheme.outline
+                            : AppColors.green100,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

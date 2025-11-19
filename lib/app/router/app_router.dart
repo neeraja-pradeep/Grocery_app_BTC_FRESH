@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../features/auth/presentation/screen/login_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
+import '../../features/category/domain/entities/category_product.dart';
+import '../../features/product_details/presentation/screen/product_details_screen.dart';
 
 class AppRouter {
   const AppRouter();
@@ -9,6 +11,7 @@ class AppRouter {
   static const String home = '/';
   static const String login = '/auth/login';
   static const String bottomNavBar = '/auth/login/bottomNavBar';
+  static const String productDetails = '/product-details';
 
   static const String initialRoute = home;
 
@@ -20,6 +23,18 @@ class AppRouter {
         return _buildRoute<void>(settings, const BottomNavigation());
       case bottomNavBar:
         return _buildRoute<void>(settings, const BottomNavigation());
+      case productDetails:
+        final product = settings.arguments as CategoryProduct?;
+        if (product == null) {
+          return _buildRoute<void>(
+            settings,
+            UnknownRouteScreen(unknownRoute: settings.name),
+          );
+        }
+        return _buildRoute<void>(
+          settings,
+          ProductDetailsScreen(product: product),
+        );
 
       default:
         return _buildRoute<void>(
