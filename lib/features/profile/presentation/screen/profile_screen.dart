@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../address/presentation/screens/address_list_screen.dart';
 import '../../application/providers/profile_provider.dart';
 import '../components/profile_header.dart';
 import '../components/profile_menu_item.dart';
@@ -158,7 +159,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           icon: Icons.location_on_outlined,
                           title: 'Delivery Address',
                           onTap: () {
-                            // Navigate to delivery address screen
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const AddressListScreen(),
+                              ),
+                            );
                           },
                         ),
                         AppSpacing.h12,
