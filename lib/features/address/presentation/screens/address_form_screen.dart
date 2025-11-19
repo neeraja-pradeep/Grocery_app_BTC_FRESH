@@ -29,10 +29,12 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   void initState() {
     super.initState();
     final address = widget.address;
-    _houseController =
-        TextEditingController(text: address?.streetAddress1 ?? '');
-    _apartmentController =
-        TextEditingController(text: address?.streetAddress2 ?? '');
+    _houseController = TextEditingController(
+      text: address?.streetAddress1 ?? '',
+    );
+    _apartmentController = TextEditingController(
+      text: address?.streetAddress2 ?? '',
+    );
     _addressType = address?.addressType ?? 'home';
   }
 
@@ -85,16 +87,11 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.green10,
                   borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(
-                    color: AppColors.green.withOpacity(0.3),
-                  ),
+                  border: Border.all(color: AppColors.green.withOpacity(0.3)),
                 ),
                 child: Text(
                   'A Detailed address will help our delivery partner reach your doorstep easily',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.green,
-                  ),
+                  style: TextStyle(fontSize: 12.sp, color: AppColors.green),
                 ),
               ),
               AppSpacing.h24,
@@ -110,21 +107,18 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                 },
                 decoration: InputDecoration(
                   labelText: 'House / Flat / Block No.',
-                  labelStyle: TextStyle(
-                    fontSize: 14.sp,
-                    color: AppColors.grey,
-                  ),
+                  labelStyle: TextStyle(fontSize: 14.sp, color: AppColors.grey),
                   filled: false,
-                  border: UnderlineInputBorder(
+                  border: const UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.grey),
                   ),
-                  enabledBorder: UnderlineInputBorder(
+                  enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.grey),
                   ),
-                  focusedBorder: UnderlineInputBorder(
+                  focusedBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.green, width: 2),
                   ),
-                  errorBorder: UnderlineInputBorder(
+                  errorBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.red),
                   ),
                   contentPadding: EdgeInsets.symmetric(vertical: 12.h),
@@ -137,18 +131,15 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                 controller: _apartmentController,
                 decoration: InputDecoration(
                   labelText: 'Apartment / Road / Area ( Recommended )',
-                  labelStyle: TextStyle(
-                    fontSize: 14.sp,
-                    color: AppColors.grey,
-                  ),
+                  labelStyle: TextStyle(fontSize: 14.sp, color: AppColors.grey),
                   filled: false,
-                  border: UnderlineInputBorder(
+                  border: const UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.grey),
                   ),
-                  enabledBorder: UnderlineInputBorder(
+                  enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.grey),
                   ),
-                  focusedBorder: UnderlineInputBorder(
+                  focusedBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.green, width: 2),
                   ),
                   contentPadding: EdgeInsets.symmetric(vertical: 12.h),
@@ -196,7 +187,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                       ? SizedBox(
                           height: 20.h,
                           width: 20.w,
-                          child: CircularProgressIndicator(
+                          child: const CircularProgressIndicator(
                             strokeWidth: 2,
                             color: AppColors.green,
                           ),
@@ -286,7 +277,9 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
 
     try {
       if (isEditing) {
-        await ref.read(addressControllerProvider.notifier).updateAddress(
+        await ref
+            .read(addressControllerProvider.notifier)
+            .updateAddress(
               id: widget.address!.id,
               firstName: firstName,
               lastName: lastName,
@@ -297,7 +290,9 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
               addressType: _addressType,
             );
       } else {
-        await ref.read(addressControllerProvider.notifier).createAddress(
+        await ref
+            .read(addressControllerProvider.notifier)
+            .createAddress(
               firstName: firstName,
               lastName: lastName,
               streetAddress1: _houseController.text.trim(),

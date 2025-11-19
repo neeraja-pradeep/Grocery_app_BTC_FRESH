@@ -14,6 +14,7 @@ class AppSpacing {
   static SizedBox get h24 => SizedBox(height: 24.h);
   static SizedBox get h32 => SizedBox(height: 32.h);
   static SizedBox get h40 => SizedBox(height: 40.h);
+  static SizedBox get h48 => SizedBox(height: 48.h);
   static SizedBox get h50 => SizedBox(height: 50.h);
 
   /// Common horizontal gaps.
