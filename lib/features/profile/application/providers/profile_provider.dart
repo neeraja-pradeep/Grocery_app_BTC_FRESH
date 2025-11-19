@@ -43,7 +43,7 @@ class ProfileController extends Notifier<ProfileState> {
 
   /// Fetches profile with cache-first strategy:
   /// 1. Shows cached data immediately (even if stale)
-  /// 2. Triggers background API refresh if data is stale
+  /// 2. Always triggers background API refresh when showing cached data
   Future<void> fetchProfile() async {
     // Only show loading if no data exists
     if (state.profile == null) {
@@ -66,8 +66,9 @@ class ProfileController extends Notifier<ProfileState> {
         clearError: true,
       );
 
-      // If data is stale, trigger background refresh
-      if (result.isStale && result.fromCache) {
+      // Always trigger background refresh when showing cached data
+      // This ensures backend changes are fetched even if cache is fresh
+      if (result.fromCache) {
         _refreshInBackground();
       }
     } catch (error) {
@@ -144,6 +145,7 @@ class ProfileController extends Notifier<ProfileState> {
         status: ProfileStatus.data,
         profile: updatedProfile,
         isUpdating: false,
+        isStale: false,
         clearError: true,
       );
     } catch (error) {
