@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../profile/application/providers/profile_provider.dart';
 import '../../application/providers/address_provider.dart';
 import '../../domain/entities/address.dart';
 
@@ -18,14 +19,8 @@ class AddressFormScreen extends ConsumerStatefulWidget {
 
 class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _firstNameController;
-  late TextEditingController _lastNameController;
-  late TextEditingController _streetAddress1Controller;
-  late TextEditingController _streetAddress2Controller;
-  late TextEditingController _cityController;
-  late TextEditingController _stateController;
-  late TextEditingController _postalCodeController;
-  late TextEditingController _countryController;
+  late TextEditingController _houseController;
+  late TextEditingController _apartmentController;
   String _addressType = 'home';
 
   bool get isEditing => widget.address != null;
@@ -34,37 +29,24 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   void initState() {
     super.initState();
     final address = widget.address;
-    _firstNameController =
-        TextEditingController(text: address?.firstName ?? '');
-    _lastNameController = TextEditingController(text: address?.lastName ?? '');
-    _streetAddress1Controller =
+    _houseController =
         TextEditingController(text: address?.streetAddress1 ?? '');
-    _streetAddress2Controller =
+    _apartmentController =
         TextEditingController(text: address?.streetAddress2 ?? '');
-    _cityController = TextEditingController(text: address?.city ?? '');
-    _stateController = TextEditingController(text: address?.state ?? '');
-    _postalCodeController =
-        TextEditingController(text: address?.postalCode ?? '');
-    _countryController = TextEditingController(text: address?.country ?? '');
     _addressType = address?.addressType ?? 'home';
   }
 
   @override
   void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _streetAddress1Controller.dispose();
-    _streetAddress2Controller.dispose();
-    _cityController.dispose();
-    _stateController.dispose();
-    _postalCodeController.dispose();
-    _countryController.dispose();
+    _houseController.dispose();
+    _apartmentController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final addressState = ref.watch(addressControllerProvider);
+    final profileState = ref.watch(profileControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -75,13 +57,19 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           icon: Icon(Icons.arrow_back, color: AppColors.black, size: 24.sp),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          isEditing ? 'Edit Address' : 'Add New Address',
-          style: TextStyle(
-            color: AppColors.black,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-          ),
+        title: Row(
+          children: [
+            Icon(Icons.location_on, color: AppColors.green, size: 20.sp),
+            AppSpacing.w8,
+            Text(
+              'Address',
+              style: TextStyle(
+                color: AppColors.black,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
       body: SingleChildScrollView(
@@ -91,99 +79,105 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTextField(
-                label: 'First Name',
-                controller: _firstNameController,
+              // Info banner
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: AppColors.green10,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: AppColors.green.withOpacity(0.3),
+                  ),
+                ),
+                child: Text(
+                  'A Detailed address will help our delivery partner reach your doorstep easily',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: AppColors.green,
+                  ),
+                ),
+              ),
+              AppSpacing.h24,
+
+              // House / Flat / Block No.
+              TextFormField(
+                controller: _houseController,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter first name';
+                    return 'Please enter house/flat/block number';
                   }
                   return null;
                 },
-              ),
-              AppSpacing.h16,
-              _buildTextField(
-                label: 'Last Name',
-                controller: _lastNameController,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter last name';
-                  }
-                  return null;
-                },
-              ),
-              AppSpacing.h16,
-              _buildTextField(
-                label: 'Street Address Line 1',
-                controller: _streetAddress1Controller,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter street address';
-                  }
-                  return null;
-                },
-              ),
-              AppSpacing.h16,
-              _buildTextField(
-                label: 'Street Address Line 2 (Optional)',
-                controller: _streetAddress2Controller,
-              ),
-              AppSpacing.h16,
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      label: 'City',
-                      controller: _cityController,
-                    ),
+                decoration: InputDecoration(
+                  labelText: 'House / Flat / Block No.',
+                  labelStyle: TextStyle(
+                    fontSize: 14.sp,
+                    color: AppColors.grey,
                   ),
-                  AppSpacing.w12,
-                  Expanded(
-                    child: _buildTextField(
-                      label: 'State/Province',
-                      controller: _stateController,
-                    ),
+                  filled: false,
+                  border: UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.grey),
                   ),
-                ],
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.grey),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.green, width: 2),
+                  ),
+                  errorBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.red),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
               ),
-              AppSpacing.h16,
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      label: 'Postal Code',
-                      controller: _postalCodeController,
-                    ),
+              AppSpacing.h24,
+
+              // Apartment / Road / Area (Recommended)
+              TextFormField(
+                controller: _apartmentController,
+                decoration: InputDecoration(
+                  labelText: 'Apartment / Road / Area ( Recommended )',
+                  labelStyle: TextStyle(
+                    fontSize: 14.sp,
+                    color: AppColors.grey,
                   ),
-                  AppSpacing.w12,
-                  Expanded(
-                    child: _buildTextField(
-                      label: 'Country',
-                      controller: _countryController,
-                    ),
+                  filled: false,
+                  border: UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.grey),
                   ),
-                ],
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.grey),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.green, width: 2),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
               ),
-              AppSpacing.h16,
+              AppSpacing.h32,
+
+              // Save As section
               Text(
-                'Address Type',
+                'Save As',
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w500,
                   color: AppColors.black,
                 ),
               ),
-              AppSpacing.h8,
+              AppSpacing.h12,
               Row(
                 children: [
                   _buildAddressTypeChip('Home', 'home'),
-                  AppSpacing.w8,
+                  AppSpacing.w12,
                   _buildAddressTypeChip('Work', 'work'),
-                  AppSpacing.w8,
+                  AppSpacing.w12,
                   _buildAddressTypeChip('Other', 'other'),
                 ],
               ),
-              AppSpacing.h32,
+              AppSpacing.h48,
+
+              // Done button
               SizedBox(
                 width: double.infinity,
                 height: 50.h,
@@ -192,7 +186,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                       ? null
                       : _handleSave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.green60,
+                    backgroundColor: AppColors.green10,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
                     ),
@@ -202,17 +196,17 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                       ? SizedBox(
                           height: 20.h,
                           width: 20.w,
-                          child: const CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.green100,
+                            color: AppColors.green,
                           ),
                         )
                       : Text(
-                          isEditing ? 'Update Address' : 'Save Address',
+                          'Done',
                           style: TextStyle(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.green100,
+                            color: AppColors.green,
                           ),
                         ),
                 ),
@@ -221,57 +215,6 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: AppColors.black,
-          ),
-        ),
-        AppSpacing.h8,
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          validator: validator,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.green10,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(color: AppColors.green, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 12.w,
-              vertical: 12.h,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -285,23 +228,35 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           });
         },
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12.h),
+          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.green : AppColors.green10,
-            borderRadius: BorderRadius.circular(8.r),
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
-              color: isSelected ? AppColors.green : AppColors.grey.withOpacity(0.3),
+              color: isSelected ? AppColors.green : AppColors.grey,
+              width: isSelected ? 2 : 1,
             ),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? AppColors.white : AppColors.black,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: isSelected ? AppColors.green : AppColors.grey,
+                size: 20.sp,
               ),
-            ),
+              AppSpacing.w4,
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? AppColors.green : AppColors.grey,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -313,50 +268,42 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
       return;
     }
 
+    // Get user's name from profile
+    final profileState = ref.read(profileControllerProvider);
+    final profile = profileState.profile;
+
+    // Use profile name or default values
+    String firstName = 'User';
+    String lastName = '';
+
+    if (profile != null && profile.fullName.isNotEmpty) {
+      final nameParts = profile.fullName.split(' ');
+      firstName = nameParts.first;
+      if (nameParts.length > 1) {
+        lastName = nameParts.sublist(1).join(' ');
+      }
+    }
+
     try {
       if (isEditing) {
         await ref.read(addressControllerProvider.notifier).updateAddress(
               id: widget.address!.id,
-              firstName: _firstNameController.text.trim(),
-              lastName: _lastNameController.text.trim(),
-              streetAddress1: _streetAddress1Controller.text.trim(),
-              streetAddress2: _streetAddress2Controller.text.trim().isEmpty
+              firstName: firstName,
+              lastName: lastName,
+              streetAddress1: _houseController.text.trim(),
+              streetAddress2: _apartmentController.text.trim().isEmpty
                   ? null
-                  : _streetAddress2Controller.text.trim(),
-              city: _cityController.text.trim().isEmpty
-                  ? null
-                  : _cityController.text.trim(),
-              stateProvince: _stateController.text.trim().isEmpty
-                  ? null
-                  : _stateController.text.trim(),
-              postalCode: _postalCodeController.text.trim().isEmpty
-                  ? null
-                  : _postalCodeController.text.trim(),
-              country: _countryController.text.trim().isEmpty
-                  ? null
-                  : _countryController.text.trim(),
+                  : _apartmentController.text.trim(),
               addressType: _addressType,
             );
       } else {
         await ref.read(addressControllerProvider.notifier).createAddress(
-              firstName: _firstNameController.text.trim(),
-              lastName: _lastNameController.text.trim(),
-              streetAddress1: _streetAddress1Controller.text.trim(),
-              streetAddress2: _streetAddress2Controller.text.trim().isEmpty
+              firstName: firstName,
+              lastName: lastName,
+              streetAddress1: _houseController.text.trim(),
+              streetAddress2: _apartmentController.text.trim().isEmpty
                   ? null
-                  : _streetAddress2Controller.text.trim(),
-              city: _cityController.text.trim().isEmpty
-                  ? null
-                  : _cityController.text.trim(),
-              stateProvince: _stateController.text.trim().isEmpty
-                  ? null
-                  : _stateController.text.trim(),
-              postalCode: _postalCodeController.text.trim().isEmpty
-                  ? null
-                  : _postalCodeController.text.trim(),
-              country: _countryController.text.trim().isEmpty
-                  ? null
-                  : _countryController.text.trim(),
+                  : _apartmentController.text.trim(),
               addressType: _addressType,
             );
       }
