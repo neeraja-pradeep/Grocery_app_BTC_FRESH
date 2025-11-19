@@ -9,6 +9,7 @@ class ProfileState {
     this.errorMessage,
     this.isUpdating,
     this.isDeletingAccount,
+    this.isStale = false,
   });
 
   factory ProfileState.initial() => const ProfileState(
@@ -16,6 +17,7 @@ class ProfileState {
         profile: null,
         isUpdating: false,
         isDeletingAccount: false,
+        isStale: false,
       );
 
   final ProfileStatus status;
@@ -23,6 +25,7 @@ class ProfileState {
   final String? errorMessage;
   final bool? isUpdating;
   final bool? isDeletingAccount;
+  final bool isStale;
 
   bool get hasData => profile != null;
   bool get isLoading => status == ProfileStatus.loading;
@@ -34,6 +37,7 @@ class ProfileState {
     String? errorMessage,
     bool? isUpdating,
     bool? isDeletingAccount,
+    bool? isStale,
     bool clearError = false,
   }) {
     return ProfileState(
@@ -42,6 +46,7 @@ class ProfileState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isUpdating: isUpdating ?? this.isUpdating,
       isDeletingAccount: isDeletingAccount ?? this.isDeletingAccount,
+      isStale: isStale ?? this.isStale,
     );
   }
 }

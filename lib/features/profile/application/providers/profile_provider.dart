@@ -41,20 +41,35 @@ class ProfileController extends Notifier<ProfileState> {
     return ProfileState.initial();
   }
 
+  /// Fetches profile with cache-first strategy:
+  /// 1. Shows cached data immediately (even if stale)
+  /// 2. Triggers background API refresh if data is stale
   Future<void> fetchProfile() async {
-    state = state.copyWith(
-      status: ProfileStatus.loading,
-      clearError: true,
-    );
-
-    try {
-      final profile = await _repository.fetchProfile();
-
+    // Only show loading if no data exists
+    if (state.profile == null) {
       state = state.copyWith(
-        status: ProfileStatus.data,
-        profile: profile,
+        status: ProfileStatus.loading,
         clearError: true,
       );
+    }
+
+    try {
+      // Import the repository implementation to access fetchProfileWithCache
+      final repoImpl = _repository as ProfileRepositoryImpl;
+      final result = await repoImpl.fetchProfileWithCache();
+
+      // Update UI immediately with cached/fresh data
+      state = state.copyWith(
+        status: ProfileStatus.data,
+        profile: result.profile,
+        isStale: result.isStale,
+        clearError: true,
+      );
+
+      // If data is stale, trigger background refresh
+      if (result.isStale && result.fromCache) {
+        _refreshInBackground();
+      }
     } catch (error) {
       final message = _mapError(error);
 
@@ -62,6 +77,51 @@ class ProfileController extends Notifier<ProfileState> {
         status: ProfileStatus.error,
         errorMessage: message,
       );
+    }
+  }
+
+  /// Background refresh without blocking UI
+  void _refreshInBackground() {
+    final repoImpl = _repository as ProfileRepositoryImpl;
+    repoImpl.refreshProfileFromApi().then((freshProfile) {
+      if (freshProfile != null) {
+        // Update state with fresh data
+        state = state.copyWith(
+          profile: freshProfile,
+          isStale: false,
+          clearError: true,
+        );
+      }
+    }).catchError((_) {
+      // Silently fail - user already has cached data
+    });
+  }
+
+  /// Manual refresh for pull-to-refresh
+  Future<void> refreshProfile() async {
+    try {
+      final repoImpl = _repository as ProfileRepositoryImpl;
+      final freshProfile = await repoImpl.refreshProfileFromApi();
+
+      if (freshProfile != null) {
+        state = state.copyWith(
+          status: ProfileStatus.data,
+          profile: freshProfile,
+          isStale: false,
+          clearError: true,
+        );
+      } else {
+        // API failed, but keep existing data
+        throw Exception('Failed to refresh profile');
+      }
+    } catch (error) {
+      final message = _mapError(error);
+
+      state = state.copyWith(
+        errorMessage: message,
+      );
+
+      rethrow;
     }
   }
 

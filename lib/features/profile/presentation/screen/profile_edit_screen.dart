@@ -61,19 +61,58 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppSpacing.h16,
-              _buildProfileHeaderEditMode(
-                fullName: profile?.fullName ?? 'User',
-                mobileNumber: profile?.mobileNumber ?? 'N/A',
-                profileImageUrl: profile?.profileImageUrl,
-              ),
+      body: RefreshIndicator(
+        color: AppColors.green,
+        onRefresh: () async {
+          await ref.read(profileControllerProvider.notifier).refreshProfile();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppSpacing.h16,
+                // Stale data warning banner
+                if (profileState.isStale)
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12.w),
+                    margin: EdgeInsets.only(bottom: 16.h),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8.r),
+                      border: Border.all(
+                        color: Colors.orange.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.orange.shade700,
+                          size: 20.sp,
+                        ),
+                        AppSpacing.w12,
+                        Expanded(
+                          child: Text(
+                            'Showing offline data. Pull to refresh for latest updates.',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                _buildProfileHeaderEditMode(
+                  fullName: profile?.fullName ?? 'User',
+                  mobileNumber: profile?.mobileNumber ?? 'N/A',
+                  profileImageUrl: profile?.profileImageUrl,
+                ),
               AppSpacing.h32,
               _buildTextField(
                 label: 'Full name',
@@ -182,8 +221,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              AppSpacing.h32,
-            ],
+                AppSpacing.h32,
+              ],
+            ),
           ),
         ),
       ),
