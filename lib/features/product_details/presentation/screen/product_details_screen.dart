@@ -300,7 +300,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         text: 'Review',
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.green100,
+                        color: AppColors.black,
                       ),
                       const Spacer(),
                       Row(
@@ -323,16 +323,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
                 ),
               ),
-              AppSpacing.h12,
-
-              // Related Products Section
-              AppText(
-                text: 'Related Products',
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColors.black,
-              ),
-              AppSpacing.h8,
 
               // Product List Items
               ProductListItem(

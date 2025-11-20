@@ -52,7 +52,7 @@ class ExpandableSection extends StatelessWidget {
                         text: title,
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.green100,
+                        color: AppColors.black,
                       ),
                       if (badge != null) ...[
                         const Spacer(),
