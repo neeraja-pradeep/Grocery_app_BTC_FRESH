@@ -1,0 +1,1 @@
+https://www.figma.com/design/ZeK0T32wZkt7c0yo7d9EDh/Dev-mode-Test---Nexotech?node-id=6008-244&t=AVyU42P0VwoNH0l5-1
