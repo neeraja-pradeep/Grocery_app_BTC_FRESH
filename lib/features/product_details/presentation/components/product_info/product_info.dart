@@ -3,207 +3,117 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
-import '../../../domain/entities/product_detail.dart';
 
-const String _rupeeSymbol = '\u20B9';
+import '../../../domain/entities/product_variant.dart';
 
 /// Product information section with name, weight, price, rating
-class ProductInfo extends StatelessWidget {
-  const ProductInfo({super.key, required this.productDetail});
+class ProductInfo extends StatefulWidget {
+  const ProductInfo({
+    super.key,
+    required this.productDetail,
+    required this.isInWishlist,
+    required this.onWishlistToggle,
+  });
+  final bool isInWishlist;
+  final VoidCallback onWishlistToggle;
+  final ProductVariant productDetail;
 
-  final ProductDetail productDetail;
+  @override
+  State<ProductInfo> createState() => _ProductInfoState();
+}
+
+class _ProductInfoState extends State<ProductInfo> {
+  /// Parse weight string and convert to normalized format (gm or kg)
+  /// Examples: "500 gm" -> "500 gm", "1000 gm" -> "1 kg", "1200 gm" -> "1.2 kg"
+  String _parseWeight(String weight) {
+    try {
+      // Remove extra spaces and convert to lowercase
+      final cleanedWeight = weight.trim().toLowerCase();
+
+      // Extract numeric value and unit using regex
+      final regex = RegExp(r'([\d.]+)\s*([a-z]*)');
+      final match = regex.firstMatch(cleanedWeight);
+
+      if (match == null) return weight;
+
+      final numericValue = double.tryParse(match.group(1) ?? '0') ?? 0;
+      final unit = (match.group(2) ?? '').replaceAll(RegExp(r'[^a-z]'), '');
+
+      // Determine if input is in grams or kilograms
+      double valueInGrams = numericValue;
+
+      if (unit.contains('k')) {
+        // Already in kg, convert to grams
+        valueInGrams = numericValue * 1000;
+      }
+      // else it's in grams or no unit specified (assume grams)
+
+      // Convert back to appropriate unit
+      if (valueInGrams >= 1000) {
+        // Convert to kg
+        final valueInKg = valueInGrams / 1000;
+        // Remove trailing zeros after decimal
+        final formatted = valueInKg
+            .toStringAsFixed(2)
+            .replaceAll(RegExp(r'\.?0+$'), '');
+        return '$formatted kg';
+      } else {
+        // Keep in grams, preserve decimal values
+        final formatted = valueInGrams
+            .toStringAsFixed(2)
+            .replaceAll(RegExp(r'\.?0+$'), '');
+        return '$formatted gm';
+      }
+    } catch (e) {
+      // If parsing fails, return original weight
+      return weight;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final priceValue = _formatPrice(productDetail.price);
-    final originalPriceValue = _formatPrice(productDetail.originalPrice);
-    final discount = _calculateDiscount(
-      productDetail.price,
-      productDetail.originalPrice,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Product name
-        AppText(
-          text: productDetail.variantName,
-          fontSize: 18.sp,
-          fontWeight: FontWeight.w700,
-          color: AppColors.green100,
-          maxLines: 2,
-        ),
-        AppSpacing.h8,
-
-        // Weight/Quantity
-        if (productDetail.weight != null && productDetail.weight!.isNotEmpty)
-          AppText(
-            text: productDetail.weight!,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w500,
-            color: AppColors.grey,
-          ),
-        if (productDetail.weight != null && productDetail.weight!.isNotEmpty)
-          AppSpacing.h12,
-
-        // Price row
         Row(
           children: [
             AppText(
-              text: _rupeeSymbol,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.green,
-            ),
-            AppSpacing.w4,
-            AppText(
-              text: priceValue ?? 'N/A',
-              fontSize: 18.sp,
+              text:
+                  widget.productDetail.variantName ?? widget.productDetail.name,
+              fontSize: 24.sp,
               fontWeight: FontWeight.w700,
-              color: AppColors.green,
+              color: AppColors.black,
+              maxLines: 2,
             ),
-            if (originalPriceValue != null &&
-                originalPriceValue != priceValue) ...[
-              AppSpacing.w12,
-              AppText(
-                text: '$_rupeeSymbol$originalPriceValue',
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w500,
-                color: AppColors.grey,
-                decoration: TextDecoration.lineThrough,
+            const Spacer(),
+            Container(
+              width: 48.w,
+              height: 48.w,
+
+              alignment: Alignment.center,
+              child: Icon(
+                widget.isInWishlist ? Icons.favorite : Icons.favorite_border,
+                color: widget.isInWishlist ? Colors.red : AppColors.grey,
+                size: 26.sp,
               ),
-            ],
-            if (discount != null) ...[
-              AppSpacing.w12,
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-                child: AppText(
-                  text: '$discount% Off',
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red,
-                ),
-              ),
-            ],
+            ),
           ],
         ),
-        AppSpacing.h16,
 
-        // Rating and reviews
-        if (productDetail.rating != null)
-          Row(
-            children: [
-              _buildRatingStars(productDetail.rating!),
-              AppSpacing.w8,
-              AppText(
-                text: '${productDetail.rating?.toStringAsFixed(1)}',
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.green,
-              ),
-              if (productDetail.reviewCount != null) ...[
-                AppSpacing.w12,
-                AppText(
-                  text: '(${productDetail.reviewCount} reviews)',
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.grey,
-                ),
-              ],
-            ],
-          ),
-
-        // Description
-        if (productDetail.description?.isNotEmpty ?? false) ...[
-          AppSpacing.h16,
+        // Weight/Quantity
+        if (widget.productDetail.weight != null &&
+            widget.productDetail.weight!.isNotEmpty)
           AppText(
-            text: 'Description',
+            text: _parseWeight(widget.productDetail.weight!),
             fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            color: AppColors.green100,
-          ),
-          AppSpacing.h8,
-          AppText(
-            text: productDetail.description!,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w500,
             color: AppColors.grey,
-            maxLines: 3,
           ),
-        ],
+        if (widget.productDetail.weight != null &&
+            widget.productDetail.weight!.isNotEmpty)
+          AppSpacing.h12,
       ],
     );
-  }
-
-  /// Build rating stars widget
-  Widget _buildRatingStars(double rating) {
-    return Row(
-      children: List.generate(
-        5,
-        (index) => Icon(
-          index < rating.floor()
-              ? Icons.star
-              : index < rating
-              ? Icons.star_half
-              : Icons.star_outline,
-          color: Colors.amber,
-          size: 16.sp,
-        ),
-      ),
-    );
-  }
-
-  /// Format price value
-  String? _formatPrice(String? price) {
-    if (price == null || price.isEmpty) return null;
-
-    final trimmed = price.trim();
-    if (trimmed.isEmpty) return null;
-
-    var normalized = trimmed;
-    if (normalized.startsWith(_rupeeSymbol)) {
-      normalized = normalized.substring(_rupeeSymbol.length).trim();
-    }
-
-    if (normalized.isEmpty) return null;
-    if (normalized.toUpperCase() == 'N/A') return null;
-
-    final numeric = double.tryParse(normalized.replaceAll(',', ''));
-    if (numeric != null) {
-      return numeric % 1 == 0
-          ? numeric.toInt().toString()
-          : _trimTrailingZeros(numeric.toStringAsFixed(2));
-    }
-
-    return normalized;
-  }
-
-  /// Calculate discount percentage
-  int? _calculateDiscount(String? price, String? originalPrice) {
-    final priceNum = double.tryParse(
-      (price ?? '').replaceAll(RegExp(r'[^\d.]'), ''),
-    );
-    final originalNum = double.tryParse(
-      (originalPrice ?? '').replaceAll(RegExp(r'[^\d.]'), ''),
-    );
-
-    if (priceNum == null ||
-        originalNum == null ||
-        originalNum <= 0 ||
-        priceNum >= originalNum) {
-      return null;
-    }
-
-    final discount = ((originalNum - priceNum) / originalNum * 100).round();
-    return discount > 0 ? discount : null;
-  }
-
-  /// Trim trailing zeros
-  String _trimTrailingZeros(String value) {
-    return value.replaceFirst(RegExp(r'\.?0+$'), '');
   }
 }

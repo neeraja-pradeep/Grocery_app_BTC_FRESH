@@ -10,6 +10,47 @@ import '../../infrastructure/data_sources/remote/category_product_remote_data_so
 import '../../infrastructure/repositories/category_product_repository_impl.dart';
 import '../states/category_product_state.dart';
 
+/// ============================================================================
+/// CATEGORY PRODUCTS LAST-MODIFIED UPDATE SYSTEM
+/// ============================================================================
+///
+/// This implementation uses HTTP conditional requests to efficiently check
+/// for updates without downloading unchanged product lists.
+///
+/// FLOW:
+/// -----
+/// 1. INITIAL LOAD (per category):
+///    - Check local Hive cache with categoryId
+///    - If empty, fetch from server (200 OK response)
+///    - Extract Last-Modified header from response
+///    - Save cache + Last-Modified to Hive with categoryId key
+///
+/// 2. PERIODIC POLLING (every 30 seconds):
+///    - Read If-Modified-Since from Hive for this category
+///    - Send conditional GET with If-Modified-Since header
+///    - If server returns 304: Keep using cached data, update lastSyncedAt
+///    - If server returns 200: New products available, update cache + Last-Modified
+///
+/// 3. CACHE STORAGE (Hive):
+///    - categoryId: The category these products belong to
+///    - products: List of product items
+///    - lastSyncedAt: When we last checked
+///    - lastModified: Server's Last-Modified header (for If-Modified-Since)
+///    - eTag: Alternate validation mechanism
+///    - count, next, previous: Pagination info
+///
+/// PER-CATEGORY CACHING:
+/// --------------------
+/// Each category's products are cached separately with key:
+/// 'category_products_{categoryId}'
+/// This means viewing multiple categories doesn't cause conflicts.
+///
+/// POLLING BEHAVIOR:
+/// -----------------
+/// Each category view has its own polling timer (FamilyNotifier).
+/// When you switch to a different category, the old timer is disposed.
+/// ============================================================================
+
 final categoryProductLocalDataSourceProvider =
     Provider<CategoryProductLocalDataSource>((ref) {
       return CategoryProductLocalDataSource();
@@ -198,6 +239,19 @@ class CategoryProductController
     return 'Something went wrong. Please try again.';
   }
 
+  /// Starts periodic polling to check for product updates every 30 seconds.
+  ///
+  /// How it works:
+  /// 1. Every 30 seconds, a refresh is triggered
+  /// 2. The repository reads lastModified from Hive for this category
+  /// 3. A GET request is sent with If-Modified-Since header
+  /// 4. If server responds with 304: UI keeps showing cached products (bandwidth saved!)
+  /// 5. If server responds with 200: New products are cached and UI is updated
+  ///
+  /// Safeguards:
+  /// - Skips if already refreshing (prevents overlapping requests)
+  /// - Skips if loading initial data
+  /// - Per-category: Each category has its own polling timer
   void _startPolling() {
     _pollingTimer ??= Timer.periodic(_pollingInterval, (_) {
       if (state.isRefreshing) return;

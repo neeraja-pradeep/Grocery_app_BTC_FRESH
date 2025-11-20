@@ -6,13 +6,12 @@ import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/category/domain/entities/category_product.dart';
+import 'package:grocery_app/features/product_details/presentation/components/product_info/product_info.dart';
 
 import '../../application/providers/product_detail_providers.dart';
 import '../../domain/entities/product_variant.dart' as product_variant;
 import '../components/expandable_section/expandable_section.dart';
 import '../components/product_image_section/product_image_section.dart';
-import '../components/product_info/product_info.dart';
-import '../components/product_reviews/product_reviews.dart';
 
 const String _rupeeSymbol = '₹';
 
@@ -125,13 +124,15 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             ProductImageSection(
               imageUrl: productDetail.imageUrl,
               media: productDetail.media,
-              isInWishlist: state.isInWishlist,
-              onWishlistToggle: controller.toggleWishlist,
             ),
             AppSpacing.h16,
 
             // Product info (name, price, rating, description)
-            ProductInfo(productDetail: productDetail),
+            ProductInfo(
+              productDetail: productDetail,
+              isInWishlist: state.isInWishlist,
+              onWishlistToggle: controller.toggleWishlist,
+            ),
             AppSpacing.h16,
 
             // Add to cart button + Price row
@@ -147,11 +148,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                       : _buildQuantitySelector(state, controller),
                 ),
                 // Unit Price display
-                AppText(
-                  text: '$_rupeeSymbol${productDetail.price}',
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.black,
+                Text(
+                  '$_rupeeSymbol${productDetail.price}',
+                  style: TextStyle(
+                    fontSize: 22.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.black,
+                  ),
                 ),
               ],
             ),
@@ -177,17 +180,57 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 
             // Product weight/info section
             ExpandableSection(
-              title: productDetail.name,
+              title: "Nutritions",
               onToggle: () {},
               badge: productDetail.weight,
               child: const SizedBox(),
             ),
 
-            // Reviews section
-            if (productDetail.reviews != null &&
-                productDetail.reviews!.isNotEmpty)
-              ProductReviews(reviews: productDetail.reviews),
-            AppSpacing.h24,
+            // Rating and reviews section
+            if (productDetail.rating != null)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 0.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppColors.grey.withValues(alpha: 0.15),
+                      width: 1.h,
+                    ),
+                    top: BorderSide(
+                      color: AppColors.grey.withValues(alpha: 0.15),
+                      width: 1.h,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    AppText(
+                      text: "Review",
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.black,
+                    ),
+                    const Spacer(),
+                    _buildRatingStars(productDetail.rating!),
+                    AppSpacing.w8,
+                    AppText(
+                      text: '${productDetail.rating?.toStringAsFixed(1)}',
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.green,
+                    ),
+                    if (productDetail.reviewCount != null) ...[
+                      AppSpacing.w12,
+                      AppText(
+                        text: '(${productDetail.reviewCount} reviews)',
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.grey,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -195,6 +238,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   }
 
   /// Build bottom sheet (sticky checkout section)
+  /// Displays total price and View Cart button
+  /// Price updates dynamically based on quantity
   Widget _buildBottomSheet(
     product_variant.ProductVariant productDetail,
     dynamic state,
@@ -224,7 +269,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Total price
+          // Total price column
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,17 +277,19 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               AppText(
                 text: 'Total price',
                 fontSize: 13.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: AppColors.black,
               ),
               AppSpacing.h4,
-              AppText(
-                text: state.quantity > 0
+              Text(
+                state.quantity > 0
                     ? '$_rupeeSymbol${totalPrice.toStringAsFixed(2).replaceAll(RegExp(r'\.?0+$'), '')}'
                     : '${_rupeeSymbol}0',
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w800,
-                color: Colors.red,
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.red,
+                ),
               ),
             ],
           ),
@@ -253,10 +300,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               if (kDebugMode) debugPrint('[ProductDetails] Checkout tapped');
             },
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 14.h),
+              padding: EdgeInsets.symmetric(horizontal: 70.w, vertical: 20.h),
               decoration: BoxDecoration(
                 color: AppColors.green50,
-                borderRadius: BorderRadius.circular(15.r),
+                borderRadius: BorderRadius.circular(10.r),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.green50.withValues(alpha: 0.3),
@@ -267,8 +314,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               ),
               child: AppText(
                 text: 'View Cart',
-                fontSize: 18.sp,
+                fontSize: 16.sp,
                 color: AppColors.white,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -278,6 +326,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   }
 
   /// Convert CategoryProduct to ProductVariant with mock media items
+  /// This provides fallback data when Riverpod hasn't fetched from API
   product_variant.ProductVariant _convertToProductVariant(
     CategoryProduct product,
   ) {
@@ -331,6 +380,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   }
 
   /// Add button when quantity is 0
+  /// Tapping this sets quantity to 1 and triggers UI refresh
   Widget _buildAddButton(dynamic controller) {
     return GestureDetector(
       onTap: () => controller.setQuantity(1),
@@ -352,18 +402,22 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   }
 
   /// Quantity selector (increment/decrement)
+  /// Displays minus button, quantity number, and plus button
+  /// Replaces Add button once quantity > 0
   Widget _buildQuantitySelector(dynamic state, dynamic controller) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // Decrement button
         GestureDetector(
           onTap: () {
             if (state.quantity > 0) {
               controller.setQuantity(state.quantity - 1);
             }
           },
-          child: const Icon(Icons.remove, color: AppColors.grey, size: 28),
+          child: const Icon(Icons.remove, color: AppColors.green100, size: 28),
         ),
+        // Quantity display
         Container(
           width: 32.w,
           height: 32.w,
@@ -377,9 +431,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             text: '${state.quantity}',
             fontSize: 16.sp,
             fontWeight: FontWeight.w700,
-            color: AppColors.green100,
+            color: AppColors.white,
           ),
         ),
+        // Increment button
         GestureDetector(
           onTap: () => controller.setQuantity(state.quantity + 1),
           child: const Icon(Icons.add, color: AppColors.green100, size: 28),
@@ -387,4 +442,22 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
       ],
     );
   }
+}
+
+/// Build rating stars widget
+Widget _buildRatingStars(double rating) {
+  return Row(
+    children: List.generate(
+      5,
+      (index) => Icon(
+        index < rating.floor()
+            ? Icons.star
+            : index < rating
+            ? Icons.star_half
+            : Icons.star_outline,
+        color: Colors.deepOrangeAccent,
+        size: 16.sp,
+      ),
+    ),
+  );
 }

@@ -3,13 +3,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
-import '../../../domain/entities/product_detail.dart';
+import '../../../domain/entities/product_variant.dart';
 
 /// Product reviews section with stagger animation
 class ProductReviews extends StatefulWidget {
   const ProductReviews({super.key, required this.reviews});
 
-  final List<ProductReview>? reviews;
+  final List<ProductVariantReview>? reviews;
 
   @override
   State<ProductReviews> createState() => _ProductReviewsState();
@@ -111,7 +111,7 @@ class _ProductReviewsState extends State<ProductReviews>
 class _AnimatedReviewCard extends StatelessWidget {
   const _AnimatedReviewCard({required this.review, required this.animation});
 
-  final ProductReview review;
+  final ProductVariantReview review;
   final AnimationController animation;
 
   @override
@@ -140,7 +140,7 @@ class _AnimatedReviewCard extends StatelessWidget {
 class _ReviewCard extends StatelessWidget {
   const _ReviewCard({required this.review});
 
-  final ProductReview review;
+  final ProductVariantReview review;
 
   @override
   Widget build(BuildContext context) {

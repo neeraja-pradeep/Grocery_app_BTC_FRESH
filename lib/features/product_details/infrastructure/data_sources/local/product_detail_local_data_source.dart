@@ -1,24 +1,73 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../models/product_detail_dto.dart';
+import '../../models/product_variant_dto.dart';
+import './product_detail_cache_dto.dart';
 
-/// Local data source for caching product details
+/// Local data source for caching product details.
+///
+/// This uses Hive for persistent storage with two-tier caching:
+/// 1. Basic cache: Just the product data (ProductVariantDto)
+/// 2. Full cache with metadata: Includes Last-Modified and eTag headers
+///
+/// For the last-modified update system, ALWAYS use the metadata methods:
+/// - getCachedProductDetail() → Read with lastModified
+/// - cacheProductDetailWithMetadata() → Save with lastModified
+///
+/// The metadata (lastModified, eTag) is essential for conditional requests:
+/// - If-Modified-Since header uses lastModified value
+/// - If-None-Match header uses eTag value
+/// - Server compares these with its data to return 304 or 200
 abstract class ProductDetailLocalDataSource {
-  /// Get cached product detail
-  Future<ProductDetailDto?> getProductDetail(String productId);
+  /// Get cached product detail (basic data only, no metadata).
+  ///
+  /// Use this if you only need the product data without cache headers.
+  /// For the last-modified system, use getCachedProductDetail() instead.
+  Future<ProductVariantDto?> getProductDetail(String productId);
 
-  /// Cache product detail
-  Future<void> cacheProductDetail(String productId, ProductDetailDto detail);
+  /// Cache product detail (basic data only, no metadata).
+  ///
+  /// Use this if you only need to cache product data without headers.
+  /// For the last-modified system, use cacheProductDetailWithMetadata() instead.
+  Future<void> cacheProductDetail(String productId, ProductVariantDto detail);
 
-  /// Clear cached product detail
+  /// Get cached product detail WITH Last-Modified and eTag metadata.
+  ///
+  /// This returns:
+  /// - productDetail: The actual product data
+  /// - lastSyncedAt: When we last checked (used for TTL)
+  /// - lastModified: HTTP Last-Modified header (for If-Modified-Since)
+  /// - eTag: HTTP ETag header (for If-None-Match)
+  ///
+  /// This metadata is CRITICAL for the last-modified update system.
+  /// The repository uses it to construct conditional request headers.
+  Future<ProductDetailCacheDto?> getCachedProductDetail(String productId);
+
+  /// Cache product detail WITH Last-Modified and eTag metadata.
+  ///
+  /// This saves:
+  /// - productDetail: The actual product data
+  /// - lastSyncedAt: Current timestamp (sets TTL)
+  /// - lastModified: From HTTP response header (for next If-Modified-Since)
+  /// - eTag: From HTTP response header (for next If-None-Match)
+  ///
+  /// ALWAYS use this for the last-modified update system.
+  /// It ensures lastModified is stored and will be used in the next poll.
+  Future<void> cacheProductDetailWithMetadata(
+    String productId,
+    ProductDetailCacheDto cacheDto,
+  );
+
+  /// Clear cached product detail.
+  ///
+  /// Removes both the product data and its metadata from Hive.
   Future<void> clearProductDetail(String productId);
 
   /// Get cached reviews
-  Future<List<ProductReviewDto>?> getProductReviews(String productId);
+  Future<List<ProductVariantReviewDto>?> getProductReviews(String productId);
 
   /// Cache product reviews
   Future<void> cacheProductReviews(
     String productId,
-    List<ProductReviewDto> reviews,
+    List<ProductVariantReviewDto> reviews,
   );
 
   /// Check if product is in local wishlist
@@ -42,11 +91,11 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
   static const String _wishlistKey = 'wishlist_items';
 
   @override
-  Future<ProductDetailDto?> getProductDetail(String productId) async {
+  Future<ProductVariantDto?> getProductDetail(String productId) async {
     try {
       final key = '$_productDetailPrefix$productId';
       final json = _box.get(key) as Map<String, dynamic>?;
-      return json != null ? ProductDetailDto.fromJson(json) : null;
+      return json != null ? ProductVariantDto.fromJson(json) : null;
     } catch (e) {
       return null;
     }
@@ -55,7 +104,7 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
   @override
   Future<void> cacheProductDetail(
     String productId,
-    ProductDetailDto detail,
+    ProductVariantDto detail,
   ) async {
     try {
       final key = '$_productDetailPrefix$productId';
@@ -66,22 +115,68 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
   }
 
   @override
-  Future<void> clearProductDetail(String productId) async {
+  Future<ProductDetailCacheDto?> getCachedProductDetail(
+    String productId,
+  ) async {
     try {
-      final key = '$_productDetailPrefix$productId';
-      await _box.delete(key);
+      final key = '${_productDetailPrefix}metadata_$productId';
+      final json = _box.get(key) as Map<String, dynamic>?;
+      return json != null ? ProductDetailCacheDto.fromJson(json) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> cacheProductDetailWithMetadata(
+    String productId,
+    ProductDetailCacheDto cacheDto,
+  ) async {
+    try {
+      final key = '${_productDetailPrefix}metadata_$productId';
+      await _box.put(key, cacheDto.toJson());
     } catch (e) {
       rethrow;
     }
   }
 
   @override
-  Future<List<ProductReviewDto>?> getProductReviews(String productId) async {
+  Future<void> clearProductDetail(String productId) async {
+    try {
+      final key = '$_productDetailPrefix$productId';
+      final metadataKey = '${_productDetailPrefix}metadata_$productId';
+      await _box.delete(key);
+      await _box.delete(metadataKey);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Clear all cached product details
+  Future<void> clearAllCache() async {
+    try {
+      final keys = _box.keys.toList();
+      for (final key in keys) {
+        if (key.toString().startsWith(_productDetailPrefix)) {
+          await _box.delete(key);
+        }
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<ProductVariantReviewDto>?> getProductReviews(
+    String productId,
+  ) async {
     try {
       final key = '$_productReviewPrefix$productId';
       final jsonList = _box.get(key) as List<dynamic>?;
       return jsonList
-          ?.map((e) => ProductReviewDto.fromJson(e as Map<String, dynamic>))
+          ?.map(
+            (e) => ProductVariantReviewDto.fromJson(e as Map<String, dynamic>),
+          )
           .toList();
     } catch (e) {
       return null;
@@ -91,7 +186,7 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
   @override
   Future<void> cacheProductReviews(
     String productId,
-    List<ProductReviewDto> reviews,
+    List<ProductVariantReviewDto> reviews,
   ) async {
     try {
       final key = '$_productReviewPrefix$productId';

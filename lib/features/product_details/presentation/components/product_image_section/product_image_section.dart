@@ -5,6 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 
+import '../../../domain/entities/product_variant.dart';
+
 /// Custom painter for curved bottom wave with green accent using circular arc
 class ProductCardPainter extends CustomPainter {
   @override
@@ -47,16 +49,10 @@ class ProductCardPainter extends CustomPainter {
 
 /// Product image section with main image on left, thumbnails on right
 class ProductImageSection extends StatefulWidget {
-  const ProductImageSection({
-    super.key,
-    required this.imageUrl,
-    required this.isInWishlist,
-    required this.onWishlistToggle,
-  });
+  const ProductImageSection({super.key, required this.imageUrl, this.media});
 
   final String? imageUrl;
-  final bool isInWishlist;
-  final VoidCallback onWishlistToggle;
+  final List<ProductVariantMedia>? media;
 
   @override
   State<ProductImageSection> createState() => _ProductImageSectionState();

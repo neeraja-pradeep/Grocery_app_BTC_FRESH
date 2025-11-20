@@ -43,6 +43,22 @@ class CategoryRepositoryImpl implements CategoryRepository {
     );
   }
 
+  /// Syncs categories with conditional request headers for efficiency.
+  ///
+  /// LOGIC:
+  /// ------
+  /// 1. Reads lastModified from Hive cache
+  /// 2. Sends GET request with If-Modified-Since header (if cache exists)
+  /// 3. Handles responses:
+  ///    - Server returns 200 (OK): Data changed, save new data + lastModified to Hive
+  ///    - Server returns 304 (Not Modified): Data unchanged, just update lastSyncedAt
+  /// 4. [forceRemote] = true: Bypasses conditional headers for force refresh
+  ///
+  /// WHY THIS WORKS:
+  /// ---------------
+  /// The server compares the If-Modified-Since timestamp with when the
+  /// resource was last modified. If the timestamp matches or is newer,
+  /// the server returns 304 instead of resending the data.
   @override
   Future<CategoryRepositoryResult> syncCategories({
     bool forceRemote = false,
@@ -50,16 +66,20 @@ class CategoryRepositoryImpl implements CategoryRepository {
     final existingCache = _localDataSource.read();
 
     final response = await _remoteDataSource.fetchCategories(
+      // If forceRemote, send no headers (get full response)
+      // Otherwise, use lastModified from Hive for If-Modified-Since
       ifNoneMatch: forceRemote ? null : existingCache?.eTag,
       ifModifiedSince: forceRemote ? null : existingCache?.lastModified,
     );
 
+    // Server returned 304 (Not Modified) - data hasn't changed
     if (response == null) {
       if (existingCache == null) {
         throw const NetworkException(message: 'No category data available.');
       }
 
       final now = DateTime.now();
+      // Only update the lastSyncedAt timestamp, keep the cached data
       await _localDataSource.updateLastSyncedAt(now);
 
       return CategoryRepositoryResult(
@@ -74,10 +94,12 @@ class CategoryRepositoryImpl implements CategoryRepository {
       );
     }
 
+    // Server returned 200 (OK) - new data available
     final cacheDto = CategoryCacheDto(
       categories: response.categories,
       lastSyncedAt: response.fetchedAt,
       eTag: response.eTag ?? existingCache?.eTag,
+      // Save the NEW lastModified from response for next If-Modified-Since
       lastModified: response.lastModified ?? existingCache?.lastModified,
       count: response.count ?? existingCache?.count,
       next: response.next ?? existingCache?.next,

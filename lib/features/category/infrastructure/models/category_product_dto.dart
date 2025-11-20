@@ -1,5 +1,3 @@
-import 'package:grocery_app/core/network/endpoints.dart';
-
 import '../../domain/entities/category_product.dart';
 
 class CategoryProductDto {
@@ -351,20 +349,38 @@ class CategoryProductDto {
 }
 
 String? _resolveMediaUrl(String? url, String? path) {
+  const cdnBase = 'https://grocery-application.b-cdn.net';
+  const cdnDomain = 'grocery-application.b-cdn.net';
+  const internalServerBase = 'http://156.67.104.149:8080';
+
   String? normalized = url;
   if (normalized != null && normalized.isNotEmpty) {
-    if (!normalized.startsWith('http')) {
-      normalized = 'https://$normalized';
+    // Replace internal server URLs with CDN domain
+    if (normalized.startsWith(internalServerBase)) {
+      return normalized.replaceFirst(internalServerBase, cdnBase);
     }
-    return normalized;
+    // If already HTTPS, keep it
+    if (normalized.startsWith('https://')) {
+      return normalized;
+    }
+    // If already contains CDN domain (without https), prepend https
+    if (normalized.startsWith(cdnDomain)) {
+      return 'https://$normalized';
+    }
+    // If relative path, prepend CDN base
+    if (normalized.startsWith('/')) {
+      return '$cdnBase$normalized';
+    }
+    // Default: assume relative path
+    return '$cdnBase/$normalized';
   }
 
   if (path != null && path.isNotEmpty) {
-    final base = ApiEndpoints.baseUrl;
-    if (base.endsWith('/') && path.startsWith('/')) {
-      return '${base.substring(0, base.length - 1)}$path';
+    // Use CDN base instead of internal server base
+    if (path.startsWith('/')) {
+      return '$cdnBase$path';
     }
-    return '$base$path';
+    return '$cdnBase/$path';
   }
 
   return null;

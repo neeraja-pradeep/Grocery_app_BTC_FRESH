@@ -18,6 +18,8 @@ dependencies:
   flutter_riverpod: ^2.5.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  connectivity_plus: ^6.0.0
+  equatable: ^2.0.5  # Added for value-based equality in entities
 
 dev_dependencies:
   flutter_test:

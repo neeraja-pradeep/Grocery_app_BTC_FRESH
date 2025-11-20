@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
@@ -74,7 +75,12 @@ class ProductCard extends StatelessWidget {
                     top: 8.h,
                     right: 5.w,
                     child: GestureDetector(
-                      onTap: onAddToCart,
+                      onTap: () {
+                        if (kDebugMode) {
+                          print(product.id);
+                          print(image);
+                        }
+                      },
                       child: Container(
                         width: 29.w,
                         height: 29.w,
@@ -175,8 +181,8 @@ class _ProductImage extends StatelessWidget {
       return Image.asset(image!, fit: BoxFit.cover);
     }
 
-    return Image.network(
-      image!,
+    return Image(
+      image: NetworkImage(image!, headers: {"User-Agent": "Mozilla/5.0"}),
       fit: BoxFit.fitHeight,
       errorBuilder: (context, error, stackTrace) => Container(
         color: AppColors.green10,
@@ -187,24 +193,6 @@ class _ProductImage extends StatelessWidget {
           color: AppColors.green100,
         ),
       ),
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Container(
-          color: AppColors.green10,
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: 20.w,
-            height: 20.w,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              value: progress.expectedTotalBytes != null
-                  ? progress.cumulativeBytesLoaded /
-                        progress.expectedTotalBytes!
-                  : null,
-            ),
-          ),
-        );
-      },
     );
   }
 }

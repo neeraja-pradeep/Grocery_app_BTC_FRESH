@@ -1,10 +1,14 @@
-import '../../domain/entities/product_detail.dart';
+import 'package:equatable/equatable.dart';
+
+import '../../domain/entities/product_variant.dart';
 
 /// Status enum for product detail state
 enum ProductDetailStatus { initial, loading, data, empty, error }
 
 /// State for product detail
-class ProductDetailState {
+/// Uses Equatable for value-based comparison so Riverpod change detection works reliably.
+/// When API returns new data, Riverpod will detect the state change and trigger rebuilds.
+class ProductDetailState extends Equatable {
   const ProductDetailState({
     this.status = ProductDetailStatus.initial,
     this.productDetail,
@@ -13,25 +17,45 @@ class ProductDetailState {
     this.quantity = 0,
     this.errorMessage,
     this.lastFetchedAt,
+    this.lastSyncedAt,
+    this.isRefreshing = false,
+    this.eTag,
+    this.lastModified,
+    this.refreshStartedAt,
+    this.refreshEndedAt,
   });
 
   final ProductDetailStatus status;
-  final ProductDetail? productDetail;
-  final List<ProductReview>? reviews;
+  final ProductVariant? productDetail;
+  final List<ProductVariantReview>? reviews;
   final bool isInWishlist;
   final int quantity;
   final String? errorMessage;
   final DateTime? lastFetchedAt;
+  final DateTime? lastSyncedAt;
+  final bool isRefreshing;
+  final String? eTag;
+  final String? lastModified;
+  final DateTime? refreshStartedAt;
+  final DateTime? refreshEndedAt;
 
   /// Copy with method for immutable updates
   ProductDetailState copyWith({
     ProductDetailStatus? status,
-    ProductDetail? productDetail,
-    List<ProductReview>? reviews,
+    ProductVariant? productDetail,
+    List<ProductVariantReview>? reviews,
     bool? isInWishlist,
     int? quantity,
     String? errorMessage,
     DateTime? lastFetchedAt,
+    DateTime? lastSyncedAt,
+    bool? isRefreshing,
+    String? eTag,
+    String? lastModified,
+    DateTime? refreshStartedAt,
+    DateTime? refreshEndedAt,
+    bool resetRefreshStartedAt = false,
+    bool resetRefreshEndedAt = false,
   }) {
     return ProductDetailState(
       status: status ?? this.status,
@@ -41,6 +65,16 @@ class ProductDetailState {
       quantity: quantity ?? this.quantity,
       errorMessage: errorMessage ?? this.errorMessage,
       lastFetchedAt: lastFetchedAt ?? this.lastFetchedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+      eTag: eTag ?? this.eTag,
+      lastModified: lastModified ?? this.lastModified,
+      refreshStartedAt: resetRefreshStartedAt
+          ? null
+          : (refreshStartedAt ?? this.refreshStartedAt),
+      refreshEndedAt: resetRefreshEndedAt
+          ? null
+          : (refreshEndedAt ?? this.refreshEndedAt),
     );
   }
 
@@ -55,6 +89,25 @@ class ProductDetailState {
 
   /// Check if product is in cart (quantity > 0)
   bool get isInCart => quantity > 0;
+
+  /// Equatable props for value-based comparison.
+  /// Riverpod uses these to detect when state changes and rebuild widgets.
+  @override
+  List<Object?> get props => [
+    status,
+    productDetail,
+    reviews,
+    isInWishlist,
+    quantity,
+    errorMessage,
+    lastFetchedAt,
+    lastSyncedAt,
+    isRefreshing,
+    eTag,
+    lastModified,
+    refreshStartedAt,
+    refreshEndedAt,
+  ];
 
   @override
   String toString() =>

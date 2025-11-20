@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../core/widgets/network_status_banner.dart';
 import 'router/app_router.dart';
 import 'theme/theme.dart';
 
@@ -24,6 +25,16 @@ class App extends StatelessWidget {
           themeMode: ThemeMode.system,
           initialRoute: AppRouter.initialRoute,
           onGenerateRoute: _router.onGenerateRoute,
+          builder: (context, child) {
+            return Column(
+              children: [
+                // Global Network Status Banner (inside MaterialApp context)
+                const NetworkStatusBanner(),
+                // App content
+                Expanded(child: child ?? const SizedBox.shrink()),
+              ],
+            );
+          },
         );
       },
     );

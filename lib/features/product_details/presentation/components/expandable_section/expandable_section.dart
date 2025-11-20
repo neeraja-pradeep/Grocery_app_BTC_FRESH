@@ -26,7 +26,7 @@ class ExpandableSection extends StatelessWidget {
     return GestureDetector(
       onTap: onToggle,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 0.w, vertical: 14.h),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
@@ -78,8 +78,10 @@ class ExpandableSection extends StatelessWidget {
                 ),
                 if (isExpanded != null)
                   Icon(
-                    isExpanded! ? Icons.expand_less : Icons.expand_more,
-                    color: AppColors.green100,
+                    isExpanded!
+                        ? Icons.expand_more
+                        : Icons.chevron_right_outlined,
+                    color: AppColors.black,
                     size: 22.sp,
                   ),
               ],

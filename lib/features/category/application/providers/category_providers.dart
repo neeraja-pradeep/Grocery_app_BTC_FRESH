@@ -10,6 +10,40 @@ import '../../infrastructure/data_sources/remote/category_remote_data_source.dar
 import '../../infrastructure/repositories/category_repository_impl.dart';
 import '../states/category_state.dart';
 
+/// ============================================================================
+/// CATEGORY LAST-MODIFIED UPDATE SYSTEM
+/// ============================================================================
+///
+/// This implementation uses HTTP conditional requests to efficiently check
+/// for updates without downloading unchanged data.
+///
+/// FLOW:
+/// -----
+/// 1. INITIAL LOAD:
+///    - Check local Hive cache
+///    - If empty, fetch from server (200 OK response)
+///    - Extract Last-Modified header from response
+///    - Save cache + Last-Modified to Hive
+///
+/// 2. PERIODIC POLLING (every 30 seconds):
+///    - Read If-Modified-Since from Hive
+///    - Send conditional GET with If-Modified-Since header
+///    - If server returns 304: Keep using cached data, update lastSyncedAt
+///    - If server returns 200: New data available, update cache + Last-Modified
+///
+/// 3. CACHE STORAGE (Hive):
+///    - categories: List of category items
+///    - lastSyncedAt: When we last checked
+///    - lastModified: Server's Last-Modified header (for If-Modified-Since)
+///    - eTag: Alternate validation (not used but preserved)
+///    - count, next, previous: Pagination info
+///
+/// KEY OPTIMIZATION:
+/// -----------------
+/// 304 responses (Not Modified) avoid re-downloading unchanged data,
+/// saving bandwidth while keeping the UI always current when needed.
+/// ============================================================================
+
 final categoryLocalDataSourceProvider = Provider<CategoryLocalDataSource>((
   ref,
 ) {
@@ -111,6 +145,15 @@ class CategoryController extends Notifier<CategoryState> {
     }
   }
 
+  /// Syncs categories with the server, using If-Modified-Since for efficiency.
+  ///
+  /// If [forceRemote] is true, it bypasses conditional headers and always
+  /// fetches fresh data from the server.
+  ///
+  /// The repository will:
+  /// - Pass If-Modified-Since header with the lastModified value from Hive
+  /// - Return null if server responds with 304 (Not Modified)
+  /// - Return new data if server responds with 200 (OK)
   Future<void> _refreshInternal({required bool forceRemote}) async {
     if (state.isRefreshing && !forceRemote) return;
 
@@ -178,6 +221,18 @@ class CategoryController extends Notifier<CategoryState> {
     return 'Something went wrong. Please try again.';
   }
 
+  /// Starts periodic polling to check for updates every 30 seconds.
+  ///
+  /// How it works:
+  /// 1. Every 30 seconds, a refresh is triggered
+  /// 2. The repository reads lastModified from Hive
+  /// 3. A GET request is sent with If-Modified-Since header
+  /// 4. If server responds with 304: UI keeps showing cached data (bandwidth saved!)
+  /// 5. If server responds with 200: New data is cached and UI is updated
+  ///
+  /// Safeguards:
+  /// - Skips if already refreshing (prevents overlapping requests)
+  /// - Skips if loading initial data
   void _startPolling() {
     _pollingTimer ??= Timer.periodic(_pollingInterval, (_) {
       if (state.isRefreshing) return;

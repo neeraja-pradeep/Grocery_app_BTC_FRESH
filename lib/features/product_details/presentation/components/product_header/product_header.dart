@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
-import '../../../domain/entities/product_detail.dart';
+import '../../../domain/entities/product_variant.dart';
 
 /// Product header with image gallery and wishlist button
 class ProductHeader extends StatefulWidget {
@@ -12,7 +12,7 @@ class ProductHeader extends StatefulWidget {
     required this.onWishlistToggle,
   });
 
-  final ProductDetail productDetail;
+  final ProductVariant productDetail;
   final bool isInWishlist;
   final VoidCallback onWishlistToggle;
 
