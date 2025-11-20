@@ -1,46 +1,25 @@
-import 'package:grocery_app/core/storage/hive/keys.dart';
-import 'package:hive/hive.dart';
-
 import 'category_cache_dto.dart';
 
 class CategoryLocalDataSource {
-  CategoryLocalDataSource(this._box);
+  CategoryLocalDataSource();
 
-  final Box<dynamic> _box;
-
+  /// Returns null (no caching)
   CategoryCacheDto? read() {
-    final raw = _box.get(HiveCacheKeys.categoriesPayload);
-    if (raw == null) return null;
-
-    if (raw is Map<String, dynamic>) {
-      return CategoryCacheDto.fromJson(raw);
-    }
-
-    if (raw is Map) {
-      final map = Map<String, dynamic>.from(raw);
-      return CategoryCacheDto.fromJson(map);
-    }
-
     return null;
   }
 
+  /// No-op (no caching)
   Future<void> save(CategoryCacheDto dto) async {
-    await _box.put(HiveCacheKeys.categoriesPayload, dto.toJson());
+    // Hive caching removed
   }
 
+  /// No-op (no caching)
   Future<void> updateLastSyncedAt(DateTime timestamp) async {
-    final raw = _box.get(HiveCacheKeys.categoriesPayload);
-    if (raw == null) return;
-
-    if (raw is! Map) return;
-
-    final map = Map<String, dynamic>.from(raw);
-
-    map['lastSyncedAt'] = timestamp.toIso8601String();
-    await _box.put(HiveCacheKeys.categoriesPayload, map);
+    // Hive caching removed
   }
 
+  /// No-op (no caching)
   Future<void> clear() async {
-    await _box.delete(HiveCacheKeys.categoriesPayload);
+    // Hive caching removed
   }
 }

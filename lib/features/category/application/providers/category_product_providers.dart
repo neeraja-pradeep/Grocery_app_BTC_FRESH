@@ -1,11 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive/hive.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/network_exceptions.dart';
-import '../../../../core/storage/hive/boxes.dart';
 import '../../domain/repositories/category_product_repository.dart';
 import '../../infrastructure/data_sources/local/category_product_local_data_source.dart';
 import '../../infrastructure/data_sources/remote/category_product_remote_data_source.dart';
@@ -14,8 +12,7 @@ import '../states/category_product_state.dart';
 
 final categoryProductLocalDataSourceProvider =
     Provider<CategoryProductLocalDataSource>((ref) {
-      final box = Hive.box<dynamic>(AppHiveBoxes.cache);
-      return CategoryProductLocalDataSource(box);
+      return CategoryProductLocalDataSource();
     });
 
 final categoryProductRepositoryProvider = Provider<CategoryProductRepository>((
