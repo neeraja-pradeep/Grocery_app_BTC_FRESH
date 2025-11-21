@@ -4,13 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/category/domain/entities/category_product.dart';
 import 'package:grocery_app/features/product_details/presentation/components/checkout_section/checkout_section.dart';
 import 'package:grocery_app/features/product_details/presentation/components/price_row/price_row.dart';
 import 'package:grocery_app/features/product_details/presentation/components/product_info/product_info.dart';
 import 'package:grocery_app/features/product_details/presentation/components/rating_section/rating_section.dart';
 
 import '../../application/providers/product_detail_providers.dart';
+import '../../application/states/product_detail_state.dart';
 import '../../domain/entities/product_variant.dart' as product_variant;
 import '../components/expandable_section/expandable_section.dart';
 import '../components/product_image_section/product_image_section.dart';
@@ -28,9 +28,9 @@ import '../helpers/product_details_helpers.dart';
 /// Architecture pattern matches category feature - thin coordinator screen
 /// with business logic in Riverpod and UI logic in modular components
 class ProductDetailsScreen extends ConsumerStatefulWidget {
-  const ProductDetailsScreen({super.key, required this.product});
+  const ProductDetailsScreen({super.key, required this.variantId});
 
-  final CategoryProduct product;
+  final String variantId;
 
   @override
   ConsumerState<ProductDetailsScreen> createState() =>
@@ -61,7 +61,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     if (state == AppLifecycleState.resumed) {
       // Trigger refresh when app comes to foreground
       ref
-          .read(productDetailControllerProvider(widget.product.id).notifier)
+          .read(productDetailControllerProvider(widget.variantId).notifier)
           .refresh();
     }
   }
@@ -69,14 +69,38 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   @override
   Widget build(BuildContext context) {
     // Watch business logic state from Riverpod
-    final state = ref.watch(productDetailControllerProvider(widget.product.id));
+    final state = ref.watch(productDetailControllerProvider(widget.variantId));
     final controller = ref.read(
-      productDetailControllerProvider(widget.product.id).notifier,
+      productDetailControllerProvider(widget.variantId).notifier,
     );
 
-    // Fallback to locally converted data if API data not available
-    final productDetail =
-        state.productDetail ?? convertToProductVariant(widget.product);
+    // Log the state received from provider
+
+    // DEBUG: Log state on console for visual debugging
+
+    // Require API data - no fallback to category data
+    if (state.isLoading || state.status == ProductDetailStatus.initial) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (state.hasError || state.status == ProductDetailStatus.empty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: AppText(
+            text: state.errorMessage ?? 'Failed to load product details',
+            color: AppColors.grey,
+          ),
+        ),
+      );
+    }
+
+    // At this point, we must have data
+    if (state.productDetail == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final productDetail = state.productDetail!;
 
     return Scaffold(
       backgroundColor: AppColors.white,

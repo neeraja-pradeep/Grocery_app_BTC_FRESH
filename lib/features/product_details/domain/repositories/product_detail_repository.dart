@@ -3,9 +3,18 @@ import '../entities/product_variant.dart';
 /// Abstract repository for product details
 /// Defines contract for fetching detailed product information
 abstract class ProductDetailRepository {
-  /// Fetch product detail by product ID
+  /// Fetch product variant detail by variant ID
+  ///
+  /// Returns:
+  /// - ProductVariant: Server returned 200 OK (data changed, UI will refresh)
+  /// - null: Server returned 304 Not Modified (no change, use cached data)
+  ///
+  /// [forceRefresh] bypasses cache TTL and forces a fresh API request.
   /// Throws NetworkException or other exceptions
-  Future<ProductVariant> getProductDetail(String productId);
+  Future<ProductVariant?> getProductDetail(
+    String variantId, {
+    bool forceRefresh = false,
+  });
 
   /// Fetch product reviews by product ID
   /// Throws NetworkException or other exceptions

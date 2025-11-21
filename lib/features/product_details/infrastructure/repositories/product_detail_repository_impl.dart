@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import '../../domain/entities/product_variant.dart';
 import '../../domain/repositories/product_detail_repository.dart';
 import '../data_sources/local/product_detail_local_data_source.dart';
@@ -18,97 +19,100 @@ class ProductDetailRepositoryImpl implements ProductDetailRepository {
   final ProductDetailRemoteDataSource _remoteDataSource;
   final Duration cacheTTL;
 
-  /// Fetches product detail with smart caching using HTTP conditional requests.
+  /// Fetches product variant detail with If-Modified-Since optimization.
   ///
-  /// ALGORITHM:
-  /// ----------
-  /// 1. Check local Hive cache:
-  ///    - If cache is fresh (age < 1 hour): Return cached data (no network)
-  ///    - If cache is stale/missing: Proceed to conditional request
+  /// DESIGN: Metadata-only Hive caching (following category feature pattern)
   ///
-  /// 2. Send conditional GET request with headers:
-  ///    - If-Modified-Since: lastModified from Hive
-  ///    - If-None-Match: eTag from Hive
+  /// Returns:
+  /// - ProductVariant: Server returned 200 OK (new data, UI will refresh)
+  /// - null: Server returned 304 Not Modified (no change, UI stays same)
   ///
-  /// 3. Handle server response:
-  ///    - 304 Not Modified (null response):
-  ///      * Data hasn't changed on server
-  ///      * Update lastSyncedAt in Hive (refresh TTL)
-  ///      * Return cached data (BANDWIDTH SAVED!)
-  ///    - 200 OK (response with data):
-  ///      * New data available from server
-  ///      * Save new data + NEW lastModified to Hive
-  ///      * Return fresh data
+  /// FLOW:
+  /// -----
+  /// 1. Get cached metadata (lastModified, eTag) from Hive
+  /// 2. Always fetch from API with If-Modified-Since header
+  /// 3. Server response:
+  ///    - 304: No change on server, return null (UI doesn't refresh)
+  ///    - 200: New data from server, save metadata, return data (UI refreshes)
   ///
-  /// 4. Error handling:
-  ///    - Network error: Fallback to cached data if available
-  ///
-  /// BANDWIDTH OPTIMIZATION:
-  /// ---------------------
-  /// When data is unchanged:
-  /// - 304 response: ~1KB (just headers)
-  /// - Without caching: Full product data (10-50KB)
-  /// - Saving per check: 99% bandwidth saved
+  /// WHY METADATA-ONLY CACHING:
+  /// --------------------------
+  /// - Product data is in-memory in Riverpod state (not persistent)
+  /// - On navigate away/back: forceRefresh=true fetches fresh data
+  /// - Only metadata (lastModified, eTag) cached for conditional requests
+  /// - Saves bandwidth: 304 responses are ~1KB vs full product data (50-100KB)
   @override
-  Future<ProductVariant> getProductDetail(String productId) async {
+  Future<ProductVariant?> getProductDetail(
+    String variantId, {
+    bool forceRefresh = false,
+  }) async {
     try {
-      // Step 1: Check if we have cached data with metadata
-      final cachedData = await _localDataSource.getCachedProductDetail(
-        productId,
+      // Get cached metadata (NOT product data)
+      final cachedMetadata = await _localDataSource.getCachedProductDetail(
+        variantId,
       );
+
+      // Log cache state
+      if (cachedMetadata != null && !forceRefresh) {
+        final now = DateTime.now();
+        final cacheAge = now.difference(cachedMetadata.lastSyncedAt);
+        developer.log(
+          'Variant $variantId: Metadata age ${cacheAge.inSeconds}s (TTL ${cacheTTL.inSeconds}s)',
+          name: 'ProductRepo',
+        );
+      }
+
+      // Always fetch from API (only metadata prevents re-download on 304)
+      final remoteResponse = await _remoteDataSource.fetchProductDetail(
+        productId: variantId,
+        ifNoneMatch: forceRefresh ? null : cachedMetadata?.eTag,
+        ifModifiedSince: forceRefresh ? null : cachedMetadata?.lastModified,
+      );
+
       final now = DateTime.now();
 
-      // If cache exists and is still fresh (< TTL), return immediately (no network!)
-      if (cachedData != null) {
-        final cacheAge = now.difference(cachedData.lastSyncedAt);
-        if (cacheAge < cacheTTL) {
-          return cachedData.productDetail.toDomain();
-        }
-      }
-
-      // Step 2: Cache is stale or doesn't exist - fetch with conditional headers
-      // The remote data source will send If-Modified-Since with lastModified value
-      final remoteResponse = await _remoteDataSource.fetchProductDetail(
-        productId: productId,
-        ifNoneMatch: cachedData?.eTag,
-        ifModifiedSince: cachedData?.lastModified,
-      );
-
-      // Step 3: Handle 304 Not Modified response
-      // remoteResponse is null when server returns 304 (data unchanged)
+      // 304 Not Modified - data unchanged on server
       if (remoteResponse == null) {
-        // Update lastSyncedAt to refresh the TTL timer
-        if (cachedData != null) {
+        developer.log(
+          'Variant $variantId: 304 Not Modified (no UI refresh)',
+          name: 'ProductRepo',
+        );
+
+        // Update lastSyncedAt to refresh TTL
+        if (cachedMetadata != null) {
           await _localDataSource.cacheProductDetailWithMetadata(
-            productId,
-            cachedData.copyWith(lastSyncedAt: now),
+            variantId,
+            cachedMetadata.copyWith(lastSyncedAt: now),
           );
         }
-        return cachedData!.productDetail.toDomain();
+
+        // Return null - controller won't update state/UI
+        return null;
       }
 
-      // Step 4: Got 200 OK - new data is available, cache it with headers
+      // 200 OK - new data from server
+      developer.log(
+        'Variant $variantId: 200 OK (UI will refresh)',
+        name: 'ProductRepo',
+      );
+
+      // Save ONLY metadata (lastModified, eTag) to Hive
+      // Product data is in Riverpod state (in-memory), not persistent
       final newCacheDto = cache_dto.ProductDetailCacheDto(
-        productDetail: remoteResponse.productDetail,
         lastSyncedAt: now,
         eTag: remoteResponse.eTag,
-        lastModified: remoteResponse
-            .lastModified, // ← Use NEW lastModified for next request
+        lastModified: remoteResponse.lastModified,
       );
+
       await _localDataSource.cacheProductDetailWithMetadata(
-        productId,
+        variantId,
         newCacheDto,
       );
 
       return remoteResponse.productDetail.toDomain();
     } catch (e) {
-      // Step 5: Network error? Fallback to local cache if available
-      final cachedData = await _localDataSource.getCachedProductDetail(
-        productId,
-      );
-      if (cachedData != null) {
-        return cachedData.productDetail.toDomain();
-      }
+      developer.log('Variant $variantId: Error - $e', name: 'ProductRepo');
+
       rethrow;
     }
   }

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -224,13 +226,22 @@ class _CategoryProductsSliver extends ConsumerWidget {
   final ColorScheme colorScheme;
   final ValueChanged<CategoryProduct> onAddToCart;
 
-  /// Navigate to product details screen with product object
+  /// Navigate to product details screen with variant ID only
   void _navigateToProductDetails(
     BuildContext context,
     CategoryProduct product,
   ) {
-    // Using named route navigation, pass entire product object
-    Navigator.of(context).pushNamed('/product-details', arguments: product);
+    // Pass only variant ID - ProductDetailsScreen will fetch full data from API
+    developer.log(
+      '🔗 NAVIGATING TO PRODUCT DETAILS\n'
+      '  Product: ${product.name}\n'
+      '  Variant ID: ${product.variantId}',
+      name: 'ProductGrid',
+      level: 800,
+    );
+    Navigator.of(
+      context,
+    ).pushNamed('/product-details', arguments: product.variantId);
   }
 
   @override
@@ -285,7 +296,9 @@ class _CategoryProductsSliver extends ConsumerWidget {
           product: product,
           colorScheme: colorScheme,
           onAddToCart: () => onAddToCart(product),
-          onTap: () => _navigateToProductDetails(context, product),
+          onTap: () {
+            _navigateToProductDetails(context, product);
+          },
         );
       }, childCount: products.length),
     );

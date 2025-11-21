@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/core/network/api_client.dart';
 import 'package:grocery_app/core/storage/hive/boxes.dart';
@@ -87,30 +88,30 @@ class ProductDetailController
   static const Duration _pollingInterval = Duration(seconds: 30);
 
   late ProductDetailRepository _repository;
-  late String _productId;
+  late String _variantId;
   bool _initialized = false;
   Timer? _pollingTimer;
   Timer? _indicatorTimer;
 
   @override
-  ProductDetailState build(String productId) {
-    _productId = productId;
+  ProductDetailState build(String variantId) {
+    _variantId = variantId;
     final repository = ref.watch(productDetailRepositoryProvider);
     _repository = repository;
 
     // Auto-dispose cleanup handler
     ref.onDispose(_disposeController);
 
-    // Auto-initialize on creation
-    _initialize();
+    // Schedule async initialization after notifier is ready
+    Future.microtask(_initialize);
 
     return const ProductDetailState();
   }
 
-  /// Initialize with product ID and load data
+  /// Initialize with variant ID and load data
   Future<void> _initialize() async {
     if (_initialized) {
-      return; // Already initialized for this product
+      return; // Already initialized for this variant
     }
 
     _initialized = true;
@@ -120,6 +121,7 @@ class ProductDetailController
   }
 
   /// Load initial data from repository (cache or remote)
+  /// Passes forceRefresh: true to bypass cache TTL and fetch fresh data from server
   Future<void> _loadInitial() async {
     try {
       state = state.copyWith(
@@ -128,14 +130,27 @@ class ProductDetailController
         refreshStartedAt: DateTime.now(),
       );
 
-      final productDetail = await _repository.getProductDetail(_productId);
-
-      state = state.copyWith(
-        status: ProductDetailStatus.data,
-        productDetail: productDetail,
-        lastSyncedAt: DateTime.now(),
-        isRefreshing: false,
+      final productDetail = await _repository.getProductDetail(
+        _variantId,
+        forceRefresh: true,
       );
+
+      // productDetail is null only when server returns 304 (data unchanged)
+      // This shouldn't happen on initial load (forceRefresh=true)
+      if (productDetail == null) {
+        state = state.copyWith(
+          status: ProductDetailStatus.error,
+          errorMessage: 'No product data available',
+          isRefreshing: false,
+        );
+      } else {
+        state = state.copyWith(
+          status: ProductDetailStatus.data,
+          productDetail: productDetail,
+          lastSyncedAt: DateTime.now(),
+          isRefreshing: false,
+        );
+      }
 
       _scheduleIndicatorReset();
     } catch (e) {
@@ -161,10 +176,32 @@ class ProductDetailController
     await _refreshInternal(forceRemote: false);
   }
 
-  /// Internal refresh logic
+  /// Internal refresh logic with conditional request support
+  /// Returns null when server responds with 304 (no data change)
   Future<void> _refreshInternal({bool forceRemote = false}) async {
     try {
-      final result = await _repository.getProductDetail(_productId);
+      final result = await _repository.getProductDetail(_variantId);
+
+      // null = 304 Not Modified (data unchanged, don't update UI)
+      if (result == null) {
+        developer.log(
+          'Polling variant $_variantId: 304 Not Modified (no UI update)',
+          name: 'ProductDetail',
+        );
+        // Don't update state - UI remains unchanged
+        state = state.copyWith(
+          isRefreshing: false,
+          refreshEndedAt: DateTime.now(),
+        );
+        _scheduleIndicatorReset();
+        return;
+      }
+
+      // 200 OK (data changed, update UI)
+      developer.log(
+        'Polling variant $_variantId: 200 OK (UI updated)',
+        name: 'ProductDetail',
+      );
 
       state = state.copyWith(
         status: ProductDetailStatus.data,
@@ -176,6 +213,11 @@ class ProductDetailController
 
       _scheduleIndicatorReset();
     } catch (e) {
+      developer.log(
+        'Polling failed for variant $_variantId: $e',
+        name: 'ProductDetail',
+      );
+
       state = state.copyWith(
         status: ProductDetailStatus.error,
         errorMessage: e.toString(),
@@ -230,10 +272,10 @@ class ProductDetailController
   Future<void> toggleWishlist() async {
     try {
       if (state.isInWishlist) {
-        await _repository.removeFromWishlist(_productId);
+        await _repository.removeFromWishlist(_variantId);
         state = state.copyWith(isInWishlist: false);
       } else {
-        await _repository.addToWishlist(_productId);
+        await _repository.addToWishlist(_variantId);
         state = state.copyWith(isInWishlist: true);
       }
     } catch (e) {

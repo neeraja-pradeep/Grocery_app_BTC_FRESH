@@ -2,55 +2,45 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/product_variant_dto.dart';
 import './product_detail_cache_dto.dart';
 
-/// Local data source for caching product details.
+// ProductVariantDto and ProductVariantReviewDto imported from product_variant_dto
+// for review caching only (not used for product detail caching)
+
+/// Local data source for caching ONLY HTTP conditional request metadata.
 ///
-/// This uses Hive for persistent storage with two-tier caching:
-/// 1. Basic cache: Just the product data (ProductVariantDto)
-/// 2. Full cache with metadata: Includes Last-Modified and eTag headers
+/// This uses Hive to store ONLY metadata (NOT product data).
 ///
-/// For the last-modified update system, ALWAYS use the metadata methods:
-/// - getCachedProductDetail() → Read with lastModified
-/// - cacheProductDetailWithMetadata() → Save with lastModified
+/// Data stored:
+/// - lastSyncedAt: When we last synced with server (used for cache TTL)
+/// - lastModified: HTTP Last-Modified header (for If-Modified-Since requests)
+/// - eTag: HTTP ETag header (for If-None-Match requests)
 ///
-/// The metadata (lastModified, eTag) is essential for conditional requests:
-/// - If-Modified-Since header uses lastModified value
-/// - If-None-Match header uses eTag value
-/// - Server compares these with its data to return 304 or 200
+/// Product data is NOT stored here - it's in-memory in Riverpod state.
+/// When user navigates away/back, forceRefresh=true fetches fresh data.
+///
+/// Conditional Request Flow (following category feature pattern):
+/// 1. Send If-Modified-Since header with cached lastModified
+/// 2. Server returns 304 → No change, return null (no UI refresh)
+/// 3. Server returns 200 → Cache metadata and return fresh product data (UI refreshes)
 abstract class ProductDetailLocalDataSource {
-  /// Get cached product detail (basic data only, no metadata).
+  /// Get cached metadata headers.
   ///
-  /// Use this if you only need the product data without cache headers.
-  /// For the last-modified system, use getCachedProductDetail() instead.
-  Future<ProductVariantDto?> getProductDetail(String productId);
-
-  /// Cache product detail (basic data only, no metadata).
+  /// Returns:
+  /// - ProductDetailCacheDto containing ONLY metadata (lastModified, eTag, lastSyncedAt)
+  /// - null if no cache exists
   ///
-  /// Use this if you only need to cache product data without headers.
-  /// For the last-modified system, use cacheProductDetailWithMetadata() instead.
-  Future<void> cacheProductDetail(String productId, ProductVariantDto detail);
-
-  /// Get cached product detail WITH Last-Modified and eTag metadata.
-  ///
-  /// This returns:
-  /// - productDetail: The actual product data
-  /// - lastSyncedAt: When we last checked (used for TTL)
-  /// - lastModified: HTTP Last-Modified header (for If-Modified-Since)
-  /// - eTag: HTTP ETag header (for If-None-Match)
-  ///
-  /// This metadata is CRITICAL for the last-modified update system.
-  /// The repository uses it to construct conditional request headers.
+  /// The repository uses this metadata to construct If-Modified-Since headers
+  /// for conditional requests to optimize bandwidth.
   Future<ProductDetailCacheDto?> getCachedProductDetail(String productId);
 
-  /// Cache product detail WITH Last-Modified and eTag metadata.
+  /// Cache metadata headers only.
   ///
-  /// This saves:
-  /// - productDetail: The actual product data
-  /// - lastSyncedAt: Current timestamp (sets TTL)
-  /// - lastModified: From HTTP response header (for next If-Modified-Since)
-  /// - eTag: From HTTP response header (for next If-None-Match)
+  /// Stores:
+  /// - lastSyncedAt: Timestamp for cache TTL tracking
+  /// - lastModified: HTTP Last-Modified header (for next If-Modified-Since)
+  /// - eTag: HTTP ETag header (for next If-None-Match)
   ///
-  /// ALWAYS use this for the last-modified update system.
-  /// It ensures lastModified is stored and will be used in the next poll.
+  /// NOTE: Product data is NOT stored here.
+  /// Product data is in Riverpod state (in-memory), not persistent in Hive.
   Future<void> cacheProductDetailWithMetadata(
     String productId,
     ProductDetailCacheDto cacheDto,
@@ -86,40 +76,16 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
 
   final Box<dynamic> _box;
 
-  static const String _productDetailPrefix = 'product_detail_';
+  static const String _productDetailPrefix = 'product_detail_metadata_';
   static const String _productReviewPrefix = 'product_reviews_';
   static const String _wishlistKey = 'wishlist_items';
-
-  @override
-  Future<ProductVariantDto?> getProductDetail(String productId) async {
-    try {
-      final key = '$_productDetailPrefix$productId';
-      final json = _box.get(key) as Map<String, dynamic>?;
-      return json != null ? ProductVariantDto.fromJson(json) : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  @override
-  Future<void> cacheProductDetail(
-    String productId,
-    ProductVariantDto detail,
-  ) async {
-    try {
-      final key = '$_productDetailPrefix$productId';
-      await _box.put(key, detail.toJson());
-    } catch (e) {
-      rethrow;
-    }
-  }
 
   @override
   Future<ProductDetailCacheDto?> getCachedProductDetail(
     String productId,
   ) async {
     try {
-      final key = '${_productDetailPrefix}metadata_$productId';
+      final key = '$_productDetailPrefix$productId';
       final json = _box.get(key) as Map<String, dynamic>?;
       return json != null ? ProductDetailCacheDto.fromJson(json) : null;
     } catch (e) {
@@ -133,7 +99,7 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
     ProductDetailCacheDto cacheDto,
   ) async {
     try {
-      final key = '${_productDetailPrefix}metadata_$productId';
+      final key = '$_productDetailPrefix$productId';
       await _box.put(key, cacheDto.toJson());
     } catch (e) {
       rethrow;
@@ -144,9 +110,7 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
   Future<void> clearProductDetail(String productId) async {
     try {
       final key = '$_productDetailPrefix$productId';
-      final metadataKey = '${_productDetailPrefix}metadata_$productId';
       await _box.delete(key);
-      await _box.delete(metadataKey);
     } catch (e) {
       rethrow;
     }

@@ -1,4 +1,7 @@
+import 'dart:developer' as developer;
+import 'package:dio/dio.dart';
 import 'package:grocery_app/core/network/api_client.dart';
+import 'package:grocery_app/core/network/network_exceptions.dart';
 import '../../models/product_variant_dto.dart';
 
 /// Response model for product detail with cache headers
@@ -79,24 +82,49 @@ class ProductDetailRemoteDataSourceImpl
         headers['If-Modified-Since'] = ifModifiedSince;
       }
 
+      // Log the request with conditional headers
+      if (headers.isNotEmpty) {
+        developer.log(
+          'SENDING CONDITIONAL REQUEST for variant $productId\nHeaders: ${headers.toString()}',
+          name: 'ProductRemoteDataSource',
+          level: 700,
+        );
+      } else {
+        developer.log(
+          'SENDING UNCONDITIONAL REQUEST for variant $productId (no cache)',
+          name: 'ProductRemoteDataSource',
+          level: 700,
+        );
+      }
+
       final response = await _apiClient.get(
         '/api/products/variants/$productId/',
         headers: headers.isNotEmpty ? headers : null,
       );
 
-      // Handle 304 Not Modified
       final statusCode = response.statusCode ?? 200;
+      final responseHeaders = response.headers;
+
+      // Handle 304 Not Modified
       if (statusCode == 304) {
+        developer.log(
+          'Variant $productId: HTTP 304 (bandwidth optimized)',
+          name: 'RemoteDataSource',
+        );
         return null; // Data hasn't changed
       }
 
       // Extract cache headers from response
-      final responseHeaders = response.headers;
       final eTag =
           responseHeaders.value('etag') ?? responseHeaders.value('ETag');
       final lastModified =
           responseHeaders.value('last-modified') ??
           responseHeaders.value('Last-Modified');
+
+      developer.log(
+        'Variant $productId: HTTP 200 (Last-Modified: $lastModified)',
+        name: 'RemoteDataSource',
+      );
 
       return ProductDetailRemoteResponse(
         productDetail: ProductVariantDto.fromJson(
@@ -106,7 +134,34 @@ class ProductDetailRemoteDataSourceImpl
         eTag: eTag,
         lastModified: lastModified,
       );
+    } on NetworkException catch (error) {
+      // Handle 304 Not Modified wrapped in NetworkException
+      if (error.statusCode == 304) {
+        developer.log(
+          'Variant $productId: HTTP 304 (via NetworkException)',
+          name: 'RemoteDataSource',
+        );
+        return null;
+      }
+      developer.log(
+        'Variant $productId: NetworkException - $error',
+        name: 'RemoteDataSource',
+      );
+      rethrow;
+    } on DioException catch (error) {
+      developer.log(
+        'Variant $productId: DioException - $error',
+        name: 'RemoteDataSource',
+      );
+      throw NetworkException.fromDio(error);
+    } on FormatException catch (error) {
+      developer.log(
+        'Variant $productId: FormatException - $error',
+        name: 'RemoteDataSource',
+      );
+      throw NetworkException(message: error.message);
     } catch (e) {
+      developer.log('Variant $productId: Error - $e', name: 'RemoteDataSource');
       rethrow;
     }
   }

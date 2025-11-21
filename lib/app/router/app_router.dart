@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../features/auth/presentation/screen/login_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
-import '../../features/category/domain/entities/category_product.dart';
 import '../../features/product_details/presentation/screen/product_details_screen.dart';
 
 class AppRouter {
@@ -24,8 +23,8 @@ class AppRouter {
       case bottomNavBar:
         return _buildRoute<void>(settings, const BottomNavigation());
       case productDetails:
-        final product = settings.arguments as CategoryProduct?;
-        if (product == null) {
+        final variantId = settings.arguments as String?;
+        if (variantId == null || variantId.isEmpty) {
           return _buildRoute<void>(
             settings,
             UnknownRouteScreen(unknownRoute: settings.name),
@@ -33,7 +32,7 @@ class AppRouter {
         }
         return _buildRoute<void>(
           settings,
-          ProductDetailsScreen(product: product),
+          ProductDetailsScreen(variantId: variantId),
         );
 
       default:
