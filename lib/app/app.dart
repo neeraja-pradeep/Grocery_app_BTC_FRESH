@@ -21,8 +21,6 @@ class App extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'Grocery App',
           theme: AppTheme.light,
-          darkTheme: AppTheme.light,
-          themeMode: ThemeMode.system,
           initialRoute: AppRouter.initialRoute,
           onGenerateRoute: _router.onGenerateRoute,
           builder: (context, child) {

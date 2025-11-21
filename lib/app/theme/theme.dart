@@ -32,26 +32,4 @@ class AppTheme {
     ),
     textTheme: Typography.blackMountainView,
   );
-
-  static ThemeData get dark => ThemeData(
-    useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.green,
-      brightness: Brightness.dark,
-    ),
-    scaffoldBackgroundColor: AppColors.black,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.black,
-      foregroundColor: AppColors.white,
-      elevation: 0,
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.green,
-        foregroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    ),
-    textTheme: Typography.whiteMountainView,
-  );
 }
