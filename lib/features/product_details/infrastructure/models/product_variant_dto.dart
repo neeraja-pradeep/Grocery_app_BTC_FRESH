@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 import '../../domain/entities/product_variant.dart';
 
 /// Data Transfer Object for ProductVariant
@@ -112,14 +110,7 @@ class ProductVariantDto {
     final formattedImageUrl = imageUrl != null && imageUrl!.isNotEmpty
         ? _formatImageUrl(imageUrl)
         : null;
-    if (kDebugMode) {
-      print(
-        'ProductVariantDto.toDomain() - imageUrl Original: $imageUrl => Formatted: $formattedImageUrl',
-      );
-      if (media != null) {
-        print('ProductVariantDto.toDomain() - media count: ${media!.length}');
-      }
-    }
+
     return ProductVariant(
       id: id,
       sku: sku,
@@ -315,11 +306,7 @@ class ProductVariantMediaDto {
   /// Convert DTO to domain entity
   ProductVariantMedia toDomain() {
     final formattedUrl = _formatImageUrl(image);
-    if (kDebugMode) {
-      print(
-        'ProductVariantMediaDto.toDomain() - Original: $image => Formatted: $formattedUrl',
-      );
-    }
+
     return ProductVariantMedia(
       id: id,
       filePath: filePath,

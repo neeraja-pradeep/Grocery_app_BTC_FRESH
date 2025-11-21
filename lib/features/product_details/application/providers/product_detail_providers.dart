@@ -1,6 +1,4 @@
 import 'dart:async';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/core/network/api_client.dart';
 import 'package:grocery_app/core/storage/hive/boxes.dart';
@@ -13,11 +11,11 @@ import '../../infrastructure/repositories/product_detail_repository_impl.dart';
 import '../states/product_detail_state.dart';
 
 /// ============================================================================
-/// PRODUCT DETAIL LAST-MODIFIED UPDATE SYSTEM
+/// PRODUCT DETAIL POLLING SYSTEM - UNCONDITIONAL 30-SECOND UPDATES
 /// ============================================================================
 ///
-/// This implementation uses HTTP conditional requests to efficiently check
-/// for updates without downloading unchanged data.
+/// This implementation uses HTTP conditional requests with unconditional polling
+/// to keep product details fresh and responsive.
 ///
 /// FLOW:
 /// -----
@@ -27,16 +25,15 @@ import '../states/product_detail_state.dart';
 ///    - Save cache + Last-Modified to Hive
 ///    - Display product to user
 ///
-/// 2. PERIODIC POLLING (every 30 seconds, but only if TTL expired):
-///    - Check if cache is older than 10 minutes (TTL)
-///    - If cache is fresh: Skip polling (save bandwidth)
-///    - If cache is stale: Send conditional GET with If-Modified-Since
-///    - Server returns 304: Keep using cached data, reset TTL timer
-///    - Server returns 200: New data available, update cache + Last-Modified
+/// 2. PERIODIC POLLING (every 30 seconds, UNCONDITIONAL):
+///    - Timer fires every 30 seconds without exception
+///    - Send conditional GET with If-Modified-Since header
+///    - Server returns 304: Keep using cached data, UI not refreshed
+///    - Server returns 200: New data available, update cache + Last-Modified + UI
 ///
 /// 3. CACHE STORAGE (Hive):
 ///    - product_detail: ProductVariantDto
-///    - last_synced_at: When we last checked
+///    - last_synced_at: When we last synced with server
 ///    - last_modified: Server's Last-Modified header (for If-Modified-Since)
 ///    - etag: Alternate validation mechanism
 ///
@@ -46,10 +43,12 @@ import '../states/product_detail_state.dart';
 /// When product screen closes, the polling timer is disposed.
 /// This prevents unnecessary polling for products not being viewed.
 ///
-/// BANDWIDTH OPTIMIZATION:
-/// -----------------------
-/// 304 Not Modified responses are tiny (< 1KB), saving bandwidth when
-/// data hasn't changed. Only fresh data (200 OK) triggers UI updates.
+/// REFRESH BEHAVIOR:
+/// ----------------
+/// Every 30 seconds: Unconditional network request (304 or 200)
+/// 304 Not Modified: Tiny response (< 1KB), keeps cache, no UI update
+/// 200 OK: New data, updates cache and triggers UI rebuild
+/// Safeguards: Skips refresh if already refreshing or still loading initial data
 /// ============================================================================
 
 /// Riverpod Providers for Product Details Feature
@@ -84,14 +83,12 @@ final productDetailRepositoryProvider = Provider<ProductDetailRepository>((
 
 /// Product detail controller - manages product detail state with polling
 class ProductDetailController
-    extends FamilyNotifier<ProductDetailState, String> {
+    extends AutoDisposeFamilyNotifier<ProductDetailState, String> {
   static const Duration _pollingInterval = Duration(seconds: 30);
-  static const Duration _cacheTTL = Duration(minutes: 10);
 
   late ProductDetailRepository _repository;
   late String _productId;
   bool _initialized = false;
-  DateTime? _lastRefreshAttempt;
   Timer? _pollingTimer;
   Timer? _indicatorTimer;
 
@@ -101,6 +98,7 @@ class ProductDetailController
     final repository = ref.watch(productDetailRepositoryProvider);
     _repository = repository;
 
+    // Auto-dispose cleanup handler
     ref.onDispose(_disposeController);
 
     // Auto-initialize on creation
@@ -111,31 +109,11 @@ class ProductDetailController
 
   /// Initialize with product ID and load data
   Future<void> _initialize() async {
-    if (kDebugMode) {
-      debugPrint(
-        '[ProductDetailController] _initialize() called with productId: $_productId',
-      );
-      debugPrint(
-        '[ProductDetailController] Already initialized: $_initialized',
-      );
-    }
-
     if (_initialized) {
-      if (kDebugMode) {
-        debugPrint(
-          '[ProductDetailController] Already initialized for this product, skipping',
-        );
-      }
       return; // Already initialized for this product
     }
 
     _initialized = true;
-
-    if (kDebugMode) {
-      debugPrint(
-        '[ProductDetailController] Starting initialization for product: $_productId',
-      );
-    }
 
     await _loadInitial();
     _startPolling();
@@ -144,12 +122,6 @@ class ProductDetailController
   /// Load initial data from repository (cache or remote)
   Future<void> _loadInitial() async {
     try {
-      if (kDebugMode) {
-        debugPrint(
-          '[ProductDetailController] Loading initial data for product: $_productId',
-        );
-      }
-
       state = state.copyWith(
         status: ProductDetailStatus.loading,
         isRefreshing: true,
@@ -157,18 +129,6 @@ class ProductDetailController
       );
 
       final productDetail = await _repository.getProductDetail(_productId);
-
-      if (kDebugMode) {
-        debugPrint(
-          '[ProductDetailController] Successfully loaded product: ${productDetail.name}',
-        );
-        debugPrint(
-          '[ProductDetailController] Product media count: ${productDetail.media?.length ?? 0}',
-        );
-        debugPrint(
-          '[ProductDetailController] Product image URL: ${productDetail.imageUrl}',
-        );
-      }
 
       state = state.copyWith(
         status: ProductDetailStatus.data,
@@ -179,10 +139,6 @@ class ProductDetailController
 
       _scheduleIndicatorReset();
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[ProductDetailController] Error loading product: $e');
-      }
-
       state = state.copyWith(
         status: ProductDetailStatus.error,
         errorMessage: e.toString(),
@@ -231,55 +187,31 @@ class ProductDetailController
     }
   }
 
-  /// Refresh only if cache is stale (TTL expired).
-  ///
-  /// Smart caching strategy:
-  /// - Cache is fresh if < 10 minutes old → Skip polling (save bandwidth)
-  /// - Cache is stale if >= 10 minutes old → Check server with If-Modified-Since
-  /// - Prevents rapid consecutive requests (min 30 seconds between attempts)
-  ///
-  /// Server responses:
-  /// - 304 Not Modified: Data unchanged, reset TTL timer
-  /// - 200 OK: New data available, update cache + Last-Modified
-  Future<void> _refreshIfStale() async {
-    final lastSyncedAt = state.lastSyncedAt;
-    final now = DateTime.now();
-
-    // Don't refresh if already refreshed in last 30 seconds
-    final recentlyRequested =
-        _lastRefreshAttempt != null &&
-        now.difference(_lastRefreshAttempt!) < _pollingInterval;
-    if (recentlyRequested) return;
-
-    // Only refresh if cache TTL expired (10 minutes)
-    if (lastSyncedAt == null || now.difference(lastSyncedAt) >= _cacheTTL) {
-      _lastRefreshAttempt = now;
-      await refresh();
-    }
-  }
-
   /// Start automatic polling every 30 seconds for this product.
   ///
   /// How it works:
-  /// 1. Timer fires every 30 seconds
-  /// 2. Calls _refreshIfStale() to check if data needs updating
-  /// 3. _refreshIfStale() reads If-Modified-Since from Hive
-  /// 4. If cache is fresh (< 10 min): Skip (lightweight check, no network)
-  /// 5. If cache is stale (>= 10 min): Send conditional GET request
-  /// 6. Server returns 304 or 200, UI updates accordingly
+  /// 1. Timer fires every 30 seconds unconditionally
+  /// 2. Calls refresh() to check for updates
+  /// 3. Sends conditional GET with If-Modified-Since header
+  /// 4. Server returns 304 Not Modified: Keep cached data, no UI update
+  /// 5. Server returns 200 OK: New data, update cache + state, UI rebuilds
+  ///
+  /// Safeguards:
+  /// - Skips if already refreshing (prevents overlapping requests)
+  /// - Skips if loading initial data (prevents request overload)
   ///
   /// Efficiency:
   /// - Per-product polling: Each product has its own timer
   /// - Disposed when screen closes: No background polling
-  /// - Skips if cache is fresh: Most polls are just local checks
-  /// - Prevents overlapping requests: Skip if already refreshing
+  /// - Conditional requests: Tiny 304 responses save bandwidth
+  /// - Unconditional timing: Guarantees responsive UI updates
   void _startPolling() {
     _pollingTimer ??= Timer.periodic(_pollingInterval, (_) async {
       if (state.isRefreshing) return;
       if (!state.hasData && state.status == ProductDetailStatus.loading) {
         return;
       }
-      await _refreshIfStale();
+      await refresh();
     });
   }
 
@@ -321,13 +253,13 @@ class ProductDetailController
     _pollingTimer?.cancel();
     _indicatorTimer?.cancel();
     _initialized = false;
-    _lastRefreshAttempt = null;
   }
 }
 
-/// Product detail provider with NotifierProviderFamily for per-product state
+/// Product detail provider with AutoDisposeNotifierProviderFamily for per-product state
+/// Uses AutoDispose to clean up timers and resources when screen is closed
 final productDetailControllerProvider =
-    NotifierProvider.family<
+    AutoDisposeNotifierProviderFamily<
       ProductDetailController,
       ProductDetailState,
       String

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
@@ -75,12 +74,7 @@ class ProductCard extends StatelessWidget {
                     top: 8.h,
                     right: 5.w,
                     child: GestureDetector(
-                      onTap: () {
-                        if (kDebugMode) {
-                          print(product.id);
-                          print(image);
-                        }
-                      },
+                      onTap: () {},
                       child: Container(
                         width: 29.w,
                         height: 29.w,
