@@ -17,7 +17,7 @@ class AdvertisementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 160,
+      height: 170,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -89,7 +89,7 @@ class AdvertisementCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 50),
                   ElevatedButton(
                     onPressed: onShopNowClick,
                     style: ElevatedButton.styleFrom(

@@ -1,30 +1,364 @@
-// // lib/features/wishlist/presentation/screen/wishlist_screen.dart
-
-// // ignore_for_file: prefer_const_constructors, unused_import, no_leading_underscores_for_local_identifiers, avoid_print
-
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:new_app/features/wishlist/application/providers/wishlist_provider.dart';
-// import 'package:new_app/features/wishlist/domain/entities/wishlist_item.dart';
-
-// // Assuming these imports are available for correct functionality/casting
-// // import 'package:new_app/features/home/domain/entities/product.dart';
+// lib/features/wishlist/presentation/screen/wishlist_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:new_app/features/wishlist/application/providers/wishlist_provider.dart';
+import 'package:new_app/features/wishlist/application/states/wishlist_state.dart';
+import 'package:new_app/features/wishlist/domain/entities/wishlist_item.dart';
 
-class WishlistScreen extends StatelessWidget {
+class WishlistScreen extends ConsumerWidget {
   const WishlistScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wishlistState = ref.watch(wishlistProvider);
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'My Wishlist',
-          style: TextStyle(fontWeight: FontWeight.w500),
+        title: const Text('My Wishlist'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        actions: [
+          Consumer(
+            builder: (context, ref, child) {
+              final itemCount = ref.watch(wishlistCountProvider);
+              if (itemCount > 0) {
+                return TextButton(
+                  onPressed: () {
+                    _showClearAllDialog(context, ref);
+                  },
+                  child: const Text('Clear All'),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
+      body: wishlistState.when(
+        initial: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        loaded: (items, isRefreshing) =>
+            _buildLoadedState(context, ref, items, isRefreshing),
+        refreshing: (items) => _buildLoadedState(context, ref, items, true),
+        error: (failure, previousState) =>
+            _buildErrorState(context, ref, failure, previousState),
+      ),
+    );
+  }
+
+  Widget _buildLoadedState(
+    BuildContext context,
+    WidgetRef ref,
+    List<WishlistItem> items,
+    bool isRefreshing,
+  ) {
+    if (items.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.favorite_border, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Your wishlist is empty',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Add items you love to see them here',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(wishlistProvider.notifier).refresh();
+      },
+      child: Stack(
+        children: [
+          ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return _buildWishlistItem(context, ref, item);
+            },
+          ),
+          if (isRefreshing)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic failure,
+    WishlistState? previousState,
+  ) {
+    // If we have previous state, show it with an error snackbar
+    if (previousState != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${failure.toString()}'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () {
+                ref.read(wishlistProvider.notifier).refresh();
+              },
+            ),
+          ),
+        );
+      });
+
+      return previousState.when(
+        initial: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        loaded: (items, isRefreshing) =>
+            _buildLoadedState(context, ref, items, isRefreshing),
+        refreshing: (items) => _buildLoadedState(context, ref, items, true),
+        error: (_, __) => _buildFullErrorState(context, ref, failure),
+      );
+    }
+
+    return _buildFullErrorState(context, ref, failure);
+  }
+
+  Widget _buildFullErrorState(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic failure,
+  ) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(
+            'Error: ${failure.toString()}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(wishlistProvider.notifier).clearError();
+              ref.read(wishlistProvider.notifier).refresh();
+            },
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWishlistItem(
+    BuildContext context,
+    WidgetRef ref,
+    WishlistItem item,
+  ) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // Product Image
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.grey[100],
+              ),
+              child: item.imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedNetworkImage(
+                        imageUrl: item.imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.broken_image, color: Colors.grey),
+                      ),
+                    )
+                  : const Icon(Icons.image_not_supported, color: Colors.grey),
+            ),
+            const SizedBox(width: 12),
+
+            // Product Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  if (item.unitLabel.isNotEmpty)
+                    Text(
+                      item.unitLabel,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    )
+                  else
+                    Text(
+                      'Product',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text(
+                        '₹${item.displayPrice.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      if (item.hasDiscount) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '₹${item.mrp.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            decoration: TextDecoration.lineThrough,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${item.discountPct}% OFF',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Actions
+            Column(
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    final success = await ref
+                        .read(wishlistProvider.notifier)
+                        .removeFromWishlist(item.id.toString());
+
+                    if (success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Removed from wishlist'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO: Add to cart functionality
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Add to cart functionality coming soon!'),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(80, 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  child: const Text(
+                    'Add to Cart',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  void _showClearAllDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear Wishlist'),
+          content: const Text(
+            'Are you sure you want to remove all items from your wishlist?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+
+                // Get all items and remove them one by one
+                final items = ref.read(wishlistItemsProvider);
+                for (final item in items) {
+                  await ref
+                      .read(wishlistProvider.notifier)
+                      .removeFromWishlist(item.id.toString());
+                }
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Wishlist cleared')),
+                  );
+                }
+              },
+              child: const Text(
+                'Clear All',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

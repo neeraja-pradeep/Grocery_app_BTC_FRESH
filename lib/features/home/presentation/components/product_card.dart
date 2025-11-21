@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
+import 'package:new_app/features/wishlist/application/providers/wishlist_provider.dart';
 
 class ProductCard extends ConsumerWidget {
   final ProductVariant product;
@@ -104,7 +105,53 @@ class ProductCard extends ConsumerWidget {
                     ),
                   ),
 
-                // Wishlist / Add Button Overlay
+                // Wishlist Button Overlay
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final isInWishlist = ref.watch(
+                        isInWishlistProvider(product.id.toString()),
+                      );
+
+                      return GestureDetector(
+                        onTap: () async {
+                          final wishlistNotifier = ref.read(
+                            wishlistProvider.notifier,
+                          );
+                          await wishlistNotifier.toggleWishlist(
+                            product.id.toString(),
+                          );
+                        },
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isInWishlist
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isInWishlist ? Colors.red : Colors.grey[600],
+                            size: 16,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // Add Button Overlay
                 Positioned(
                   bottom: 0,
                   right: 0,

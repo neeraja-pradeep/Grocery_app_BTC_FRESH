@@ -118,6 +118,14 @@ class HomeNotifier extends StateNotifier<HomeState> {
     );
   }
 
+  Future<void> clearCacheAndRefresh() async {
+    // Clear Hive cache first
+    await _repository.clearCache();
+
+    // Then refresh data
+    await refresh();
+  }
+
   Future<void> reloadAddress() async {
     // Called when user updates address in profile/settings
     final result = await _repository.getSelectedAddress();

@@ -28,9 +28,9 @@ class SectionHeader extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF101811),
                   ),
                 ),
                 if (subtitle != null)
@@ -55,7 +55,7 @@ class SectionHeader extends StatelessWidget {
               child: const Text(
                 'See All',
                 style: TextStyle(
-                  color: Colors.green,
+                  color: Color(0xff016064),
                   fontWeight: FontWeight.w600,
                 ),
               ),

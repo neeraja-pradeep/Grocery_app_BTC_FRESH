@@ -265,6 +265,16 @@ class HomeRepositoryImpl implements HomeRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<void> clearCache() async {
+    try {
+      await _localDataSource.clearAllHomeCache();
+    } catch (e) {
+      // Log error but don't throw - cache clearing should be non-blocking
+      // Log error but don't throw - cache clearing should be non-blocking
+    }
+  }
 }
 
 final homeRepositoryProvider = riverpod.Provider<HomeRepository>((ref) {

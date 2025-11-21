@@ -25,10 +25,10 @@ class CategoryDiscountSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
           child: Text(
             group.category.name,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.blueGrey[800],
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Color(0xff576780),
             ),
           ),
         ),

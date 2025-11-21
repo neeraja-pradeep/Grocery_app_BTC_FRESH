@@ -1,60 +1,56 @@
-// // lib/features/wishlist/application/states/wishlist_state.dart
+// lib/features/wishlist/application/states/wishlist_state.dart
 
-// import 'package:new_app/features/wishlist/domain/entities/wishlist_item.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:new_app/core/error/failure.dart';
+import 'package:new_app/features/wishlist/domain/entities/wishlist_item.dart';
 
-// class WishlistState {
-//   final List<WishlistItem> items;
-//   final bool isLoading;
-//   final String? error;
+part 'wishlist_state.freezed.dart';
 
-//   const WishlistState({
-//     this.items = const [],
-//     this.isLoading = false,
-//     this.error,
-//   });
+@freezed
+sealed class WishlistState with _$WishlistState {
+  // Initial state before any action
+  const factory WishlistState.initial() = WishlistInitial;
 
-//   WishlistState copyWith({
-//     List<WishlistItem>? items,
-//     bool? isLoading,
-//     String? error,
-//   }) {
-//     return WishlistState(
-//       items: items ?? this.items,
-//       isLoading: isLoading ?? this.isLoading,
-//       error: error,
-//     );
-//   }
+  // First-time full screen loading
+  const factory WishlistState.loading() = WishlistLoading;
 
-//   bool get hasError => error != null;
-//   bool get hasItems => items.isNotEmpty;
-//   int get itemCount => items.length;
+  // Successfully loaded content
+  const factory WishlistState.loaded({
+    required List<WishlistItem> items,
+    @Default(false) bool isRefreshing,
+  }) = WishlistLoaded;
 
-//   bool isInWishlist(String productId) {
-//     return items.any((item) => item.productId == productId);
-//   }
+  // Pull-to-refresh state (keeps data visible)
+  const factory WishlistState.refreshing({required List<WishlistItem> items}) =
+      WishlistRefreshing;
 
-//   WishlistItem? getWishlistItem(String productId) {
-//     try {
-//       return items.firstWhere((item) => item.productId == productId);
-//     } catch (e) {
-//       return null;
-//     }
-//   }
+  // Error state (optional: keep previous state to show stale data + snackbar)
+  const factory WishlistState.error({
+    required Failure failure,
+    WishlistState? previousState,
+  }) = WishlistError;
+}
 
-//   @override
-//   bool operator ==(Object other) {
-//     if (identical(this, other)) return true;
-//     return other is WishlistState &&
-//         other.items == items &&
-//         other.isLoading == isLoading &&
-//         other.error == error;
-//   }
+// Extension methods for convenience
+extension WishlistStateX on WishlistState {
+  List<WishlistItem> get items => maybeMap(
+    loaded: (s) => s.items,
+    refreshing: (s) => s.items,
+    orElse: () => [],
+  );
 
-//   @override
-//   int get hashCode => Object.hash(items, isLoading, error);
+  bool get hasItems => items.isNotEmpty;
+  int get itemCount => items.length;
 
-//   @override
-//   String toString() {
-//     return 'WishlistState(items: ${items.length}, isLoading: $isLoading, error: $error)';
-//   }
-// }
+  bool isInWishlist(String productId) {
+    return items.any((item) => item.productId == productId);
+  }
+
+  WishlistItem? getWishlistItem(String productId) {
+    try {
+      return items.firstWhere((item) => item.productId == productId);
+    } catch (e) {
+      return null;
+    }
+  }
+}

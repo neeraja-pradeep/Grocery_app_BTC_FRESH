@@ -18,8 +18,8 @@ class CategoryTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),

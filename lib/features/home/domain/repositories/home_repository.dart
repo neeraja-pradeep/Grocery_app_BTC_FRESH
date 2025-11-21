@@ -60,4 +60,8 @@ abstract class HomeRepository {
   // --- Best Deals ---
   /// Fetches a list of specific product variants marked as "Best Deals".
   Future<Either<Failure, List<ProductVariant>>> getBestDeals({int limit = 10});
+
+  // --- Cache Management ---
+  /// Clears all cached home data to force fresh data on next request
+  Future<void> clearCache();
 }

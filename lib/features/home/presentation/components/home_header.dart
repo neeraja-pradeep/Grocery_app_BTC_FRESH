@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
+import 'package:new_app/features/home/presentation/components/search_bar.dart';
 
 class HomeHeader extends StatelessWidget {
   final UserAddress? address;
@@ -13,16 +14,27 @@ class HomeHeader extends StatelessWidget {
     required this.onProfileClick,
   });
 
+  // --- Search Handlers ---
+  // Updated to accept BuildContext so you can navigate
+  void _handleTextSearch(BuildContext context, String query) {
+    // debugPrint("Search query submitted: $query");
+    // TODO: Implement navigation to search results
+    // Navigator.push(context, MaterialPageRoute(builder: (_) => SearchResultsPage(query: query)));
+  }
+
+  void _handleVoiceSearch(BuildContext context) {
+    // debugPrint("Voice search clicked");
+    // TODO: Implement voice search logic or navigation
+  }
+
   @override
   Widget build(BuildContext context) {
     // Define theme colors
-    const Color backgroundColor = Color(0xFFCCF3B8); // Light green background
-    const Color darkGreenColor = Color(0xFF004D40); // Dark green for Text/Icons
+    const Color backgroundColor = Color(0xFFcaf5ac); // Light green background
+    const Color darkGreenColor = Color(0xFF0b6866); // Dark green for Text/Icons
     const Color brightGreenColor = Color(
       0xFF64DD17,
     ); // Bright green for logo accent
-
-    // UPDATED: Background color for the specific row (Red tint)
 
     return Container(
       decoration: const BoxDecoration(
@@ -33,7 +45,7 @@ class HomeHeader extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Add status bar spacing manually since we removed the main wrapper padding
+          // Add status bar spacing manually
           const SizedBox(height: 20),
 
           // --- 1. LOGO SECTION ---
@@ -41,26 +53,30 @@ class HomeHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Image.asset(
-                  'assets/title.png',
+                // Wrap Image in limited box or use error builder to handle missing asset safely
+                SizedBox(
                   height: 36,
-                  errorBuilder: (c, e, s) => RichText(
-                    text: const TextSpan(
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        fontFamily: 'Sans',
+                  child: Image.asset(
+                    'assets/title.png',
+                    height: 36,
+                    errorBuilder: (c, e, s) => RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: 'Sans',
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'Easy',
+                            style: TextStyle(color: darkGreenColor),
+                          ),
+                          TextSpan(
+                            text: 'Gro',
+                            style: TextStyle(color: brightGreenColor),
+                          ),
+                        ],
                       ),
-                      children: [
-                        TextSpan(
-                          text: 'Easy',
-                          style: TextStyle(color: darkGreenColor),
-                        ),
-                        TextSpan(
-                          text: 'Gro',
-                          style: TextStyle(color: brightGreenColor),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -73,12 +89,12 @@ class HomeHeader extends StatelessWidget {
           // --- 2. LOCATION & PROFILE SECTION (Full Width Background) ---
           Container(
             width: double.infinity,
-            color: Colors.greenAccent, // UPDATED: The Red background
+            color: const Color(0xffbae888), // The specific row background color
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Location Icon - Reverted to Dark Green for contrast on Red bg
+                // Location Icon
                 const Icon(Icons.location_on, color: darkGreenColor, size: 32),
 
                 const SizedBox(width: 12),
@@ -164,38 +180,10 @@ class HomeHeader extends StatelessWidget {
           // --- 3. SEARCH BAR SECTION ---
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
-            child: Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: Colors.grey, size: 26),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "Search For 'Cooker'",
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  Container(
-                    height: 24,
-                    width: 1,
-                    color: Colors.grey[300],
-                    margin: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
-
-                  const Icon(Icons.mic, color: darkGreenColor, size: 26),
-                ],
-              ),
+            child: CustomSearchBar(
+              // Pass the context to the handlers
+              onTextSearch: (query) => _handleTextSearch(context, query),
+              onVoiceSearch: () => _handleVoiceSearch(context),
             ),
           ),
         ],

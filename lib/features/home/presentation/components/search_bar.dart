@@ -32,7 +32,7 @@ class CustomSearchBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.search, color: Colors.grey[400]),
+          Icon(Icons.search, color: Colors.grey[400], size: 30),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -48,11 +48,11 @@ class CustomSearchBar extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Container(height: 24, width: 1, color: Colors.grey[300]),
+          Container(height: 24, width: 1, color: Colors.black),
           const SizedBox(width: 8),
           GestureDetector(
             onTap: onVoiceSearch,
-            child: const Icon(Icons.mic, color: Colors.green),
+            child: const Icon(Icons.mic, color: Color(0xff016064)),
           ),
         ],
       ),

@@ -16,8 +16,7 @@ import 'package:new_app/features/home/application/providers/home_provider.dart';
 import 'package:new_app/features/home/application/states/home_state.dart';
 
 // Components (Assumed paths - update if different)
-import 'package:new_app/features/home/presentation/components/home_header.dart';
-import 'package:new_app/features/home/presentation/components/search_bar.dart'; // Custom SearchBar
+import 'package:new_app/features/home/presentation/components/home_header.dart'; // Custom SearchBar
 import 'package:new_app/features/home/presentation/components/section_header.dart';
 import 'package:new_app/features/home/presentation/components/category_grid.dart';
 import 'package:new_app/features/home/presentation/components/product_horizontal_list.dart';
@@ -26,7 +25,7 @@ import 'package:new_app/features/home/presentation/components/category_discount_
 import 'package:new_app/features/home/presentation/components/error_view.dart';
 
 // Other Screens (For navigation)
-import 'package:new_app/features/home/presentation/screen/search_results_screen.dart';
+// import 'package:new_app/features/home/presentation/screen/search_results_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -37,11 +36,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
-  final RefreshController _refreshController = RefreshController();
+  late final RefreshController _refreshController;
 
   @override
   void initState() {
     super.initState();
+    _refreshController = RefreshController(initialRefresh: false);
+
     // Optional: Log analytics event
     // Analytics.logEvent('home_screen_viewed');
 
@@ -68,53 +69,92 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50], // Light background
       body: SafeArea(
-        child: homeState.when(
-          initial: () => const Center(child: CircularProgressIndicator()),
-          loading: () => const Center(child: CircularProgressIndicator()),
+        child: SmartRefresher(
+          controller: _refreshController,
+          onRefresh: _handleRefresh,
+          enablePullDown: true,
+          enablePullUp: false, // Disable pull up to load more for now
+          header: const WaterDropMaterialHeader(
+            backgroundColor: Colors.green,
+            color: Colors.white,
+          ),
+          child: homeState.when(
+            initial: () => const CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ],
+            ),
+            loading: () => const CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ],
+            ),
 
-          // Success State
-          loaded:
-              (
-                categories,
-                address,
-                deals,
-                discounts,
-                ad,
-                catLoad,
-                dealLoad,
-                discLoad,
-              ) {
-                return _buildLoadedContent(
-                  categories: categories,
-                  selectedAddress: address,
-                  bestDeals: deals,
-                  discountGroups: discounts,
-                  activeAd: ad,
-                );
-              },
+            // Success State
+            loaded:
+                (
+                  categories,
+                  address,
+                  deals,
+                  discounts,
+                  ad,
+                  catLoad,
+                  dealLoad,
+                  discLoad,
+                ) {
+                  return _buildScrollContent(
+                    categories: categories,
+                    selectedAddress: address,
+                    bestDeals: deals,
+                    discountGroups: discounts,
+                    activeAd: ad,
+                  );
+                },
 
-          // Refreshing State (Show content with loading indicator if needed, or just same as loaded)
-          refreshing: (categories, address, deals, discounts, ad) {
-            return _buildLoadedContent(
-              categories: categories,
-              selectedAddress: address,
-              bestDeals: deals,
-              discountGroups: discounts,
-              activeAd: ad,
-              isRefreshing: true,
-            );
-          },
+            // Refreshing State (Show content with loading indicator)
+            refreshing: (categories, address, deals, discounts, ad) {
+              return Stack(
+                children: [
+                  _buildScrollContent(
+                    categories: categories,
+                    selectedAddress: address,
+                    bestDeals: deals,
+                    discountGroups: discounts,
+                    activeAd: ad,
+                    isRefreshing: true,
+                  ),
+                  // Optional: Show a subtle loading indicator at the top
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SizedBox(
+                      height: 2,
+                      child: LinearProgressIndicator(
+                        backgroundColor: Colors.transparent,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
 
-          // Error State
-          error: (failure, previousState) {
-            return _buildErrorContent(failure, previousState);
-          },
+            // Error State
+            error: (failure, previousState) {
+              return _buildErrorContent(failure, previousState);
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildLoadedContent({
+  Widget _buildScrollContent({
     required List<Category> categories,
     required UserAddress? selectedAddress,
     required List<ProductVariant> bestDeals,
@@ -122,108 +162,94 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required entities.Banner? activeAd,
     bool isRefreshing = false,
   }) {
-    return SmartRefresher(
-      controller: _refreshController,
-      onRefresh: _handleRefresh,
-      // Custom header for refresher can be added here
-      child: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // 1. Header with Logo + Address + Profile
-          SliverToBoxAdapter(
-            child: HomeHeader(
-              address: selectedAddress,
-              onAddressClick: _navigateToAddressSelection,
-              onProfileClick: _navigateToProfile,
-            ),
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        // 1. Header with Logo + Address + Profile
+        SliverToBoxAdapter(
+          child: HomeHeader(
+            address: selectedAddress,
+            onAddressClick: _navigateToAddressSelection,
+            onProfileClick: _navigateToProfile,
           ),
+        ),
 
-          // 2. Search Bar
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: CustomSearchBar(
-                // Renamed to avoid conflict with Material SearchBar
-                onTextSearch: _handleTextSearch,
-                onVoiceSearch: _handleVoiceSearch,
-              ),
-            ),
+        // 3. Shop by Category Section
+        SliverToBoxAdapter(
+          child: SectionHeader(
+            title: 'Shop by Category',
+            onSeeAllClick: () => _navigateToCategoryList(),
           ),
+        ),
 
-          // 3. Shop by Category Section
+        SliverToBoxAdapter(
+          child: CategoryGrid(
+            categories: categories.take(8).toList(), // Show 8 on home
+            onCategoryClick: (category) =>
+                _navigateToCategoryProducts(category),
+          ),
+        ),
+
+        // 4. Best Deals Section
+        if (bestDeals.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: SectionHeader(
-              title: 'Shop by Category',
-              onSeeAllClick: () => _navigateToCategoryList(),
+              title: 'Best Deals',
+
+              onSeeAllClick: () => _navigateToBestDeals(),
             ),
           ),
 
           SliverToBoxAdapter(
-            child: CategoryGrid(
-              categories: categories.take(8).toList(), // Show 8 on home
-              onCategoryClick: (category) =>
-                  _navigateToCategoryProducts(category),
+            child: ProductHorizontalList(
+              products: bestDeals,
+              onProductClick: (product) => _navigateToProductDetails(product),
             ),
-          ),
-
-          // 4. Best Deals Section
-          if (bestDeals.isNotEmpty) ...[
-            SliverToBoxAdapter(
-              child: SectionHeader(
-                title: 'Best Deals',
-                subtitle: '${bestDeals.length} products',
-                onSeeAllClick: () => _navigateToBestDeals(),
-              ),
-            ),
-
-            SliverToBoxAdapter(
-              child: ProductHorizontalList(
-                products: bestDeals,
-                onProductClick: (product) => _navigateToProductDetails(product),
-              ),
-            ),
-          ],
-
-          // 5. Advertisement Card
-          if (activeAd != null)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 16,
-                ),
-                child: AdvertisementCard(
-                  banner: activeAd, // Updated param name to match entity
-                  onShopNowClick: () => _handleBannerClick(activeAd),
-                ),
-              ),
-            ),
-
-          // 6. Mega Fresh Offers Section Title
-          if (discountGroups.isNotEmpty)
-            const SliverToBoxAdapter(
-              child: SectionHeader(
-                title: 'MEGA FRESH OFFERS',
-                subtitle: 'Products with special discounts',
-              ),
-            ),
-
-          // 7. Discounted products grouped by category
-          ...discountGroups.map((group) {
-            return SliverToBoxAdapter(
-              child: CategoryDiscountSection(
-                group: group,
-                onProductClick: (product) => _navigateToProductDetails(product),
-              ),
-            );
-          }),
-
-          // 8. Bottom spacing
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 80), // Space for bottom navigation
           ),
         ],
-      ),
+
+        // 5. Advertisement Card
+        if (activeAd != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              child: AdvertisementCard(
+                banner: activeAd, // Updated param name to match entity
+                onShopNowClick: () => _handleBannerClick(activeAd),
+              ),
+            ),
+          ),
+
+        // 6. Mega Fresh Offers Section Title
+        if (discountGroups.isNotEmpty)
+          const SliverToBoxAdapter(
+            child: Center(
+              child: Text(
+                "Mega Fresh Offers",
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xff016064),
+                ),
+              ),
+            ),
+          ),
+
+        // 7. Discounted products grouped by category
+        ...discountGroups.map((group) {
+          return SliverToBoxAdapter(
+            child: CategoryDiscountSection(
+              group: group,
+              onProductClick: (product) => _navigateToProductDetails(product),
+            ),
+          );
+        }),
+
+        // 8. Bottom spacing
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 80), // Space for bottom navigation
+        ),
+      ],
     );
   }
 
@@ -235,18 +261,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         loaded: (state) {
           // Schedule snackbar after build
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(failure.toString()), // Use proper failure message
-                action: SnackBarAction(
-                  label: 'Retry',
-                  onPressed: () => ref.read(homeProvider.notifier).refresh(),
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Update failed: ${failure.toString()}'),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 3),
+                  action: SnackBarAction(
+                    label: 'Retry',
+                    textColor: Colors.white,
+                    onPressed: () => ref.read(homeProvider.notifier).refresh(),
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           });
 
-          return _buildLoadedContent(
+          return _buildScrollContent(
             categories: state.categories,
             selectedAddress: state.selectedAddress,
             bestDeals: state.bestDeals,
@@ -254,36 +285,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             activeAd: state.activeAd,
           );
         },
-        orElse: () => _buildFullErrorView(failure),
+        refreshing: (state) {
+          // If error occurred during refresh, show the data with error message
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Refresh failed: ${failure.toString()}'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 4),
+                  action: SnackBarAction(
+                    label: 'Retry',
+                    textColor: Colors.white,
+                    onPressed: () => _handleRefresh(),
+                  ),
+                ),
+              );
+            }
+          });
+
+          return _buildScrollContent(
+            categories: state.categories,
+            selectedAddress: state.selectedAddress,
+            bestDeals: state.bestDeals,
+            discountGroups: state.discountGroups,
+            activeAd: state.activeAd,
+          );
+        },
+        orElse: () => _buildFullErrorScrollView(failure),
       );
     }
 
     // Critical error with no previous data
-    return _buildFullErrorView(failure);
+    return _buildFullErrorScrollView(failure);
   }
 
-  Widget _buildFullErrorView(Failure failure) {
-    return ErrorView(
-      message: failure.toString(),
-      onRetry: () => ref.read(homeProvider.notifier).refresh(),
+  Widget _buildFullErrorScrollView(Failure failure) {
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          child: ErrorView(
+            message: failure.toString(),
+            onRetry: () => ref.read(homeProvider.notifier).refresh(),
+          ),
+        ),
+      ],
     );
   }
 
   // --- Handlers ---
 
   Future<void> _handleRefresh() async {
-    await ref.read(homeProvider.notifier).refresh();
-    _refreshController.refreshCompleted();
-  }
+    try {
+      // Clear Hive cache before refreshing to ensure fresh data
+      await ref.read(homeProvider.notifier).clearCacheAndRefresh();
 
-  void _handleTextSearch(String query) {
-    // TODO: Implement search functionality
-    _navigateToSearchResults();
-  }
+      // Complete refresh successfully
+      if (mounted) {
+        _refreshController.refreshCompleted();
+      }
+    } catch (error) {
+      // Handle refresh failure gracefully
+      if (mounted) {
+        _refreshController.refreshFailed();
 
-  void _handleVoiceSearch() {
-    // TODO: Implement voice search logic
-    _navigateToSearchResults();
+        // Show error message to user with retry option
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh: ${error.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _handleRefresh(),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   void _handleBannerClick(entities.Banner banner) {
@@ -297,12 +377,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // --- Navigation ---
 
-  void _navigateToSearchResults() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
-    );
-  }
+  // void _navigateToSearchResults() {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
+  //   );
+  // }
 
   void _navigateToCategoryList() {
     // print("_navigateToCategoryList()");
