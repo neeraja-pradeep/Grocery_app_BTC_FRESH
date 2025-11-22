@@ -20,6 +20,7 @@ dependencies:
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.0.0
   equatable: ^2.0.5  # Added for value-based equality in entities
+  socket_io_client: ^2.0.3  # Real-time Socket.IO client
 
 dev_dependencies:
   flutter_test:

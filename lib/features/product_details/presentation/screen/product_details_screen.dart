@@ -8,6 +8,9 @@ import 'package:grocery_app/features/product_details/presentation/components/che
 import 'package:grocery_app/features/product_details/presentation/components/price_row/price_row.dart';
 import 'package:grocery_app/features/product_details/presentation/components/product_info/product_info.dart';
 import 'package:grocery_app/features/product_details/presentation/components/rating_section/rating_section.dart';
+import 'package:grocery_app/core/network/socket_provider.dart';
+import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
+import 'package:grocery_app/features/category/application/providers/inventory_update_notifier.dart';
 
 import '../../application/providers/product_detail_providers.dart';
 import '../../application/states/product_detail_state.dart';
@@ -47,10 +50,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Join variant room on mount for real-time Socket.IO updates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final socketService = ref.read(socketServiceProvider);
+      final variantId = int.tryParse(widget.variantId) ?? 0;
+      if (variantId > 0) {
+        socketService.joinVariantRoom(variantId);
+      }
+    });
   }
 
   @override
   void dispose() {
+    // Don't use ref in dispose() - it's invalid after widget disposal
+    // Socket.IO will handle cleanup automatically via Riverpod's ref.onDispose
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -74,9 +88,20 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
       productDetailControllerProvider(widget.variantId).notifier,
     );
 
-    // Log the state received from provider
+    // Watch real-time Socket.IO updates
+    final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+    final inventoryUpdates = ref.watch(inventoryUpdateNotifierProvider);
 
-    // DEBUG: Log state on console for visual debugging
+    // Extract variant ID for Socket updates lookup
+    final variantId = int.tryParse(widget.variantId) ?? 0;
+
+    // Get real-time price from Socket if available, otherwise use API price
+    final socketPriceUpdate = variantId > 0
+        ? priceUpdates.getUpdate(variantId)
+        : null;
+    final socketInventoryUpdate = variantId > 0
+        ? inventoryUpdates.getUpdate(variantId)
+        : null;
 
     // Require API data - no fallback to category data
     if (state.isLoading || state.status == ProductDetailStatus.initial) {
@@ -105,8 +130,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: _buildAppBar(context),
-      body: _buildBody(productDetail, state, controller),
-      bottomSheet: _buildBottomSheet(productDetail, state),
+      body: _buildBody(
+        productDetail,
+        state,
+        controller,
+        socketPriceUpdate,
+        socketInventoryUpdate,
+      ),
+      bottomSheet: _buildBottomSheet(productDetail, state, socketPriceUpdate),
     );
   }
 
@@ -146,7 +177,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     product_variant.ProductVariant productDetail,
     dynamic state,
     dynamic controller,
+    dynamic socketPriceUpdate,
+    dynamic socketInventoryUpdate,
   ) {
+    // Use real-time price from Socket if available, otherwise use API price
+    final displayPrice =
+        socketPriceUpdate?.newPrice?.toString() ?? productDetail.price;
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -170,7 +207,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
             // Price and add to cart row
             PriceRow(
-              price: productDetail.price,
+              price: displayPrice,
               quantity: state.quantity,
               onAdd: () => controller.setQuantity(1),
               onIncrement: () => controller.setQuantity(state.quantity + 1),
@@ -224,9 +261,12 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   Widget _buildBottomSheet(
     product_variant.ProductVariant productDetail,
     dynamic state,
+    dynamic socketPriceUpdate,
   ) {
-    // Extract numeric unit price
-    final unitPrice = extractNumericPrice(productDetail.price);
+    // Use real-time price from Socket if available, otherwise use API price
+    final displayPrice =
+        socketPriceUpdate?.newPrice?.toString() ?? productDetail.price;
+    final unitPrice = extractNumericPrice(displayPrice);
 
     return CheckoutSection(unitPrice: unitPrice, quantity: state.quantity);
   }

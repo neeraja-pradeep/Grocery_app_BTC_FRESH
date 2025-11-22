@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/network/socket_provider.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
+import 'package:grocery_app/features/category/application/providers/inventory_update_notifier.dart';
+import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
 import 'package:grocery_app/features/category/domain/entities/category_product.dart';
 
 const String _rupeeSymbol = '\u20B9';
 
 /// Individual product card displayed in product grid
-/// Shows: Image + add-to-cart button | Name, weight, price + wishlist
+/// Shows: Image + add-to-cart button | Name, weight, price + wishlist + real-time Socket.IO updates
 /// Tap card to view product details
+/// Features real-time price and inventory updates via Socket.IO
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends ConsumerStatefulWidget {
   const ProductCard({
     super.key,
     required this.product,
@@ -26,15 +31,58 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
+  ConsumerState<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends ConsumerState<ProductCard> {
+  late int variantId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Parse variant ID and join Socket.IO room
+    variantId = int.tryParse(widget.product.variantId) ?? 0;
+
+    if (variantId > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(socketServiceProvider).joinVariantRoom(variantId);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final image = product.imageUrl ?? product.thumbnailUrl;
-    final formattedWeight = _formatWeight(product.weight);
-    final priceValue = _formatPriceValue(product.price);
-    final originalPriceValue = _formatPriceValue(product.originalPrice);
+    final image = widget.product.imageUrl ?? widget.product.thumbnailUrl;
+    final formattedWeight = _formatWeight(widget.product.weight);
+
+    // Watch real-time Socket.IO updates
+    final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+    final inventoryUpdates = ref.watch(inventoryUpdateNotifierProvider);
+
+    // Get real-time price event if available
+    final priceEvent = variantId > 0 ? priceUpdates.getUpdate(variantId) : null;
+    final inventoryEvent = variantId > 0
+        ? inventoryUpdates.getUpdate(variantId)
+        : null;
+
+    // Determine display prices: use Socket.IO real-time if available
+    final displayPrice = priceEvent?.newPrice != null
+        ? priceEvent!.newPrice.toStringAsFixed(2)
+        : widget.product.price;
+    final displayOriginalPrice = priceEvent?.oldPrice != null
+        ? priceEvent!.oldPrice!.toStringAsFixed(2)
+        : widget.product.originalPrice;
+
+    final priceValue = _formatPriceValue(displayPrice);
+    final originalPriceValue = _formatPriceValue(displayOriginalPrice);
+
+    // Stock status from real-time inventory
+    final inStock = (inventoryEvent?.currentQuantity ?? 0) > 0;
+    final quantity = inventoryEvent?.currentQuantity ?? 0;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -42,7 +90,7 @@ class ProductCard extends StatelessWidget {
           border: Border.all(color: AppColors.grey.withValues(alpha: 0.2)),
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.03),
+              color: widget.colorScheme.shadow.withValues(alpha: 0.03),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -74,12 +122,12 @@ class ProductCard extends StatelessWidget {
                     top: 8.h,
                     right: 5.w,
                     child: GestureDetector(
-                      onTap: () {},
+                      onTap: widget.onAddToCart,
                       child: Container(
                         width: 29.w,
                         height: 29.w,
                         decoration: BoxDecoration(
-                          color: colorScheme.primary,
+                          color: widget.colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
@@ -91,6 +139,24 @@ class ProductCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Real-time update indicator
+                  if (priceEvent != null || inventoryEvent != null)
+                    Positioned(
+                      top: 8.h,
+                      left: 5.w,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.7),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.sync,
+                          color: Colors.white,
+                          size: 12,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -99,7 +165,10 @@ class ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppText.pageTitle(text: product.variantName, maxLines: 1),
+                  AppText.pageTitle(
+                    text: widget.product.variantName,
+                    maxLines: 1,
+                  ),
 
                   AppSpacing.h8,
                   if (formattedWeight != null)
@@ -110,6 +179,7 @@ class ProductCard extends StatelessWidget {
                       color: AppColors.grey,
                     ),
                   if (formattedWeight != null) AppSpacing.h8,
+                  // Price row with wishlist icon
                   Row(
                     children: [
                       if (priceValue != null) ...[
@@ -135,11 +205,37 @@ class ProductCard extends StatelessWidget {
                         Icons.favorite_border,
                         size: 22.sp,
                         color: isDark
-                            ? colorScheme.outline
+                            ? widget.colorScheme.outline
                             : AppColors.green100,
                       ),
                     ],
                   ),
+                  // Stock status indicator - shown below price
+                  if (inventoryEvent != null) ...[
+                    AppSpacing.h4,
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 6.w,
+                        vertical: 2.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: inStock
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      child: AppText(
+                        text: inStock
+                            ? quantity > 10
+                                  ? 'In Stock'
+                                  : 'Only $quantity left'
+                            : 'Out of Stock',
+                        fontSize: 9.sp,
+                        fontWeight: FontWeight.w600,
+                        color: inStock ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
