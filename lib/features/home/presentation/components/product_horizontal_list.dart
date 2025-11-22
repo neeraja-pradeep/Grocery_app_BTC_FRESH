@@ -228,8 +228,8 @@ class ProductCard extends StatelessWidget {
 
         // --- Floating Add Button (+) ---
         Positioned(
-          top: -10, // Overlaps the top border
-          right: -10, // Overlaps the right border
+          top: -8, // Overlaps the top border
+          right: -8, // Overlaps the right border
           child: GestureDetector(
             onTap: () {
               // Add to cart logic

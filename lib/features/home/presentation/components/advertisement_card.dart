@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:new_app/features/home/domain/entities/banner.dart' as entities;
 
 class AdvertisementCard extends StatelessWidget {
-  final entities.Banner banner; // Using Banner entity
+  final entities.Banner banner;
   final VoidCallback onShopNowClick;
 
   const AdvertisementCard({
@@ -21,14 +21,13 @@ class AdvertisementCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        // Fallback color if image fails
         color: Colors.grey[200],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
-            // Background Image
+            // 1. Background Image
             Positioned.fill(
               child: CachedNetworkImage(
                 imageUrl: banner.imageUrl,
@@ -40,7 +39,7 @@ class AdvertisementCard extends StatelessWidget {
               ),
             ),
 
-            // Gradient Overlay for readability
+            // 2. Gradient Overlay
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -56,48 +55,57 @@ class AdvertisementCard extends StatelessWidget {
               ),
             ),
 
-            // Text Content
+            // 3. Text Content (FIXED FOR OVERFLOW)
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              // Reduced padding slightly to give more space to content
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.5,
-                    child: Text(
-                      banner.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  // Use Expanded to force the text section to take available space
+                  // and push the button to the bottom
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          banner.name,
+                          maxLines: 2, // Enforce max lines
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20, // Slightly smaller to fit better
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (banner.descriptionPlaintext != null) ...[
+                          const SizedBox(height: 4), // Reduced gap
+                          Text(
+                            banner.descriptionPlaintext!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  if (banner.descriptionPlaintext != null) ...[
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.6,
-                      child: Text(
-                        banner.descriptionPlaintext!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 50),
+
+                  // Button stays at the bottom
                   ElevatedButton(
                     onPressed: onShopNowClick,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
+                      // Make button slightly more compact vertically
+                      visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
+                        horizontal: 16,
+                        vertical: 8,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),

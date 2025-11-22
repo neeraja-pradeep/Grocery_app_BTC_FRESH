@@ -1,6 +1,7 @@
 // lib/features/home/presentation/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart'; // Requires pull_to_refresh package
 
@@ -66,88 +67,96 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Watch the HomeNotifier state
     final homeState = ref.watch(homeProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50], // Light background
-      body: SafeArea(
-        child: SmartRefresher(
-          controller: _refreshController,
-          onRefresh: _handleRefresh,
-          enablePullDown: true,
-          enablePullUp: false, // Disable pull up to load more for now
-          header: const WaterDropMaterialHeader(
-            backgroundColor: Colors.green,
-            color: Colors.white,
-          ),
-          child: homeState.when(
-            initial: () => const CustomScrollView(
-              slivers: [
-                SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFcaf5ac), // Custom green color
+        statusBarIconBrightness: Brightness.dark, // Dark icons
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.grey[50], // Light background
+        body: SafeArea(
+          child: SmartRefresher(
+            controller: _refreshController,
+            onRefresh: _handleRefresh,
+            enablePullDown: true,
+            enablePullUp: false, // Disable pull up to load more for now
+            header: const WaterDropMaterialHeader(
+              backgroundColor: Colors.green,
+              color: Colors.white,
             ),
-            loading: () => const CustomScrollView(
-              slivers: [
-                SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              ],
-            ),
-
-            // Success State
-            loaded:
-                (
-                  categories,
-                  address,
-                  deals,
-                  discounts,
-                  ad,
-                  catLoad,
-                  dealLoad,
-                  discLoad,
-                ) {
-                  return _buildScrollContent(
-                    categories: categories,
-                    selectedAddress: address,
-                    bestDeals: deals,
-                    discountGroups: discounts,
-                    activeAd: ad,
-                  );
-                },
-
-            // Refreshing State (Show content with loading indicator)
-            refreshing: (categories, address, deals, discounts, ad) {
-              return Stack(
-                children: [
-                  _buildScrollContent(
-                    categories: categories,
-                    selectedAddress: address,
-                    bestDeals: deals,
-                    discountGroups: discounts,
-                    activeAd: ad,
-                    isRefreshing: true,
-                  ),
-                  // Optional: Show a subtle loading indicator at the top
-                  const Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: SizedBox(
-                      height: 2,
-                      child: LinearProgressIndicator(
-                        backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-                      ),
-                    ),
+            child: homeState.when(
+              initial: () => const CustomScrollView(
+                slivers: [
+                  SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                 ],
-              );
-            },
+              ),
+              loading: () => const CustomScrollView(
+                slivers: [
+                  SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ],
+              ),
 
-            // Error State
-            error: (failure, previousState) {
-              return _buildErrorContent(failure, previousState);
-            },
+              // Success State
+              loaded:
+                  (
+                    categories,
+                    address,
+                    deals,
+                    discounts,
+                    ad,
+                    catLoad,
+                    dealLoad,
+                    discLoad,
+                  ) {
+                    return _buildScrollContent(
+                      categories: categories,
+                      selectedAddress: address,
+                      bestDeals: deals,
+                      discountGroups: discounts,
+                      activeAd: ad,
+                    );
+                  },
+
+              // Refreshing State (Show content with loading indicator)
+              refreshing: (categories, address, deals, discounts, ad) {
+                return Stack(
+                  children: [
+                    _buildScrollContent(
+                      categories: categories,
+                      selectedAddress: address,
+                      bestDeals: deals,
+                      discountGroups: discounts,
+                      activeAd: ad,
+                      isRefreshing: true,
+                    ),
+                    // Optional: Show a subtle loading indicator at the top
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: SizedBox(
+                        height: 2,
+                        child: LinearProgressIndicator(
+                          backgroundColor: Colors.transparent,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.green,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+
+              // Error State
+              error: (failure, previousState) {
+                return _buildErrorContent(failure, previousState);
+              },
+            ),
           ),
         ),
       ),

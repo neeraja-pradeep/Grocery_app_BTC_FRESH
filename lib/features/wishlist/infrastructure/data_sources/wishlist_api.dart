@@ -34,9 +34,44 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
           throw Exception('Unexpected response format');
         }
 
-        return responseList
-            .map((item) => WishlistItem.fromJson(item as Map<String, dynamic>))
-            .toList();
+        // Fetch complete product details for each wishlist item
+        List<WishlistItem> wishlistItems = [];
+
+        for (var item in responseList) {
+          final wishlistData = item as Map<String, dynamic>;
+          final productVariantId = wishlistData['product_variant']?.toString();
+
+          if (productVariantId != null) {
+            try {
+              // Fetch complete product details
+              final productResponse = await _dio.get(
+                '/api/products/variants/$productVariantId/',
+              );
+
+              if (productResponse.statusCode == 200 &&
+                  productResponse.data != null) {
+                // Create WishlistItem from complete product data
+                final wishlistItem = WishlistItem.fromProductVariantResponse(
+                  wishlistId: wishlistData['id'] ?? 0,
+                  productData: productResponse.data as Map<String, dynamic>,
+                );
+                wishlistItems.add(wishlistItem);
+              } else {
+                // Fallback to basic wishlist data if product fetch fails
+                wishlistItems.add(WishlistItem.fromJson(wishlistData));
+              }
+            } catch (e) {
+              // print('Error fetching product details for $productVariantId: $e');
+              // Fallback to basic wishlist data
+              wishlistItems.add(WishlistItem.fromJson(wishlistData));
+            }
+          } else {
+            // Fallback to basic wishlist data
+            wishlistItems.add(WishlistItem.fromJson(wishlistData));
+          }
+        }
+
+        return wishlistItems;
       }
 
       throw Exception('Failed to load wishlist');

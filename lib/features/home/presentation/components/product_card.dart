@@ -20,234 +20,222 @@ class ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: width,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+    final String? imageUrl = product.mainImageUrl;
+
+    // // Debug: Print product info
+    // print('ProductCard - Product: ${product.name}');
+    // print('ProductCard - Media count: ${product.media.length}');
+    // print('ProductCard - Image URL: $imageUrl');
+
+    // Colors extracted from your reference image
+    const Color borderColor = Color(0xFF8cc727);
+    const Color cardBgColor = Color(0xFFe4fad5);
+    const Color iconColor = Color(0xFF00695C);
+    const Color priceColor = Color(0xFF2E7D32);
+
+    return Stack(
+      clipBehavior: Clip.none, // Allows the plus button to float outside
+      children: [
+        // --- Main Card Content ---
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: width,
+            decoration: BoxDecoration(
+              color: cardBgColor, // Everything else is green
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- Image Section ---
-            Stack(
-              children: [
-                // Product Image
-                Container(
-                  height: 110,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12),
-                    ),
-                    color: Colors.grey[50],
-                  ),
-                  child: product.media.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
-                          ),
-                          child: CachedNetworkImage(
-                            imageUrl: product.media.first.imageUrl,
-                            fit: BoxFit.contain,
-                            width: double.infinity,
-                            placeholder: (context, url) => const Center(
-                              child: Icon(Icons.image, color: Colors.grey),
-                            ),
-                            errorWidget: (context, url, error) => const Center(
-                              child: Icon(
-                                Icons.broken_image,
+            child: Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Image Section with WHITE Background
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors
+                            .white, // Explicitly requested white background
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(8.0),
+                      child: Center(
+                        child: imageUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: imageUrl,
+                                fit: BoxFit.contain,
+                                placeholder: (context, url) => const Center(
+                                  child: SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: iconColor,
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey,
+                                    ),
+                              )
+                            : const Icon(
+                                Icons.image_not_supported,
                                 color: Colors.grey,
+                                size: 40,
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // 2. Product Name
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600, // Semi-bold
+                      color: Colors.black87,
+                      height: 1.2,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // 3. Bottom Section: Price/Weight (Left) + Heart (Right)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Left Side: Prices and Weight
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Price Row
+                            Row(
+                              children: [
+                                Text(
+                                  "₹${product.hasDiscount ? product.discountedPrice?.toStringAsFixed(0) : product.price.toStringAsFixed(0)}", // Current Price
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: priceColor,
+                                  ),
+                                ),
+                                if (product.hasDiscount) ...[
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "₹${product.price.toStringAsFixed(0)}", // Old Price
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      decoration: TextDecoration.lineThrough,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            // Weight
+                            Text(
+                              product.weight ?? " g",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
-                          ),
-                        )
-                      : const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
-                        ),
-                ),
-
-                // Discount Badge
-                if (product.hasDiscount)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${product.discountPercentage.toStringAsFixed(0)}% OFF',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          ],
                         ),
                       ),
-                    ),
-                  ),
 
-                // Wishlist Button Overlay
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Consumer(
-                    builder: (context, ref, child) {
-                      final isInWishlist = ref.watch(
-                        isInWishlistProvider(product.id.toString()),
-                      );
-
-                      return GestureDetector(
-                        onTap: () async {
-                          final wishlistNotifier = ref.read(
-                            wishlistProvider.notifier,
+                      // Right Side: Heart Icon
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final isInWishlist = ref.watch(
+                            isInWishlistProvider(product.id.toString()),
                           );
-                          await wishlistNotifier.toggleWishlist(
-                            product.id.toString(),
+
+                          return GestureDetector(
+                            onTap: () async {
+                              final wishlistNotifier = ref.read(
+                                wishlistProvider.notifier,
+                              );
+                              await wishlistNotifier.toggleWishlist(
+                                product.id.toString(),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Icon(
+                                isInWishlist
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                color: isInWishlist
+                                    ? Colors.red
+                                    : const Color(0xFF00897B),
+                                size: 22,
+                              ),
+                            ),
                           );
                         },
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            isInWishlist
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            color: isInWishlist ? Colors.red : Colors.grey[600],
-                            size: 16,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                // Add Button Overlay
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: GestureDetector(
-                    onTap: () {
-                      // TODO: Implement quick add logic
-                    },
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Colors.green),
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.green,
-                        size: 20,
-                      ),
-                    ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-
-            // --- Details Section ---
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Name
-                        Text(
-                          product.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-
-                        // Unit (e.g. "1kg")
-                        if (product.stockUnit != null)
-                          Text(
-                            product.stockUnit!,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                      ],
-                    ),
-
-                    // Price
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '₹${product.displayPrice}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        if (product.hasDiscount) ...[
-                          const SizedBox(width: 6),
-                          Text(
-                            '₹${product.price.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              decoration: TextDecoration.lineThrough,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-      ),
+
+        // --- Floating Add Button (+) ---
+        Positioned(
+          top: -8, // Overlaps the top border
+          right: -8, // Overlaps the right border
+          child: GestureDetector(
+            onTap: () {
+              // Add to cart logic
+            },
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: borderColor, width: 1.2),
+              ),
+              child: const Icon(Icons.add, color: iconColor, size: 20),
+            ),
+          ),
+        ),
+      ],
     );
+  }
+}
+
+// Helper extension (Ensure this is accessible in your file)
+extension ProductVariantDisplay on ProductVariant {
+  String? get mainImageUrl {
+    if (media.isNotEmpty) {
+      return media.first.imageUrl;
+    }
+    return null;
+  }
+
+  bool get hasDiscount => discountedPrice != null && discountedPrice! < price;
+
+  String? get weight {
+    if (stockUnit != null && stockUnit!.isNotEmpty) {
+      return stockUnit;
+    }
+    // Default logic if stockUnit is missing
+    return "80 g";
   }
 }

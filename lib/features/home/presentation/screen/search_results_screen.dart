@@ -1,6 +1,7 @@
 // lib/features/home/presentation/screens/search_results_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:new_app/features/home/application/providers/home_provider.dart';
 import 'package:new_app/features/home/application/states/home_state.dart'; // Needed for HomeState
@@ -73,109 +74,116 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     final searchBarColor = Colors.white;
     final chipColor = Colors.white;
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- Custom Header & Search Bar ---
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Row (Back Button)
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: const Icon(
-                          Icons.arrow_back_ios,
-                          size: 20,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Search Input Field
-                  Container(
-                    decoration: BoxDecoration(
-                      color: searchBarColor,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFcaf5ac), // Custom green color
+        statusBarIconBrightness: Brightness.dark, // Dark icons
+      ),
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // --- Custom Header & Search Bar ---
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Row (Back Button)
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(
+                            Icons.arrow_back_ios,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
                         ),
                       ],
                     ),
-                    child: TextField(
-                      controller: _textController,
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: "Search For 'Cooker'",
-                        hintStyle: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 14,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                        ),
-                        suffixIcon: _textController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.grey,
-                                ),
-                                onPressed: _clearSearch,
-                              )
-                            : const Icon(Icons.mic, color: Colors.black87),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 14,
+                    const SizedBox(height: 16),
+
+                    // Search Input Field
+                    Container(
+                      decoration: BoxDecoration(
+                        color: searchBarColor,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _textController,
+                        onChanged: _onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: "Search For 'Cooker'",
+                          hintStyle: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 14,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.grey,
+                          ),
+                          suffixIcon: _textController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: _clearSearch,
+                                )
+                              : const Icon(Icons.mic, color: Colors.black87),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // --- Body Content ---
-            Expanded(
-              child: searchState.when(
-                // 1. Initial / Idle State (Show History + Trending)
-                initial: () => _buildIdleView(homeState, chipColor),
-
-                // 2. Loading State
-                loading: (query, _) => _textController.text.isEmpty
-                    ? _buildIdleView(
-                        homeState,
-                        chipColor,
-                      ) // Show idle if text cleared fast
-                    : const Center(child: CircularProgressIndicator()),
-
-                // 3. Active Search Results
-                loaded: (query, results, hasMore, page) =>
-                    _buildResultsView(results),
-
-                // 4. Empty State
-                empty: (query) => _buildEmptyView(query),
-
-                // 5. Error State
-                error: (failure, query) => _buildErrorView(failure.toString()),
-
-                // 6. Voice Listening
-                listening: (_) => const Center(
-                  child: Icon(Icons.mic, size: 64, color: Colors.green),
+                  ],
                 ),
               ),
-            ),
-          ],
+
+              // --- Body Content ---
+              Expanded(
+                child: searchState.when(
+                  // 1. Initial / Idle State (Show History + Trending)
+                  initial: () => _buildIdleView(homeState, chipColor),
+
+                  // 2. Loading State
+                  loading: (query, _) => _textController.text.isEmpty
+                      ? _buildIdleView(
+                          homeState,
+                          chipColor,
+                        ) // Show idle if text cleared fast
+                      : const Center(child: CircularProgressIndicator()),
+
+                  // 3. Active Search Results
+                  loaded: (query, results, hasMore, page) =>
+                      _buildResultsView(results),
+
+                  // 4. Empty State
+                  empty: (query) => _buildEmptyView(query),
+
+                  // 5. Error State
+                  error: (failure, query) =>
+                      _buildErrorView(failure.toString()),
+
+                  // 6. Voice Listening
+                  listening: (_) => const Center(
+                    child: Icon(Icons.mic, size: 64, color: Colors.green),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
