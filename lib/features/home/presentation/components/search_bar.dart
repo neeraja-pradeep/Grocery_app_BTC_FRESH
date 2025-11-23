@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Renamed to CustomSearchBar to avoid conflict with Material 3 SearchBar
 class CustomSearchBar extends ConsumerWidget {
@@ -17,39 +18,39 @@ class CustomSearchBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            blurRadius: 4.r,
+            offset: Offset(0, 2.h),
           ),
         ],
       ),
       child: Row(
         children: [
-          Icon(Icons.search, color: Colors.grey[400], size: 30),
-          const SizedBox(width: 8),
+          Icon(Icons.search, color: Colors.grey[400], size: 30.sp),
+          SizedBox(width: 8.w),
           Expanded(
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search for "Rice"',
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14.sp),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
               ),
-              style: const TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: 14.sp),
               textInputAction: TextInputAction.search,
               onSubmitted: onTextSearch,
             ),
           ),
-          const SizedBox(width: 8),
-          Container(height: 24, width: 1, color: Colors.black),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
+          Container(height: 24.h, width: 1.w, color: Colors.black),
+          SizedBox(width: 8.w),
           GestureDetector(
             onTap: onVoiceSearch,
             child: const Icon(Icons.mic, color: Color(0xff016064)),

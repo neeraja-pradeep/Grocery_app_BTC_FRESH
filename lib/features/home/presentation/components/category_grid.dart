@@ -1,6 +1,7 @@
 // lib/features/home/presentation/components/category_grid.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
 import 'package:new_app/features/home/presentation/components/category_tile.dart';
 
@@ -18,14 +19,14 @@ class CategoryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
     return Container(
-      height: categories.length > 4 ? 240 : 120,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: categories.length > 4 ? 240.h : 120.h,
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: GridView.builder(
         physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 4,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 10,
+          mainAxisSpacing: 14.h,
+          crossAxisSpacing: 10.w,
           childAspectRatio: 0.75, // Controls height of tile vs width
         ),
         itemCount: categories.length,

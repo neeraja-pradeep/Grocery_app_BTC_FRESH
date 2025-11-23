@@ -179,19 +179,22 @@ final wishlistProvider = StateNotifierProvider<WishlistNotifier, WishlistState>(
 // ----------------------------------------------------------------------
 
 // Watch only wishlist items to avoid rebuilding entire screens
-final wishlistItemsProvider = Provider<List<WishlistItem>>((ref) {
+final wishlistItemsProvider = Provider.autoDispose<List<WishlistItem>>((ref) {
   final wishlistState = ref.watch(wishlistProvider);
   return wishlistState.items;
 });
 
 // Check if a specific product is in wishlist
-final isInWishlistProvider = Provider.family<bool, String>((ref, productId) {
+final isInWishlistProvider = Provider.autoDispose.family<bool, String>((
+  ref,
+  productId,
+) {
   final wishlistState = ref.watch(wishlistProvider);
   return wishlistState.isInWishlist(productId);
 });
 
 // Get wishlist item count
-final wishlistCountProvider = Provider<int>((ref) {
+final wishlistCountProvider = Provider.autoDispose<int>((ref) {
   final wishlistState = ref.watch(wishlistProvider);
   return wishlistState.itemCount;
 });

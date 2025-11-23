@@ -2,6 +2,8 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
+import 'package:new_app/core/error/failure.dart';
+import 'package:new_app/core/utils/logger.dart';
 import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
@@ -38,22 +40,113 @@ class HomeApiImpl implements HomeRemoteDataSource {
 
   // --- Helper Methods ---
 
+  /// Converts DioException to appropriate custom exception
+  AppException _handleDioException(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+        return const TimeoutException(
+          'Connection timeout - Please check your internet connection',
+        );
+      case DioExceptionType.sendTimeout:
+        return const TimeoutException('Request timeout - Please try again');
+      case DioExceptionType.receiveTimeout:
+        return const TimeoutException('Server taking too long to respond');
+      case DioExceptionType.connectionError:
+        return const NetworkException(
+          'No internet connection - Please check your network',
+        );
+      case DioExceptionType.cancel:
+        return const NetworkException('Request was cancelled');
+      case DioExceptionType.badResponse:
+        final statusCode = e.response?.statusCode;
+        final message =
+            e.response?.data?['message'] ?? e.message ?? 'Unknown error';
+
+        switch (statusCode) {
+          case 400:
+            return ServerException(
+              'Bad request: $message',
+              statusCode: statusCode,
+            );
+          case 401:
+            return const UnauthorizedException(
+              'Session expired - Please login again',
+            );
+          case 403:
+            return const UnauthorizedException(
+              'Access denied - Insufficient permissions',
+            );
+          case 404:
+            return const NotFoundException('Resource not found');
+          case 422:
+            return ServerException(
+              'Validation error: $message',
+              statusCode: statusCode,
+            );
+          case 429:
+            return const ServerException(
+              'Too many requests - Please try again later',
+            );
+          case 500:
+            return const ServerException(
+              'Server error - Please try again later',
+            );
+          case 502:
+            return const ServerException(
+              'Bad gateway - Server is temporarily unavailable',
+            );
+          case 503:
+            return const ServerException(
+              'Service unavailable - Please try again later',
+            );
+          default:
+            return ServerException(
+              'Server error ($statusCode): $message',
+              statusCode: statusCode,
+            );
+        }
+      case DioExceptionType.unknown:
+        return ServerException('Network error: ${e.message}');
+      default:
+        return ServerException('Unexpected error: ${e.message}');
+    }
+  }
+
   Future<PaginatedResult<T>> _fetchPaginated<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
     required T Function(Map<String, dynamic>) fromJson,
   }) async {
-    final response = await _dio.get(path, queryParameters: queryParameters);
-    final data = response.data as Map<String, dynamic>;
+    try {
+      final response = await _dio.get(path, queryParameters: queryParameters);
 
-    return PaginatedResult(
-      count: data['count'] ?? 0,
-      next: data['next'],
-      previous: data['previous'],
-      results: (data['results'] as List)
-          .map((e) => fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
+      // Validate response data
+      if (response.data == null) {
+        throw const ServerException('Empty response from server');
+      }
+
+      final data = response.data as Map<String, dynamic>;
+
+      // Safely handle results array
+      final results = data['results'] as List? ?? [];
+
+      return PaginatedResult(
+        count: data['count'] ?? 0,
+        next: data['next'],
+        previous: data['previous'],
+        results: results
+            .map((e) => fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } on FormatException catch (e) {
+      throw DataParsingException('Invalid data format: $e');
+    } on TypeError catch (e) {
+      throw DataParsingException('Data type mismatch: $e');
+    } catch (e) {
+      throw ServerException('Unexpected error: $e');
+    }
   }
 
   Future<List<T>> _fetchList<T>(
@@ -61,15 +154,45 @@ class HomeApiImpl implements HomeRemoteDataSource {
     Map<String, dynamic>? queryParameters,
     required T Function(Map<String, dynamic>) fromJson,
   }) async {
-    final response = await _dio.get(path, queryParameters: queryParameters);
+    try {
+      final response = await _dio.get(path, queryParameters: queryParameters);
 
-    List listData;
-    if (response.data is Map && response.data.containsKey('results')) {
-      listData = response.data['results'];
-    } else {
-      listData = response.data as List;
+      // Validate response data
+      if (response.data == null) {
+        throw const ServerException('Empty response from server');
+      }
+
+      List listData;
+      if (response.data is Map && response.data.containsKey('results')) {
+        listData = response.data['results'] ?? [];
+      } else if (response.data is List) {
+        listData = response.data as List;
+      } else {
+        throw const DataParsingException('Unexpected response format');
+      }
+
+      // Debug logging for product data
+      if (path.contains('variants') && listData.isNotEmpty) {
+        Logger.debug(
+          'API Response - Product data sample',
+          data: {
+            'endpoint': path,
+            'first_product': listData.first,
+            'total_products': listData.length,
+          },
+        );
+      }
+
+      return listData.map((e) => fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } on FormatException catch (e) {
+      throw DataParsingException('Invalid data format: $e');
+    } on TypeError catch (e) {
+      throw DataParsingException('Data type mismatch: $e');
+    } catch (e) {
+      throw ServerException('Unexpected error: $e');
     }
-    return listData.map((e) => fromJson(e as Map<String, dynamic>)).toList();
   }
 
   // --- Implementation ---
@@ -135,19 +258,29 @@ class HomeApiImpl implements HomeRemoteDataSource {
 
   @override
   Future<UserAddress?> getSelectedAddress() async {
-    // Placeholder implementation
-    // If API returns 404 or empty, return null.
     try {
-      // final response = await _dio.get('/api/users/address/selected/');
-      // return UserAddress.fromJson(response.data);
-      return null;
+      final response = await _dio.get('/api/users/address/selected/');
+
+      if (response.data == null) {
+        return null;
+      }
+
+      return UserAddress.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      // For address, 404 is acceptable (no address selected)
+      if (e.response?.statusCode == 404) {
+        return null;
+      }
+      throw _handleDioException(e);
+    } on FormatException catch (e) {
+      throw DataParsingException('Invalid address data format: $e');
     } catch (e) {
-      return null;
+      throw ServerException('Error fetching address: $e');
     }
   }
 
   @override
-  Future<List<ProductVariant>> getBestDeals({int limit = 10}) async {
+  Future<List<ProductVariant>> getBestDeals({int limit = 10}) {
     return _fetchList(
       '/api/products/variants/',
       queryParameters: {

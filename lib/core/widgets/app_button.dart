@@ -1,6 +1,7 @@
 // lib/core/widgets/app_button.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Custom app button widget
 class AppButton extends StatelessWidget {
@@ -26,13 +27,13 @@ class AppButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor,
         foregroundColor: textColor,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
       ),
       child: isLoading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+          ? SizedBox(
+              width: 20.w,
+              height: 20.h,
+              child: CircularProgressIndicator(strokeWidth: 2.w),
             )
           : Text(text),
     );

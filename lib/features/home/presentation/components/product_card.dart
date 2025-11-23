@@ -3,6 +3,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 import 'package:new_app/features/wishlist/application/providers/wishlist_provider.dart';
 
@@ -40,13 +41,13 @@ class ProductCard extends ConsumerWidget {
         GestureDetector(
           onTap: onTap,
           child: Container(
-            width: width,
+            width: width.w,
             decoration: BoxDecoration(
               color: cardBgColor, // Everything else is green
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: EdgeInsets.all(10.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -58,20 +59,20 @@ class ProductCard extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: Colors
                             .white, // Explicitly requested white background
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.w),
                       child: Center(
                         child: imageUrl != null
                             ? CachedNetworkImage(
                                 imageUrl: imageUrl,
                                 fit: BoxFit.contain,
-                                placeholder: (context, url) => const Center(
+                                placeholder: (context, url) => Center(
                                   child: SizedBox(
-                                    height: 20,
-                                    width: 20,
+                                    height: 20.h,
+                                    width: 20.w,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                      strokeWidth: 2.w,
                                       color: iconColor,
                                     ),
                                   ),
@@ -82,31 +83,31 @@ class ProductCard extends ConsumerWidget {
                                       color: Colors.grey,
                                     ),
                               )
-                            : const Icon(
+                            : Icon(
                                 Icons.image_not_supported,
                                 color: Colors.grey,
-                                size: 40,
+                                size: 40.sp,
                               ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10.h),
 
                   // 2. Product Name
                   Text(
                     product.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: 12.sp,
                       fontWeight: FontWeight.w600, // Semi-bold
                       color: Colors.black87,
                       height: 1.2,
                     ),
                   ),
 
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6.h),
 
                   // 3. Bottom Section: Price/Weight (Left) + Heart (Right)
                   Row(
@@ -123,18 +124,18 @@ class ProductCard extends ConsumerWidget {
                               children: [
                                 Text(
                                   "₹${product.hasDiscount ? product.discountedPrice?.toStringAsFixed(0) : product.price.toStringAsFixed(0)}", // Current Price
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
                                     fontWeight: FontWeight.bold,
                                     color: priceColor,
                                   ),
                                 ),
                                 if (product.hasDiscount) ...[
-                                  const SizedBox(width: 4),
+                                  SizedBox(width: 4.w),
                                   Text(
                                     "₹${product.price.toStringAsFixed(0)}", // Old Price
-                                    style: const TextStyle(
-                                      fontSize: 11,
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
                                       decoration: TextDecoration.lineThrough,
                                       color: Colors.grey,
                                     ),
@@ -142,12 +143,12 @@ class ProductCard extends ConsumerWidget {
                                 ],
                               ],
                             ),
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2.h),
                             // Weight
                             Text(
-                              product.weight ?? " g",
+                              product.displayWeight,
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 11.sp,
                                 color: Colors.grey[700],
                                 fontWeight: FontWeight.w400,
                               ),
@@ -173,7 +174,7 @@ class ProductCard extends ConsumerWidget {
                               );
                             },
                             child: Padding(
-                              padding: const EdgeInsets.only(bottom: 2),
+                              padding: EdgeInsets.only(bottom: 2.h),
                               child: Icon(
                                 isInWishlist
                                     ? Icons.favorite_rounded
@@ -181,7 +182,7 @@ class ProductCard extends ConsumerWidget {
                                 color: isInWishlist
                                     ? Colors.red
                                     : const Color(0xFF00897B),
-                                size: 22,
+                                size: 22.sp,
                               ),
                             ),
                           );
@@ -197,21 +198,21 @@ class ProductCard extends ConsumerWidget {
 
         // --- Floating Add Button (+) ---
         Positioned(
-          top: -8, // Overlaps the top border
-          right: -8, // Overlaps the right border
+          top: -8.h, // Overlaps the top border
+          right: -8.w, // Overlaps the right border
           child: GestureDetector(
             onTap: () {
               // Add to cart logic
             },
             child: Container(
-              width: 34,
-              height: 34,
+              width: 34.w,
+              height: 34.h,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: borderColor, width: 1.2),
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(color: borderColor, width: 1.2.w),
               ),
-              child: const Icon(Icons.add, color: iconColor, size: 20),
+              child: Icon(Icons.add, color: iconColor, size: 20.sp),
             ),
           ),
         ),
@@ -231,11 +232,92 @@ extension ProductVariantDisplay on ProductVariant {
 
   bool get hasDiscount => discountedPrice != null && discountedPrice! < price;
 
-  String? get weight {
-    if (stockUnit != null && stockUnit!.isNotEmpty) {
-      return stockUnit;
+  String get displayWeight {
+    // Enhanced weight parsing with multiple fallback strategies
+    if (stockUnit != null && stockUnit!.isNotEmpty && stockUnit != 'null') {
+      final cleaned = stockUnit!.trim();
+      if (cleaned.isNotEmpty) {
+        return _formatWeight(cleaned);
+      }
     }
-    // Default logic if stockUnit is missing
-    return "80 g";
+
+    // Fallback strategies based on product name analysis
+    final productName = name.toLowerCase();
+
+    // Common weight patterns in product names
+    final weightPatterns = [
+      RegExp(
+        r'(\d+(?:\.\d+)?)\s*(kg|g|gm|gram|grams|kilogram|kilograms)',
+        caseSensitive: false,
+      ),
+      RegExp(
+        r'(\d+(?:\.\d+)?)\s*(ml|l|ltr|litre|litres|millilitre)',
+        caseSensitive: false,
+      ),
+      RegExp(r'(\d+(?:\.\d+)?)\s*(piece|pieces|pcs|pc)', caseSensitive: false),
+    ];
+
+    for (final pattern in weightPatterns) {
+      final match = pattern.firstMatch(productName);
+      if (match != null) {
+        final value = match.group(1);
+        final unit = match.group(2);
+        return _formatWeight('$value $unit');
+      }
+    }
+
+    // Category-based intelligent defaults
+    if (productName.contains('oil') || productName.contains('ghee')) {
+      return '500 ml';
+    } else if (productName.contains('rice') ||
+        productName.contains('flour') ||
+        productName.contains('dal')) {
+      return '1 kg';
+    } else if (productName.contains('spice') ||
+        productName.contains('masala')) {
+      return '100 g';
+    } else if (productName.contains('biscuit') ||
+        productName.contains('cookie')) {
+      return '200 g';
+    } else if (productName.contains('milk') || productName.contains('juice')) {
+      return '1 L';
+    } else if (productName.contains('bread') || productName.contains('roti')) {
+      return '400 g';
+    }
+
+    // Final fallback based on price range
+    if (price < 50) {
+      return '100 g';
+    } else if (price < 200) {
+      return '250 g';
+    } else if (price < 500) {
+      return '500 g';
+    } else {
+      return '1 kg';
+    }
+  }
+
+  String _formatWeight(String weight) {
+    // Normalize common weight formats
+    final normalized = weight
+        .toLowerCase()
+        .replaceAll('gm', 'g')
+        .replaceAll('gram', 'g')
+        .replaceAll('grams', 'g')
+        .replaceAll('kilogram', 'kg')
+        .replaceAll('kilograms', 'kg')
+        .replaceAll('millilitre', 'ml')
+        .replaceAll('litre', 'l')
+        .replaceAll('litres', 'l')
+        .replaceAll('ltr', 'l')
+        .replaceAll('piece', 'pc')
+        .replaceAll('pieces', 'pcs')
+        .trim();
+
+    // Ensure proper spacing
+    return normalized.replaceAllMapped(
+      RegExp(r'(\d+(?:\.\d+)?)([a-z]+)'),
+      (match) => '${match.group(1)} ${match.group(2)}',
+    );
   }
 }

@@ -2,10 +2,11 @@
 
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:new_app/core/error/failure.dart'; // Corrected import name (plural)
+import 'package:new_app/core/utils/logger.dart';
 import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
-import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
 import 'package:new_app/features/home/domain/repositories/home_repository.dart';
@@ -22,41 +23,27 @@ class HomeRepositoryImpl implements HomeRepository {
   }) : _remoteDataSource = remoteDataSource,
        _localDataSource = localDataSource;
 
-  // --- Helper: Group Variants into Categories ---
-  List<CategoryDiscountGroup> _groupVariants(List<ProductVariant> variants) {
-    final Map<int, List<ProductVariant>> groupedMap = {};
-
-    for (var variant in variants) {
-      // Logic: Group by productId (or categoryId if you add it to the variant entity later)
-      final catId = variant.productId;
-      if (!groupedMap.containsKey(catId)) {
-        groupedMap[catId] = [];
-      }
-      groupedMap[catId]!.add(variant);
-    }
-
-    final List<CategoryDiscountGroup> groups = [];
-    groupedMap.forEach((key, value) {
-      // Create a placeholder category since the API variant endpoint doesn't return full category info
-      final dummyCategory = Category(
-        id: key,
-        name:
-            "Deal Category $key", // You might map this ID to a known category name if available
-        slug: "deal-$key",
-        description: "",
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      groups.add(
-        CategoryDiscountGroup(
-          category: dummyCategory,
-          discountedProducts: value,
-        ),
-      );
-    });
-    return groups;
-  }
+  /// Converts exceptions to appropriate failures
+  // Failure _handleException(Object exception) {
+  //   if (exception is NetworkException || exception is TimeoutException) {
+  //     return NetworkFailure(exception.toString());
+  //   } else if (exception is ServerException) {
+  //     return ServerFailure(
+  //       exception.toString(),
+  //       statusCode: exception.statusCode,
+  //     );
+  //   } else if (exception is DataParsingException) {
+  //     return DataParsingFailure(exception.toString());
+  //   } else if (exception is CacheException) {
+  //     return CacheFailure(exception.toString());
+  //   } else if (exception is NotFoundException) {
+  //     return ServerFailure(exception.toString(), statusCode: 404);
+  //   } else if (exception is UnauthorizedException) {
+  //     return ServerFailure(exception.toString(), statusCode: 401);
+  //   } else {
+  //     return UnknownFailure('Unexpected error: ${exception.toString()}');
+  //   }
+  // }
 
   @override
   Future<Either<Failure, PaginatedResult<Category>>> getCategories({
@@ -68,6 +55,7 @@ class HomeRepositoryImpl implements HomeRepository {
         final cachedContainer = await _localDataSource.getCategories();
         if (cachedContainer != null &&
             cachedContainer.isFresh(const Duration(hours: 1))) {
+          Logger.debug('Categories loaded from cache');
           return Right(
             PaginatedResult(
               count: cachedContainer.data.length,
@@ -75,28 +63,44 @@ class HomeRepositoryImpl implements HomeRepository {
             ),
           );
         }
+      } on HiveError catch (e) {
+        Logger.error('Hive cache read error for categories', error: e);
+        // Continue to API fetch
       } catch (e) {
-        // Ignore cache read errors, proceed to API
+        Logger.error('Unexpected cache error for categories', error: e);
+        // Continue to API fetch
       }
     }
 
     // 2. Fetch from API
     try {
-      // Updated method name: getCategories
       final result = await _remoteDataSource.getCategories(page: page);
+      Logger.debug(
+        'Categories loaded from API: ${result.results.length} items',
+      );
 
       // 3. Save to Cache (only page 1)
       if (page == 1) {
-        await _localDataSource.saveCategories(result.results);
+        try {
+          await _localDataSource.saveCategories(result.results);
+          Logger.debug('Categories saved to cache');
+        } on HiveError catch (e) {
+          Logger.error('Failed to save categories to cache', error: e);
+          // Don't fail the request if cache save fails
+        } catch (e) {
+          Logger.error('Unexpected error saving categories to cache', error: e);
+        }
       }
 
       return Right(result);
-    } catch (e) {
+    } on NetworkException catch (e) {
+      Logger.warning('Network error fetching categories', error: e);
       // 4. On Network Error: Try to return stale cache if available
       if (page == 1) {
         try {
           final cachedContainer = await _localDataSource.getCategories();
           if (cachedContainer != null) {
+            Logger.info('Returning stale cache due to network error');
             return Right(
               PaginatedResult(
                 count: cachedContainer.data.length,
@@ -104,15 +108,22 @@ class HomeRepositoryImpl implements HomeRepository {
               ),
             );
           }
-        } catch (_) {}
+        } catch (cacheError) {
+          Logger.error('Failed to retrieve stale cache', error: cacheError);
+        }
       }
-      return Left(ServerFailure(e.toString()));
+      return Left(NetworkFailure(e.toString()));
+    } on ServerException catch (e) {
+      Logger.error('Server error fetching categories', error: e);
+      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+    } catch (e) {
+      Logger.error('Unexpected error fetching categories', error: e);
+      return Left(UnknownFailure('Unexpected error: $e'));
     }
   }
 
   @override
-  Future<Either<Failure, List<CategoryDiscountGroup>>>
-  getDiscountedProductsByCategory({
+  Future<Either<Failure, List<ProductVariant>>> getDiscountedProducts({
     String? parentCategoryName,
     double? minPrice,
     double? maxPrice,
@@ -128,31 +139,54 @@ class HomeRepositoryImpl implements HomeRepository {
       );
       if (cachedContainer != null &&
           cachedContainer.isFresh(const Duration(minutes: 10))) {
-        // Convert flat list to groups
-        return Right(_groupVariants(cachedContainer.data));
+        Logger.debug('Discounted products loaded from cache: $cacheKey');
+        return Right(cachedContainer.data);
       }
-    } catch (_) {}
+    } on HiveError catch (e) {
+      Logger.error('Hive cache read error for discounted products', error: e);
+    } catch (e) {
+      Logger.error('Unexpected cache error for discounted products', error: e);
+    }
 
     // 2. Fetch from API
     try {
-      // Updated method name: getDiscountedProducts
       final variants = await _remoteDataSource.getDiscountedProducts(
         parentCategoryName: parentCategoryName,
         minPrice: minPrice,
         maxPrice: maxPrice,
         ordering: ordering,
       );
-
-      // 3. Save to Cache (Store the flat list)
-      await _localDataSource.saveDiscountedProducts(
-        cacheKey: cacheKey,
-        products: variants,
+      Logger.debug(
+        'Discounted products loaded from API: ${variants.length} items',
       );
 
-      // 4. Convert and Return
-      return Right(_groupVariants(variants));
+      // 3. Save to Cache (Store the flat list)
+      try {
+        await _localDataSource.saveDiscountedProducts(
+          cacheKey: cacheKey,
+          products: variants,
+        );
+        Logger.debug('Discounted products saved to cache: $cacheKey');
+      } on HiveError catch (e) {
+        Logger.error('Failed to save discounted products to cache', error: e);
+      } catch (e) {
+        Logger.error(
+          'Unexpected error saving discounted products to cache',
+          error: e,
+        );
+      }
+
+      // 4. Return raw product variants (no business logic grouping)
+      return Right(variants);
+    } on NetworkException catch (e) {
+      Logger.warning('Network error fetching discounted products', error: e);
+      return Left(NetworkFailure(e.toString()));
+    } on ServerException catch (e) {
+      Logger.error('Server error fetching discounted products', error: e);
+      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      Logger.error('Unexpected error fetching discounted products', error: e);
+      return Left(UnknownFailure('Unexpected error: $e'));
     }
   }
 
@@ -164,30 +198,57 @@ class HomeRepositoryImpl implements HomeRepository {
         final cachedContainer = await _localDataSource.getBanners();
         if (cachedContainer != null &&
             cachedContainer.isFresh(const Duration(minutes: 30))) {
+          Logger.debug('Banners loaded from cache');
           return Right(cachedContainer.data);
         }
-      } catch (_) {}
+      } on HiveError catch (e) {
+        Logger.error('Hive cache read error for banners', error: e);
+      } catch (e) {
+        Logger.error('Unexpected cache error for banners', error: e);
+      }
     }
 
     // 2. Fetch
     try {
-      // Updated method name: getBanners
       final result = await _remoteDataSource.getBanners(page: page);
+      Logger.debug('Banners loaded from API: ${result.results.length} items');
 
       // 3. Save
       if (page == 1) {
-        await _localDataSource.saveBanners(result.results);
+        try {
+          await _localDataSource.saveBanners(result.results);
+          Logger.debug('Banners saved to cache');
+        } on HiveError catch (e) {
+          Logger.error('Failed to save banners to cache', error: e);
+        } catch (e) {
+          Logger.error('Unexpected error saving banners to cache', error: e);
+        }
       }
       return Right(result.results);
-    } catch (e) {
-      // 4. Fallback
+    } on NetworkException catch (e) {
+      Logger.warning('Network error fetching banners', error: e);
+      // 4. Fallback to stale cache
       if (page == 1) {
         try {
           final cachedContainer = await _localDataSource.getBanners();
-          if (cachedContainer != null) return Right(cachedContainer.data);
-        } catch (_) {}
+          if (cachedContainer != null) {
+            Logger.info('Returning stale banners cache due to network error');
+            return Right(cachedContainer.data);
+          }
+        } catch (cacheError) {
+          Logger.error(
+            'Failed to retrieve stale banners cache',
+            error: cacheError,
+          );
+        }
       }
-      return Left(ServerFailure(e.toString()));
+      return Left(NetworkFailure(e.toString()));
+    } on ServerException catch (e) {
+      Logger.error('Server error fetching banners', error: e);
+      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+    } catch (e) {
+      Logger.error('Unexpected error fetching banners', error: e);
+      return Left(UnknownFailure('Unexpected error: $e'));
     }
   }
 
@@ -200,26 +261,52 @@ class HomeRepositoryImpl implements HomeRepository {
       final cachedContainer = await _localDataSource.getBestDeals();
       if (cachedContainer != null &&
           cachedContainer.isFresh(const Duration(minutes: 10))) {
+        Logger.debug('Best deals loaded from cache');
         return Right(cachedContainer.data);
       }
-    } catch (_) {}
+    } on HiveError catch (e) {
+      Logger.error('Hive cache read error for best deals', error: e);
+    } catch (e) {
+      Logger.error('Unexpected cache error for best deals', error: e);
+    }
 
     // 2. Fetch
     try {
-      // Updated method name: getBestDeals
       final result = await _remoteDataSource.getBestDeals(limit: limit);
+      Logger.debug('Best deals loaded from API: ${result.length} items');
 
-      await _localDataSource.saveBestDeals(result);
+      try {
+        await _localDataSource.saveBestDeals(result);
+        Logger.debug('Best deals saved to cache');
+      } on HiveError catch (e) {
+        Logger.error('Failed to save best deals to cache', error: e);
+      } catch (e) {
+        Logger.error('Unexpected error saving best deals to cache', error: e);
+      }
 
       return Right(result);
-    } catch (e) {
-      // 3. Fallback
+    } on NetworkException catch (e) {
+      Logger.warning('Network error fetching best deals', error: e);
+      // 3. Fallback to stale cache
       try {
         final cachedContainer = await _localDataSource.getBestDeals();
-        if (cachedContainer != null) return Right(cachedContainer.data);
-      } catch (_) {}
-
-      return Left(ServerFailure(e.toString()));
+        if (cachedContainer != null) {
+          Logger.info('Returning stale best deals cache due to network error');
+          return Right(cachedContainer.data);
+        }
+      } catch (cacheError) {
+        Logger.error(
+          'Failed to retrieve stale best deals cache',
+          error: cacheError,
+        );
+      }
+      return Left(NetworkFailure(e.toString()));
+    } on ServerException catch (e) {
+      Logger.error('Server error fetching best deals', error: e);
+      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+    } catch (e) {
+      Logger.error('Unexpected error fetching best deals', error: e);
+      return Left(UnknownFailure('Unexpected error: $e'));
     }
   }
 
@@ -229,20 +316,25 @@ class HomeRepositoryImpl implements HomeRepository {
     int page = 1,
   }) async {
     try {
-      // Updated method name: searchProducts
       final result = await _remoteDataSource.searchProducts(
         query: query,
         page: page,
       );
-
-      // Not saving search results to cache (strategy decision),
-      // but we do not have access to "saveSearchHistory" in Local DS in this file scope?
-      // If you need to save the query string to history, you need to expose that method in Local DS.
-      // Assuming clean architecture, we just return data here.
+      Logger.debug('Search results for "$query": ${result.length} items');
 
       return Right(result);
+    } on NetworkException catch (e) {
+      Logger.warning('Network error searching products for "$query"', error: e);
+      return Left(NetworkFailure(e.toString()));
+    } on ServerException catch (e) {
+      Logger.error('Server error searching products for "$query"', error: e);
+      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      Logger.error(
+        'Unexpected error searching products for "$query"',
+        error: e,
+      );
+      return Left(UnknownFailure('Unexpected error: $e'));
     }
   }
 
@@ -251,18 +343,46 @@ class HomeRepositoryImpl implements HomeRepository {
     // 1. Check Cache
     try {
       final cached = await _localDataSource.getSelectedAddress();
-      if (cached != null) return Right(cached);
-    } catch (_) {}
+      if (cached != null) {
+        Logger.debug('Selected address loaded from cache');
+        return Right(cached);
+      }
+    } on HiveError catch (e) {
+      Logger.error('Hive cache read error for selected address', error: e);
+    } catch (e) {
+      Logger.error('Unexpected cache error for selected address', error: e);
+    }
 
     // 2. Fetch
     try {
       final address = await _remoteDataSource.getSelectedAddress();
+      Logger.debug(
+        'Selected address loaded from API: ${address != null ? 'found' : 'not found'}',
+      );
+
       if (address != null) {
-        await _localDataSource.saveSelectedAddress(address);
+        try {
+          await _localDataSource.saveSelectedAddress(address);
+          Logger.debug('Selected address saved to cache');
+        } on HiveError catch (e) {
+          Logger.error('Failed to save selected address to cache', error: e);
+        } catch (e) {
+          Logger.error(
+            'Unexpected error saving selected address to cache',
+            error: e,
+          );
+        }
       }
       return Right(address);
+    } on NetworkException catch (e) {
+      Logger.warning('Network error fetching selected address', error: e);
+      return Left(NetworkFailure(e.toString()));
+    } on ServerException catch (e) {
+      Logger.error('Server error fetching selected address', error: e);
+      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      Logger.error('Unexpected error fetching selected address', error: e);
+      return Left(UnknownFailure('Unexpected error: $e'));
     }
   }
 
@@ -270,9 +390,13 @@ class HomeRepositoryImpl implements HomeRepository {
   Future<void> clearCache() async {
     try {
       await _localDataSource.clearAllHomeCache();
+      Logger.info('Home cache cleared successfully');
+    } on HiveError catch (e) {
+      Logger.error('Hive error clearing cache', error: e);
+      // Don't throw - cache clearing should be non-blocking
     } catch (e) {
-      // Log error but don't throw - cache clearing should be non-blocking
-      // Log error but don't throw - cache clearing should be non-blocking
+      Logger.error('Unexpected error clearing cache', error: e);
+      // Don't throw - cache clearing should be non-blocking
     }
   }
 }

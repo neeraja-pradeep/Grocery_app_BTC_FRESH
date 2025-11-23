@@ -1,6 +1,7 @@
 // lib/features/home/presentation/components/section_header.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -17,7 +18,7 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -27,18 +28,21 @@ class SectionHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: TextStyle(
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF101811),
+                    color: const Color(0xFF101811),
                   ),
                 ),
                 if (subtitle != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: EdgeInsets.only(top: 2.h),
                     child: Text(
                       subtitle!,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ),
               ],
@@ -49,7 +53,7 @@ class SectionHeader extends StatelessWidget {
               onPressed: onSeeAllClick,
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
-                minimumSize: const Size(50, 30),
+                minimumSize: Size(50.w, 30.h),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: const Text(

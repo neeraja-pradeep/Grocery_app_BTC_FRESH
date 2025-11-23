@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
 import 'package:new_app/features/home/presentation/components/search_bar.dart';
 
@@ -37,41 +38,41 @@ class HomeHeader extends StatelessWidget {
     ); // Bright green for logo accent
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24.r)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Add status bar spacing manually
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           // --- 1. LOGO SECTION ---
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(
               children: [
                 // Wrap Image in limited box or use error builder to handle missing asset safely
                 SizedBox(
-                  height: 36,
+                  height: 36.h,
                   child: Image.asset(
                     'assets/title.png',
-                    height: 36,
+                    height: 36.h,
                     errorBuilder: (c, e, s) => RichText(
-                      text: const TextSpan(
+                      text: TextSpan(
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 26.sp,
                           fontWeight: FontWeight.w800,
                           fontFamily: 'Sans',
                         ),
                         children: [
-                          TextSpan(
+                          const TextSpan(
                             text: 'Easy',
                             style: TextStyle(color: darkGreenColor),
                           ),
-                          TextSpan(
+                          const TextSpan(
                             text: 'Gro',
                             style: TextStyle(color: brightGreenColor),
                           ),
@@ -84,20 +85,20 @@ class HomeHeader extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
           // --- 2. LOCATION & PROFILE SECTION (Full Width Background) ---
           Container(
             width: double.infinity,
             color: const Color(0xffbae888), // The specific row background color
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Location Icon
-                const Icon(Icons.location_on, color: darkGreenColor, size: 32),
+                Icon(Icons.location_on, color: darkGreenColor, size: 32.sp),
 
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
 
                 // Address Details
                 Expanded(
@@ -114,10 +115,10 @@ class HomeHeader extends StatelessWidget {
                                 address != null
                                     ? 'Calicut :'
                                     : 'Select Location',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: darkGreenColor,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                                  fontSize: 15.sp,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -133,19 +134,19 @@ class HomeHeader extends StatelessWidget {
                               child: Text(
                                 address?.shortDisplay ??
                                     'Ozanam bhavan Devagiri',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: darkGreenColor,
-                                  fontSize: 13,
+                                  fontSize: 13.sp,
                                   fontWeight: FontWeight.w400,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(
+                            SizedBox(width: 4.w),
+                            Icon(
                               Icons.keyboard_arrow_down,
-                              size: 18,
+                              size: 18.sp,
                               color: darkGreenColor,
                             ),
                           ],
@@ -159,14 +160,14 @@ class HomeHeader extends StatelessWidget {
                 GestureDetector(
                   onTap: onProfileClick,
                   child: Container(
-                    padding: const EdgeInsets.all(2),
+                    padding: EdgeInsets.all(2.w),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: darkGreenColor, width: 2),
+                      border: Border.all(color: darkGreenColor, width: 2.w),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.person,
-                      size: 28,
+                      size: 28.sp,
                       color: darkGreenColor,
                     ),
                   ),
@@ -175,11 +176,11 @@ class HomeHeader extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           // --- 3. SEARCH BAR SECTION ---
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+            padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 20.h),
             child: CustomSearchBar(
               // Pass the context to the handlers
               onTextSearch: (query) => _handleTextSearch(context, query),

@@ -1,89 +1,79 @@
 // lib/features/home/application/usecases/group_products_by_category_usecase.dart
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
 import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 
+/// UseCase for grouping product variants by category
+/// This handles the business logic of organizing products into discount groups
 class GroupProductsByCategoryUseCase {
-  List<CategoryDiscountGroup> call({
-    required List<ProductVariant> products,
-    int maxProductsPerCategory = 5,
+  /// Groups product variants by their associated categories
+  ///
+  /// [variants] - List of product variants to group
+  /// [categories] - Available categories to match against
+  ///
+  /// Returns a list of CategoryDiscountGroup sorted by number of products (descending)
+  List<CategoryDiscountGroup> execute({
+    required List<ProductVariant> variants,
+    required List<Category> categories,
   }) {
-    // 1. Group products by their grouping key
-    // Note: Since ProductVariant currently lacks a direct 'categoryId' field in the definition,
-    // we are using 'productId' as the grouping key.
-    // In a real scenario, you would access `product.categoryId` here.
+    if (variants.isEmpty) return [];
+
+    // Group variants by product ID (assuming products belong to categories)
     final Map<int, List<ProductVariant>> groupedMap = {};
 
-    for (var product in products) {
-      final key = product.productId;
-      if (!groupedMap.containsKey(key)) {
-        groupedMap[key] = [];
+    for (var variant in variants) {
+      final productId = variant.productId;
+      if (!groupedMap.containsKey(productId)) {
+        groupedMap[productId] = [];
       }
-      groupedMap[key]!.add(product);
+      groupedMap[productId]!.add(variant);
     }
 
-    final List<CategoryDiscountGroup> resultGroups = [];
+    // Map product IDs to actual categories
+    final List<CategoryDiscountGroup> groups = [];
 
-    // 2. Process each group
-    groupedMap.forEach((id, groupProducts) {
-      // 3. Filter out categories with < 3 products (Business Rule)
-      if (groupProducts.length < 3) {
-        return;
-      }
+    groupedMap.forEach((productId, productVariants) {
+      // Try to find matching category
+      // Note: This assumes a relationship between product and category
+      // You might need to adjust this logic based on your actual data model
+      final category = _findCategoryForProduct(productId, categories);
 
-      // Extract category info from the first product in the group
-      final firstProduct = groupProducts.first;
-
-      // Create a synthetic Category object from the product info
-      // (Since we don't have the full Category entity here)
-      final category = Category(
-        id: id,
-        // Heuristic: Use the first word of the product name or a generic name
-        name: firstProduct.name.split(' ').first,
-        slug: 'category-$id',
-        description: 'Deals for ${firstProduct.name}',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      // Take only the top N products for horizontal display
-      final displayProducts = groupProducts
-          .take(maxProductsPerCategory)
-          .toList();
-
-      resultGroups.add(
+      groups.add(
         CategoryDiscountGroup(
           category: category,
-          discountedProducts: displayProducts,
+          discountedProducts: productVariants,
         ),
       );
     });
 
-    // 4. Sort categories by total discount amount (Highest total savings first)
-    resultGroups.sort((a, b) {
-      final savingsA = _calculateTotalSavings(a.discountedProducts);
-      final savingsB = _calculateTotalSavings(b.discountedProducts);
-      return savingsB.compareTo(savingsA); // Descending order
-    });
+    // Sort by number of discounted products (highest first)
+    groups.sort(
+      (a, b) =>
+          b.discountedProducts.length.compareTo(a.discountedProducts.length),
+    );
 
-    return resultGroups;
+    return groups;
   }
 
-  /// Helper to calculate total money saved in a list of products
-  double _calculateTotalSavings(List<ProductVariant> variants) {
-    return variants.fold(0.0, (sum, item) {
-      if (item.discountedPrice != null && item.discountedPrice! < item.price) {
-        return sum + (item.price - item.discountedPrice!);
-      }
-      return sum;
-    });
+  /// Finds the appropriate category for a product
+  /// Creates a fallback category if no match is found
+  Category _findCategoryForProduct(int productId, List<Category> categories) {
+    // Try to find matching category by ID
+    // Note: You might need to adjust this logic based on your data model
+    // For example, if products have a categoryId field, use that instead
+    try {
+      return categories.firstWhere((cat) => cat.id == productId);
+    } catch (e) {
+      // Create fallback category for products without a matching category
+      return Category(
+        id: productId,
+        name: "Special Offers",
+        slug: "special-offers-$productId",
+        description: "Limited time deals and discounts",
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
   }
 }
-
-// --- Provider ---
-final groupProductsByCategoryUseCaseProvider =
-    Provider<GroupProductsByCategoryUseCase>((ref) {
-      return GroupProductsByCategoryUseCase();
-    });

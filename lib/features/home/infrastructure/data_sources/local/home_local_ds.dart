@@ -2,6 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:new_app/core/constants/hive_boxes.dart';
 import 'package:new_app/core/storage/hive/keys.dart';
 import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
@@ -55,9 +56,35 @@ abstract class HomeLocalDataSource {
 }
 
 class HomeLocalDataSourceImpl implements HomeLocalDataSource {
-  final Box _box;
+  Box? _box;
 
-  HomeLocalDataSourceImpl(this._box);
+  HomeLocalDataSourceImpl([this._box]);
+
+  /// Safely get the Hive box with proper error handling
+  Future<Box> get box async {
+    // If we already have an open box, return it
+    if (_box != null && _box!.isOpen) {
+      return _box!;
+    }
+
+    // Check if the box is already open globally
+    if (Hive.isBoxOpen(HiveBoxes.homeBox)) {
+      _box = Hive.box(HiveBoxes.homeBox);
+      return _box!;
+    }
+
+    // If not open, try to open it
+    try {
+      _box = await Hive.openBox(HiveBoxes.homeBox);
+      return _box!;
+    } catch (e) {
+      throw StateError(
+        'Failed to open Hive box "${HiveBoxes.homeBox}". '
+        'Error: $e. '
+        'Ensure Hive.initFlutter() is called before accessing the box.',
+      );
+    }
+  }
 
   // --- Helper to wrap data as JSON ---
   // Store entities as JSON maps to avoid Hive adapter issues
@@ -70,7 +97,8 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
   @override
   Future<CachedData<List<Category>>?> getCategories() async {
-    final raw = _box.get(HiveKeys.homeCategories);
+    final b = await box;
+    final raw = b.get(HiveKeys.homeCategories);
     if (raw == null) return null;
 
     try {
@@ -91,6 +119,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
   @override
   Future<void> saveCategories(List<Category> categories) async {
+    final b = await box;
     // Convert categories to JSON before storing
     final jsonList = categories
         .map(
@@ -108,15 +137,16 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         )
         .toList();
 
-    await _box.put(HiveKeys.homeCategories, _wrapJson(jsonList));
+    await b.put(HiveKeys.homeCategories, _wrapJson(jsonList));
   }
 
   @override
   Future<CachedData<List<ProductVariant>>?> getDiscountedProducts({
     required String cacheKey,
   }) async {
+    final b = await box;
     final fullKey = '${HiveKeys.homeDiscounts}$cacheKey';
-    final raw = _box.get(fullKey);
+    final raw = b.get(fullKey);
     if (raw == null) return null;
 
     try {
@@ -139,6 +169,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
     required String cacheKey,
     required List<ProductVariant> products,
   }) async {
+    final b = await box;
     final fullKey = '${HiveKeys.homeDiscounts}$cacheKey';
     // Convert to JSON - simplified version, you may need to expand this
     final jsonList = products
@@ -178,13 +209,14 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         )
         .toList();
 
-    await _box.put(fullKey, _wrapJson(jsonList));
+    await b.put(fullKey, _wrapJson(jsonList));
   }
 
   @override
   Future<CachedData<List<Banner>>?> getBanners() async {
+    final b = await box;
     // Using the Advertisement key for Banners
-    final raw = _box.get(HiveKeys.homeAdvertisement);
+    final raw = b.get(HiveKeys.homeAdvertisement);
     if (raw == null) return null;
 
     try {
@@ -202,6 +234,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
   @override
   Future<void> saveBanners(List<Banner> banners) async {
+    final b = await box;
     final jsonList = banners
         .map(
           (banner) => {
@@ -216,12 +249,13 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         )
         .toList();
 
-    await _box.put(HiveKeys.homeAdvertisement, _wrapJson(jsonList));
+    await b.put(HiveKeys.homeAdvertisement, _wrapJson(jsonList));
   }
 
   @override
   Future<CachedData<List<ProductVariant>>?> getBestDeals() async {
-    final raw = _box.get(HiveKeys.homeBestDeals);
+    final b = await box;
+    final raw = b.get(HiveKeys.homeBestDeals);
     if (raw == null) return null;
 
     try {
@@ -241,6 +275,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
   @override
   Future<void> saveBestDeals(List<ProductVariant> deals) async {
+    final b = await box;
     // Convert to JSON - same structure as discounted products
     final jsonList = deals
         .map(
@@ -279,12 +314,13 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         )
         .toList();
 
-    await _box.put(HiveKeys.homeBestDeals, _wrapJson(jsonList));
+    await b.put(HiveKeys.homeBestDeals, _wrapJson(jsonList));
   }
 
   @override
   Future<UserAddress?> getSelectedAddress() async {
-    final raw = _box.get(HiveKeys.userSelectedAddress);
+    final b = await box;
+    final raw = b.get(HiveKeys.userSelectedAddress);
     if (raw == null) return null;
 
     try {
@@ -297,6 +333,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
   @override
   Future<void> saveSelectedAddress(UserAddress address) async {
+    final b = await box;
     final json = {
       'id': address.id,
       'first_name': address.firstName,
@@ -314,26 +351,27 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
       'created_at': address.createdAt.toIso8601String(),
     };
 
-    await _box.put(HiveKeys.userSelectedAddress, json);
+    await b.put(HiveKeys.userSelectedAddress, json);
   }
 
   @override
   Future<void> clearSelectedAddress() async {
-    await _box.delete(HiveKeys.userSelectedAddress);
+    final b = await box;
+    await b.delete(HiveKeys.userSelectedAddress);
   }
 
   @override
   Future<void> clearAllHomeCache() async {
+    final b = await box;
     // We delete everything EXCEPT the user address
-    final keysToDelete = _box.keys.where((key) {
+    final keysToDelete = b.keys.where((key) {
       return key.toString() != HiveKeys.userSelectedAddress;
     });
-    await _box.deleteAll(keysToDelete);
+    await b.deleteAll(keysToDelete);
   }
 }
 
 final homeLocalDataSourceProvider = Provider<HomeLocalDataSource>((ref) {
-  // Ensure you open this box in your app initialization!
-  final box = Hive.box('home_cache_box');
-  return HomeLocalDataSourceImpl(box);
+  // Safe provider that handles box initialization gracefully
+  return HomeLocalDataSourceImpl();
 });

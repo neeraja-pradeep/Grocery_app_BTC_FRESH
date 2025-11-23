@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
@@ -26,11 +27,11 @@ class WishlistScreen extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text(
+          title: Text(
             'My Wishlist',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 20,
+              fontSize: 20.sp,
               color: Colors.black,
             ),
           ),
@@ -61,17 +62,17 @@ class WishlistScreen extends ConsumerWidget {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         child: Column(
           children: [
             // Product Grid with matching UI from product_horizontal_list
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                crossAxisSpacing: 12.w,
+                mainAxisSpacing: 12.h,
                 childAspectRatio: 0.68, // Adjusted to match card proportions
               ),
               itemCount: items.length,
@@ -87,7 +88,7 @@ class WishlistScreen extends ConsumerWidget {
               },
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Advertisement Banner
             Consumer(
@@ -103,7 +104,7 @@ class WishlistScreen extends ConsumerWidget {
               },
             ),
 
-            const SizedBox(height: 80),
+            SizedBox(height: 80.h),
           ],
         ),
       ),
@@ -115,15 +116,15 @@ class WishlistScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.favorite_border, size: 80, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          const Text(
+          Icon(Icons.favorite_border, size: 80.sp, color: Colors.grey[300]),
+          SizedBox(height: 16.h),
+          Text(
             'Your wishlist is empty',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
+            style: TextStyle(fontSize: 18.sp, color: Colors.grey),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32.h),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Consumer(
               builder: (context, ref, child) {
                 final activeAd = ref.watch(activeAdProvider);
@@ -192,10 +193,10 @@ class WishlistProductCard extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: cardBgColor,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: EdgeInsets.all(10.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -206,55 +207,55 @@ class WishlistProductCard extends StatelessWidget {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.w),
                       child: Center(
                         child: imageUrl.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: imageUrl,
                                 fit: BoxFit.contain,
-                                placeholder: (context, url) => const Center(
+                                placeholder: (context, url) => Center(
                                   child: SizedBox(
-                                    height: 20,
-                                    width: 20,
+                                    height: 20.h,
+                                    width: 20.w,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                      strokeWidth: 2.w,
                                       color: iconColor,
                                     ),
                                   ),
                                 ),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(
-                                      Icons.broken_image,
-                                      color: Colors.grey,
-                                    ),
+                                errorWidget: (context, url, error) => Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                  size: 40.sp,
+                                ),
                               )
-                            : const Icon(
+                            : Icon(
                                 Icons.image_not_supported,
                                 color: Colors.grey,
-                                size: 40,
+                                size: 40.sp,
                               ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10.h),
 
                   // 2. Product Name
                   Text(
                     product.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                       height: 1.2,
                     ),
                   ),
 
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6.h),
 
                   // 3. Bottom Section: Price/Weight + Heart
                   Row(
@@ -271,18 +272,18 @@ class WishlistProductCard extends StatelessWidget {
                               children: [
                                 Text(
                                   "₹${product.hasDiscount ? product.discountedPrice?.toStringAsFixed(0) : product.price.toStringAsFixed(0)}",
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
                                     fontWeight: FontWeight.bold,
                                     color: priceColor,
                                   ),
                                 ),
                                 if (product.hasDiscount) ...[
-                                  const SizedBox(width: 4),
+                                  SizedBox(width: 4.w),
                                   Text(
                                     "₹${product.price.toStringAsFixed(0)}",
-                                    style: const TextStyle(
-                                      fontSize: 11,
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
                                       decoration: TextDecoration.lineThrough,
                                       color: Colors.grey,
                                     ),
@@ -290,14 +291,14 @@ class WishlistProductCard extends StatelessWidget {
                                 ],
                               ],
                             ),
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2.h),
                             // Weight
                             Text(
                               wishlistItem.unitLabel.isNotEmpty
                                   ? wishlistItem.unitLabel
                                   : (product.stockUnit ?? "80 g"),
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 11.sp,
                                 color: Colors.grey[700],
                                 fontWeight: FontWeight.w400,
                               ),
@@ -316,12 +317,12 @@ class WishlistProductCard extends StatelessWidget {
                             product.id.toString(),
                           );
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.only(bottom: 2),
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 2.h),
                           child: Icon(
                             Icons.favorite_rounded,
                             color: Colors.red,
-                            size: 22,
+                            size: 22.sp,
                           ),
                         ),
                       ),
@@ -335,8 +336,8 @@ class WishlistProductCard extends StatelessWidget {
 
         // Floating Add Button (+)
         Positioned(
-          top: -8,
-          right: -8,
+          top: -8.h,
+          right: -8.w,
           child: GestureDetector(
             onTap: () {
               // Add to cart logic
@@ -348,14 +349,14 @@ class WishlistProductCard extends StatelessWidget {
               );
             },
             child: Container(
-              width: 34,
-              height: 34,
+              width: 34.w,
+              height: 34.h,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: borderColor, width: 1.2),
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(color: borderColor, width: 1.2.w),
               ),
-              child: const Icon(Icons.add, color: iconColor, size: 20),
+              child: Icon(Icons.add, color: iconColor, size: 20.sp),
             ),
           ),
         ),

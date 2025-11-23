@@ -5,11 +5,12 @@ import 'package:fpdart/fpdart.dart';
 import 'package:new_app/core/error/failure.dart';
 import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
-import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
+// import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
 import 'package:new_app/features/home/domain/repositories/home_repository.dart';
 import 'package:new_app/features/home/infrastructure/repositories/home_repostory_impl.dart';
+import 'package:new_app/features/home/application/usecases/group_products_by_category_usecase.dart';
 
 // Import the sealed state classes
 import '../states/home_state.dart';
@@ -21,10 +22,14 @@ import '../states/search_state.dart';
 
 class HomeNotifier extends StateNotifier<HomeState> {
   final HomeRepository _repository;
+  final GroupProductsByCategoryUseCase _groupUseCase;
 
-  HomeNotifier({required HomeRepository repository})
-    : _repository = repository,
-      super(const HomeState.initial()) {
+  HomeNotifier({
+    required HomeRepository repository,
+    required GroupProductsByCategoryUseCase groupUseCase,
+  }) : _repository = repository,
+       _groupUseCase = groupUseCase,
+       super(const HomeState.initial()) {
     // Load home screen data on app start
     _loadHomeData();
   }
@@ -41,9 +46,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
       _repository.getCategories(page: 1),
       _repository.getSelectedAddress(),
       _repository.getBestDeals(limit: 10),
-      _repository.getDiscountedProductsByCategory(
-        ordering: '-discounted_price',
-      ),
+      _repository.getDiscountedProducts(ordering: '-discounted_price'),
       _repository.getBanners(
         page: 1,
       ), // Used getBanners instead of getActiveAdvertisement
@@ -54,8 +57,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         results[0] as Either<Failure, PaginatedResult<Category>>;
     final addressResult = results[1] as Either<Failure, UserAddress?>;
     final bestDealsResult = results[2] as Either<Failure, List<ProductVariant>>;
-    final discountsResult =
-        results[3] as Either<Failure, List<CategoryDiscountGroup>>;
+    final discountedVariantsResult =
+        results[3] as Either<Failure, List<ProductVariant>>;
     final bannersResult = results[4] as Either<Failure, List<Banner>>;
 
     // Check for critical failures (Categories are critical)
@@ -78,7 +81,15 @@ class HomeNotifier extends StateNotifier<HomeState> {
         .results;
     final address = addressResult.getRight().getOrElse(() => null);
     final bestDeals = bestDealsResult.getRight().getOrElse(() => []);
-    final discounts = discountsResult.getRight().getOrElse(() => []);
+    final discountedVariants = discountedVariantsResult.getRight().getOrElse(
+      () => [],
+    );
+
+    // Apply business logic via UseCase to group products by category
+    final discounts = _groupUseCase.execute(
+      variants: discountedVariants,
+      categories: categories,
+    );
 
     // Debug output
     // print('DEBUG: Categories loaded: ${categories.length}');
@@ -197,23 +208,30 @@ class SearchNotifier extends StateNotifier<SearchState> {
 // Replaces 'homeProvider' and 'catalogControllerProvider'
 final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
   final repository = ref.watch(homeRepositoryProvider);
-  return HomeNotifier(repository: repository);
+  final groupUseCase = ref.watch(groupProductsUseCaseProvider);
+  return HomeNotifier(repository: repository, groupUseCase: groupUseCase);
+});
+
+// UseCase provider
+final groupProductsUseCaseProvider = Provider<GroupProductsByCategoryUseCase>((
+  ref,
+) {
+  return GroupProductsByCategoryUseCase();
 });
 
 // Replaces 'searchControllerProvider'
-final searchProvider = StateNotifierProvider<SearchNotifier, SearchState>((
-  ref,
-) {
-  final repository = ref.watch(homeRepositoryProvider);
-  return SearchNotifier(repository: repository);
-});
+final searchProvider =
+    StateNotifierProvider.autoDispose<SearchNotifier, SearchState>((ref) {
+      final repository = ref.watch(homeRepositoryProvider);
+      return SearchNotifier(repository: repository);
+    });
 
 // ----------------------------------------------------------------------
 // 4. Selectors (Helpers for UI optimization)
 // ----------------------------------------------------------------------
 
 // Example: Watch only categories to avoid rebuilding entire home screen
-final categoriesProvider = Provider<List<Category>>((ref) {
+final categoriesProvider = Provider.autoDispose<List<Category>>((ref) {
   final homeState = ref.watch(homeProvider);
   return homeState.maybeMap(
     loaded: (s) => s.categories,
@@ -222,7 +240,7 @@ final categoriesProvider = Provider<List<Category>>((ref) {
   );
 });
 
-final activeAdProvider = Provider<Banner?>((ref) {
+final activeAdProvider = Provider.autoDispose<Banner?>((ref) {
   final homeState = ref.watch(homeProvider);
   return homeState.maybeMap(
     loaded: (s) => s.activeAd,

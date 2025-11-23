@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:new_app/core/utils/logger.dart';
 import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 
@@ -286,10 +287,86 @@ extension ProductVariantMegaOffer on ProductVariant {
   bool get hasDiscount => discountedPrice != null && discountedPrice! < price;
 
   String? get weight {
+    // Debug logging to understand what's in stockUnit
+    Logger.debug(
+      'Product weight debug',
+      data: {
+        'product_name': name,
+        'stock_unit': stockUnit ?? 'null',
+        'current_quantity': currentQuantity,
+        'product_id': id,
+      },
+    );
+
     if (stockUnit != null && stockUnit!.isNotEmpty) {
       return stockUnit;
     }
-    // Fallback or parse from description if needed
+
+    // Try to extract weight from product name if it contains weight info
+    final nameWeight = _extractWeightFromName(name);
+    if (nameWeight != null) {
+      return nameWeight;
+    }
+
+    // Try to use currentQuantity if it contains unit info
+    if (currentQuantity.isNotEmpty && currentQuantity != '0') {
+      // Check if currentQuantity contains unit information
+      final quantityWithUnit = _parseQuantityWithUnit(currentQuantity);
+      if (quantityWithUnit != null) {
+        return quantityWithUnit;
+      }
+    }
+
+    // Fallback based on product category or type
+    return _getDefaultWeight();
+  }
+
+  String? _extractWeightFromName(String productName) {
+    // Common weight patterns in product names
+    final weightPatterns = [
+      RegExp(
+        r'(\d+(?:\.\d+)?)\s*(kg|g|ml|l|litre|liter|gram|kilogram)',
+        caseSensitive: false,
+      ),
+      RegExp(r'(\d+(?:\.\d+)?)\s*(pack|pcs|pieces)', caseSensitive: false),
+    ];
+
+    for (final pattern in weightPatterns) {
+      final match = pattern.firstMatch(productName);
+      if (match != null) {
+        return '${match.group(1)} ${match.group(2)}';
+      }
+    }
     return null;
+  }
+
+  String? _parseQuantityWithUnit(String quantity) {
+    // Check if quantity already contains unit info
+    if (RegExp(
+      r'\d+\s*(kg|g|ml|l|pack|pcs)',
+      caseSensitive: false,
+    ).hasMatch(quantity)) {
+      return quantity;
+    }
+    return null;
+  }
+
+  String _getDefaultWeight() {
+    // Provide sensible defaults based on product name
+    final lowerName = name.toLowerCase();
+
+    if (lowerName.contains('milk') || lowerName.contains('juice')) {
+      return '1 L';
+    } else if (lowerName.contains('oil') || lowerName.contains('ghee')) {
+      return '1 L';
+    } else if (lowerName.contains('rice') ||
+        lowerName.contains('flour') ||
+        lowerName.contains('sugar')) {
+      return '1 kg';
+    } else if (lowerName.contains('bread') || lowerName.contains('biscuit')) {
+      return '1 pack';
+    } else {
+      return '1 unit';
+    }
   }
 }

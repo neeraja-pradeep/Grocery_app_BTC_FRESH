@@ -1,6 +1,7 @@
 // lib/core/widgets/app_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Custom app card widget
 class AppCard extends StatelessWidget {
@@ -26,10 +27,7 @@ class AppCard extends StatelessWidget {
       child: Card(
         elevation: elevation ?? 2,
         color: backgroundColor,
-        child: Padding(
-          padding: padding ?? const EdgeInsets.all(16),
-          child: child,
-        ),
+        child: Padding(padding: padding ?? EdgeInsets.all(16.w), child: child),
       ),
     );
   }

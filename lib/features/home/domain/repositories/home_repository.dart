@@ -4,7 +4,7 @@ import 'package:fpdart/fpdart.dart'; // or 'package:dartz/dartz.dart'
 import 'package:new_app/core/error/failure.dart'; // Assumed location of Failure class
 import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
-import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
+// import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
 
@@ -33,8 +33,7 @@ abstract class HomeRepository {
 
   // --- Discounted Products (Mega Fresh Offers) ---
 
-  Future<Either<Failure, List<CategoryDiscountGroup>>>
-  getDiscountedProductsByCategory({
+  Future<Either<Failure, List<ProductVariant>>> getDiscountedProducts({
     String? parentCategoryName,
     double? minPrice,
     double? maxPrice,

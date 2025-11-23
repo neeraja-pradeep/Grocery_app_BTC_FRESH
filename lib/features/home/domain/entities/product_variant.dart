@@ -53,7 +53,11 @@ class ProductVariant with _$ProductVariant {
       price: _parseDouble(json['price']) ?? 0.0,
       discountedPrice: _parseDouble(json['discounted_price']),
 
-      stockUnit: json['stock_unit']?.toString(),
+      stockUnit:
+          json['stock_unit']?.toString() ??
+          json['unit']?.toString() ??
+          json['weight']?.toString() ??
+          json['size']?.toString(),
       currentQuantity: json['current_quantity']?.toString() ?? '0',
       status: json['status'] == true, // Ensures boolean
       // Parse nested List<ProductMedia>
