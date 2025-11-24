@@ -1,5 +1,5 @@
-import 'dart:math' as math;
 import 'dart:developer' as developer;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -234,7 +234,7 @@ class _ProductImageSectionState extends State<ProductImageSection> {
       child: Container(
         // color: Colors.grey,
         width: double.infinity,
-        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 32.h),
+        padding: EdgeInsets.fromLTRB(20.w, 11.h, 22.w, 35.h),
         child: Row(
           children: [
             // Main Product Image (centered)
@@ -277,7 +277,7 @@ class _ProductImageSectionState extends State<ProductImageSection> {
             // Thumbnail Images (right side - vertical)
             if (_images.length > 1)
               SizedBox(
-                width: 65.w,
+                width: 60.w,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(_images.length - 1, (index) {
@@ -293,8 +293,8 @@ class _ProductImageSectionState extends State<ProductImageSection> {
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          width: 65.w,
-                          height: 65.w,
+                          width: 60.w,
+                          height: 60.w,
                           decoration: BoxDecoration(
                             border: Border.all(
                               color: isSelected

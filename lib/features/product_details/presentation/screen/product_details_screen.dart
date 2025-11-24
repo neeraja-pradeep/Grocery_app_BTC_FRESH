@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/app_spacing.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/network/socket_provider.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
+import 'package:grocery_app/features/category/application/providers/inventory_update_notifier.dart';
+import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
 import 'package:grocery_app/features/product_details/presentation/components/checkout_section/checkout_section.dart';
 import 'package:grocery_app/features/product_details/presentation/components/price_row/price_row.dart';
 import 'package:grocery_app/features/product_details/presentation/components/product_info/product_info.dart';
 import 'package:grocery_app/features/product_details/presentation/components/rating_section/rating_section.dart';
-import 'package:grocery_app/core/network/socket_provider.dart';
-import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
-import 'package:grocery_app/features/category/application/providers/inventory_update_notifier.dart';
 
 import '../../application/providers/product_detail_providers.dart';
 import '../../application/states/product_detail_state.dart';
@@ -186,7 +186,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        padding: EdgeInsets.symmetric(horizontal: 14.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -195,7 +195,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
               imageUrl: productDetail.imageUrl,
               media: productDetail.media,
             ),
-            AppSpacing.h16,
 
             // Product info (name, weight, wishlist)
             ProductInfo(

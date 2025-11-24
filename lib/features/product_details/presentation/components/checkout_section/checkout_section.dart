@@ -34,7 +34,7 @@ class CheckoutSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
         color: AppColors.green10,
         boxShadow: [
@@ -78,7 +78,7 @@ class CheckoutSection extends StatelessWidget {
           GestureDetector(
             onTap: () {},
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 70.w, vertical: 20.h),
+              padding: EdgeInsets.symmetric(horizontal: 65.w, vertical: 18.h),
               decoration: BoxDecoration(
                 color: AppColors.green50,
                 borderRadius: BorderRadius.circular(10.r),
