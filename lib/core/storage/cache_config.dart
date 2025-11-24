@@ -86,16 +86,6 @@ class CacheConfig {
   /// Stores: lastSyncedAt, lastModified, eTag
   static const String productDetailProductMetadataPrefix = 'pd:product_meta:';
 
-  /// Product Details - Reviews cache
-  /// Format: 'pd:reviews:{productId}'
-  /// Stores: List of product reviews (full data, not just metadata)
-  static const String productDetailReviewsPrefix = 'pd:reviews:';
-
-  /// Product Details - Wishlist cache
-  /// Format: 'pd:wishlist'
-  /// Stores: List of product IDs in user's wishlist
-  static const String productDetailWishlistKey = 'pd:wishlist';
-
   // ============================================================================
   // CATEGORY FEATURE - Key Prefixes (cat: = category)
   // ============================================================================

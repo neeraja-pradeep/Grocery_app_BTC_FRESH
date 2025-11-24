@@ -36,13 +36,9 @@ class ProductDetailConfig {
   ///
   /// Variant API metadata: pd:variant_meta:{variantId}
   /// Product API metadata: pd:product_meta:{productId}
-  /// Reviews: pd:reviews:{productId}
-  /// Wishlist: pd:wishlist
   static String get hiveBoxName => CacheConfig.hiveBoxName;
   static String get variantMetadataPrefix =>
       CacheConfig.productDetailVariantMetadataPrefix;
   static String get productMetadataPrefix =>
       CacheConfig.productDetailProductMetadataPrefix;
-  static String get reviewsPrefix => CacheConfig.productDetailReviewsPrefix;
-  static String get wishlistKey => CacheConfig.productDetailWishlistKey;
 }

@@ -1,12 +1,8 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../../models/product_variant_dto.dart';
 import './product_detail_cache_dto.dart';
 import '../../../../../core/storage/hive/boxes.dart';
 import '../../../../../core/storage/cache_config.dart';
-
-// ProductVariantDto and ProductVariantReviewDto imported from product_variant_dto
-// for review caching only (not used for product detail caching)
 
 /// Local data source for caching ONLY HTTP conditional request metadata.
 ///
@@ -29,8 +25,6 @@ import '../../../../../core/storage/cache_config.dart';
 /// Key Prefixes (using CacheConfig):
 /// - Variant API: CacheConfig.productDetailVariantMetadataPrefix (pd:variant_meta:)
 /// - Product API: CacheConfig.productDetailProductMetadataPrefix (pd:product_meta:)
-/// - Reviews: CacheConfig.productDetailReviewsPrefix (pd:reviews:)
-/// - Wishlist: CacheConfig.productDetailWishlistKey (pd:wishlist)
 abstract class ProductDetailLocalDataSource {
   /// Get cached metadata headers.
   ///
@@ -82,24 +76,6 @@ abstract class ProductDetailLocalDataSource {
     String productId,
     ProductDetailCacheDto cacheDto,
   );
-
-  /// Get cached reviews
-  Future<List<ProductVariantReviewDto>?> getProductReviews(String productId);
-
-  /// Cache product reviews
-  Future<void> cacheProductReviews(
-    String productId,
-    List<ProductVariantReviewDto> reviews,
-  );
-
-  /// Check if product is in local wishlist
-  Future<bool> isInWishlist(String productId);
-
-  /// Add to local wishlist cache
-  Future<void> addToWishlist(String productId);
-
-  /// Remove from local wishlist cache
-  Future<void> removeFromWishlist(String productId);
 }
 
 /// Implementation using centralized Hive box
@@ -115,10 +91,6 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
 
   static String get _productMetadataPrefix =>
       CacheConfig.productDetailProductMetadataPrefix;
-
-  static String get _reviewsPrefix => CacheConfig.productDetailReviewsPrefix;
-
-  static String get _wishlistKey => CacheConfig.productDetailWishlistKey;
 
   @override
   Future<ProductDetailCacheDto?> getCachedProductDetail(
@@ -209,71 +181,6 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
           await _box.delete(key);
         }
       }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<List<ProductVariantReviewDto>?> getProductReviews(
-    String productId,
-  ) async {
-    try {
-      final key = '$_reviewsPrefix$productId';
-      final jsonList = _box.get(key) as List<dynamic>?;
-      return jsonList
-          ?.map(
-            (e) => ProductVariantReviewDto.fromJson(e as Map<String, dynamic>),
-          )
-          .toList();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  @override
-  Future<void> cacheProductReviews(
-    String productId,
-    List<ProductVariantReviewDto> reviews,
-  ) async {
-    try {
-      final key = '$_reviewsPrefix$productId';
-      final jsonList = reviews.map((e) => e.toJson()).toList();
-      await _box.put(key, jsonList);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<bool> isInWishlist(String productId) async {
-    try {
-      final wishlist = _box.get(_wishlistKey) as List<dynamic>? ?? [];
-      return wishlist.contains(productId);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  @override
-  Future<void> addToWishlist(String productId) async {
-    try {
-      final wishlist = _box.get(_wishlistKey) as List<dynamic>? ?? [];
-      if (!wishlist.contains(productId)) {
-        wishlist.add(productId);
-        await _box.put(_wishlistKey, wishlist);
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> removeFromWishlist(String productId) async {
-    try {
-      final wishlist = _box.get(_wishlistKey) as List<dynamic>? ?? [];
-      wishlist.removeWhere((item) => item == productId);
-      await _box.put(_wishlistKey, wishlist);
     } catch (e) {
       rethrow;
     }

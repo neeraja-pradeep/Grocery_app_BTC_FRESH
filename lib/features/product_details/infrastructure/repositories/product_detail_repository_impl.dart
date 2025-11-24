@@ -175,21 +175,12 @@ class ProductDetailRepositoryImpl implements ProductDetailRepository {
   @override
   Future<List<ProductVariantReview>> getProductReviews(String productId) async {
     try {
-      // Try to fetch from remote first
+      // Fetch reviews from remote (no local caching)
       final remoteReviews = await _remoteDataSource.getProductReviews(
         productId,
       );
-
-      // Cache the result
-      await _localDataSource.cacheProductReviews(productId, remoteReviews);
-
       return remoteReviews.map((e) => e.toDomain()).toList();
     } catch (e) {
-      // Fallback to local cache on error
-      final cachedReviews = await _localDataSource.getProductReviews(productId);
-      if (cachedReviews != null) {
-        return cachedReviews.map((e) => e.toDomain()).toList();
-      }
       rethrow;
     }
   }
@@ -210,25 +201,19 @@ class ProductDetailRepositoryImpl implements ProductDetailRepository {
   @override
   Future<bool> isInWishlist(String productId) async {
     try {
-      // Check remote first
+      // Check remote (no local caching)
       return await _remoteDataSource.isInWishlist(productId);
     } catch (e) {
-      // Fallback to local cache
-      return await _localDataSource.isInWishlist(productId);
+      rethrow;
     }
   }
 
   @override
   Future<void> addToWishlist(String productId) async {
     try {
-      // Add to remote
+      // Add to remote (no local caching)
       await _remoteDataSource.addToWishlist(productId);
-
-      // Also add to local cache
-      await _localDataSource.addToWishlist(productId);
     } catch (e) {
-      // If remote fails, still add to local
-      await _localDataSource.addToWishlist(productId);
       rethrow;
     }
   }
@@ -236,14 +221,9 @@ class ProductDetailRepositoryImpl implements ProductDetailRepository {
   @override
   Future<void> removeFromWishlist(String productId) async {
     try {
-      // Remove from remote
+      // Remove from remote (no local caching)
       await _remoteDataSource.removeFromWishlist(productId);
-
-      // Also remove from local cache
-      await _localDataSource.removeFromWishlist(productId);
     } catch (e) {
-      // If remote fails, still remove from local
-      await _localDataSource.removeFromWishlist(productId);
       rethrow;
     }
   }
