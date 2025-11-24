@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../../core/storage/hive/boxes.dart';
+import '../../../../../core/storage/cache_config.dart';
 import 'category_product_cache_dto.dart';
 
 /// Manages local caching of category products using Hive.
@@ -11,12 +12,15 @@ import 'category_product_cache_dto.dart';
 /// - Last-Modified header (for If-Modified-Since checks)
 /// - ETag and pagination info
 ///
-/// Storage key format: 'category_products_{categoryId}'
+/// Storage key format: 'cat:products_meta:{categoryId}'
+/// Uses the global cache key prefix from CacheConfig for consistency.
 /// This allows caching multiple category products independently.
 class CategoryProductLocalDataSource {
   CategoryProductLocalDataSource();
 
-  static const String _cacheKeyPrefix = 'category_products_';
+  // Use global cache key prefix for consistency with all features
+  static String get _cacheKeyPrefix =>
+      CacheConfig.categoryProductMetadataPrefix;
 
   Box<dynamic> get _box => Hive.box<dynamic>(AppHiveBoxes.cache);
 

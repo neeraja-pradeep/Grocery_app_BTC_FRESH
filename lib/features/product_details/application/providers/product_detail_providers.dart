@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/core/storage/hive/boxes.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../domain/repositories/product_detail_repository.dart';
 import '../../domain/entities/product_variant.dart';
@@ -60,8 +58,7 @@ import '../config/product_detail_config.dart';
 /// Local data source provider
 final productDetailLocalDataSourceProvider =
     Provider<ProductDetailLocalDataSource>((ref) {
-      final box = Hive.box<dynamic>(AppHiveBoxes.cache);
-      return ProductDetailLocalDataSourceImpl(box);
+      return ProductDetailLocalDataSourceImpl();
     });
 
 /// Remote data source provider

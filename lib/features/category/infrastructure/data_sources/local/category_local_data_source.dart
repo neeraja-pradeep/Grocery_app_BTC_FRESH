@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../../core/storage/hive/boxes.dart';
+import '../../../../../core/storage/cache_config.dart';
 import 'category_cache_dto.dart';
 
 /// Manages local caching of category data using Hive.
@@ -10,10 +11,14 @@ import 'category_cache_dto.dart';
 /// - Last sync timestamp
 /// - Last-Modified header (for If-Modified-Since checks)
 /// - ETag and pagination info
+///
+/// Uses centralized Hive box (AppHiveBoxes.cache) with global key prefix
+/// from CacheConfig to maintain consistency across all features.
 class CategoryLocalDataSource {
   CategoryLocalDataSource();
 
-  static const String _cacheKey = 'category_cache';
+  // Use global cache key prefix for consistency with all features
+  static String get _cacheKey => CacheConfig.categoryMetadataKey;
 
   Box<dynamic> get _box => Hive.box<dynamic>(AppHiveBoxes.cache);
 

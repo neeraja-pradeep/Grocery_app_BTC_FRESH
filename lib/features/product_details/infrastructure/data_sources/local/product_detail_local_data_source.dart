@@ -2,13 +2,16 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../models/product_variant_dto.dart';
 import './product_detail_cache_dto.dart';
+import '../../../../../core/storage/hive/boxes.dart';
+import '../../../../../core/storage/cache_config.dart';
 
 // ProductVariantDto and ProductVariantReviewDto imported from product_variant_dto
 // for review caching only (not used for product detail caching)
 
 /// Local data source for caching ONLY HTTP conditional request metadata.
 ///
-/// This uses Hive to store ONLY metadata (NOT product data).
+/// This uses the centralized Hive box (AppHiveBoxes.cache) with namespaced keys
+/// to store ONLY metadata (NOT product data).
 ///
 /// Data stored:
 /// - lastSyncedAt: When we last synced with server (used for cache TTL)
@@ -22,6 +25,12 @@ import './product_detail_cache_dto.dart';
 /// 1. Send If-Modified-Since header with cached lastModified
 /// 2. Server returns 304 → No change, return null (no UI refresh)
 /// 3. Server returns 200 → Cache metadata and return fresh product data (UI refreshes)
+///
+/// Key Prefixes (using CacheConfig):
+/// - Variant API: CacheConfig.productDetailVariantMetadataPrefix (pd:variant_meta:)
+/// - Product API: CacheConfig.productDetailProductMetadataPrefix (pd:product_meta:)
+/// - Reviews: CacheConfig.productDetailReviewsPrefix (pd:reviews:)
+/// - Wishlist: CacheConfig.productDetailWishlistKey (pd:wishlist)
 abstract class ProductDetailLocalDataSource {
   /// Get cached metadata headers.
   ///
@@ -93,18 +102,23 @@ abstract class ProductDetailLocalDataSource {
   Future<void> removeFromWishlist(String productId);
 }
 
-/// Implementation using Hive
+/// Implementation using centralized Hive box
 class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
-  ProductDetailLocalDataSourceImpl(this._box);
+  ProductDetailLocalDataSourceImpl();
 
-  final Box<dynamic> _box;
+  // Use centralized Hive box shared across all features
+  Box<dynamic> get _box => Hive.box<dynamic>(AppHiveBoxes.cache);
 
-  // Single Hive box with namespaced keys to avoid collisions
-  // All HTTP conditional request metadata stored with type prefix
-  static const String _variantMetadataPrefix = 'variant_metadata:';
-  static const String _productMetadataPrefix = 'product_metadata:';
-  static const String _reviewsPrefix = 'reviews:';
-  static const String _wishlistKey = 'wishlist';
+  // Use centralized cache configuration for key prefixes
+  static String get _variantMetadataPrefix =>
+      CacheConfig.productDetailVariantMetadataPrefix;
+
+  static String get _productMetadataPrefix =>
+      CacheConfig.productDetailProductMetadataPrefix;
+
+  static String get _reviewsPrefix => CacheConfig.productDetailReviewsPrefix;
+
+  static String get _wishlistKey => CacheConfig.productDetailWishlistKey;
 
   @override
   Future<ProductDetailCacheDto?> getCachedProductDetail(
@@ -116,6 +130,26 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
       return json != null ? ProductDetailCacheDto.fromJson(json) : null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Update last synced timestamp without changing metadata.
+  ///
+  /// Called when server returns 304 Not Modified to reset cache TTL.
+  Future<void> updateProductDetailSyncTime(
+    String productId,
+    DateTime timestamp,
+  ) async {
+    try {
+      final cached = await getCachedProductDetail(productId);
+      if (cached != null) {
+        await cacheProductDetailWithMetadata(
+          productId,
+          cached.copyWith(lastSyncedAt: timestamp),
+        );
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 
