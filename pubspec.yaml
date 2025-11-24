@@ -18,6 +18,15 @@ dependencies:
   flutter_riverpod: ^2.5.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  go_router: ^17.0.0
+  cookie_jar: ^4.0.8
+  dio_cookie_manager: ^3.3.0
+  path_provider: ^2.1.5
+  connectivity_plus: ^7.0.0
+  fpdart: ^1.2.0
+  riverpod_annotation: ^2.5.1
+  hive_ce: ^2.15.1
+  hive_ce_flutter: ^2.3.3
 
 dev_dependencies:
   flutter_test:
@@ -28,9 +37,13 @@ dev_dependencies:
     path: ../naming_conventions_lint
 
   #  Lint & Analysis tools
-  custom_lint: ^0.6.4
+
   flutter_lints: ^6.0.0
   very_good_analysis: ^10.0.0
+  build_runner: ^2.4.10
+  custom_lint: ^0.7.4
+  riverpod_generator: ^2.5.1
+  hive_ce_generator: ^1.9.2
 
 flutter:
   uses-material-design: true

@@ -9,7 +9,7 @@ class CategoryProductLocalDataSource {
   final Box<dynamic> _box;
 
   CategoryProductCacheDto? read(String categoryId) {
-    final key = HiveCacheKeys.categoryProducts(categoryId);
+    final key = HiveKeys.categoryProducts(categoryId);
     final raw = _box.get(key);
     if (raw == null) return null;
 
@@ -24,12 +24,12 @@ class CategoryProductLocalDataSource {
   }
 
   Future<void> save(CategoryProductCacheDto dto) async {
-    final key = HiveCacheKeys.categoryProducts(dto.categoryId);
+    final key = HiveKeys.categoryProducts(dto.categoryId);
     await _box.put(key, dto.toJson());
   }
 
   Future<void> updateLastSyncedAt(String categoryId, DateTime timestamp) async {
-    final key = HiveCacheKeys.categoryProducts(categoryId);
+    final key = HiveKeys.categoryProducts(categoryId);
     final raw = _box.get(key);
     if (raw == null) return;
 
@@ -42,7 +42,7 @@ class CategoryProductLocalDataSource {
   }
 
   Future<void> clear(String categoryId) async {
-    final key = HiveCacheKeys.categoryProducts(categoryId);
+    final key = HiveKeys.categoryProducts(categoryId);
     await _box.delete(key);
   }
 }

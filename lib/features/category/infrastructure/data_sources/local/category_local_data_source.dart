@@ -9,7 +9,7 @@ class CategoryLocalDataSource {
   final Box<dynamic> _box;
 
   CategoryCacheDto? read() {
-    final raw = _box.get(HiveCacheKeys.categoriesPayload);
+    final raw = _box.get(HiveKeys.categoriesPayload);
     if (raw == null) return null;
 
     if (raw is Map<String, dynamic>) {
@@ -25,11 +25,11 @@ class CategoryLocalDataSource {
   }
 
   Future<void> save(CategoryCacheDto dto) async {
-    await _box.put(HiveCacheKeys.categoriesPayload, dto.toJson());
+    await _box.put(HiveKeys.categoriesPayload, dto.toJson());
   }
 
   Future<void> updateLastSyncedAt(DateTime timestamp) async {
-    final raw = _box.get(HiveCacheKeys.categoriesPayload);
+    final raw = _box.get(HiveKeys.categoriesPayload);
     if (raw == null) return;
 
     if (raw is! Map) return;
@@ -37,10 +37,10 @@ class CategoryLocalDataSource {
     final map = Map<String, dynamic>.from(raw);
 
     map['lastSyncedAt'] = timestamp.toIso8601String();
-    await _box.put(HiveCacheKeys.categoriesPayload, map);
+    await _box.put(HiveKeys.categoriesPayload, map);
   }
 
   Future<void> clear() async {
-    await _box.delete(HiveCacheKeys.categoriesPayload);
+    await _box.delete(HiveKeys.categoriesPayload);
   }
 }

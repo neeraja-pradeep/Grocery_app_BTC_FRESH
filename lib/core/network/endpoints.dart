@@ -8,4 +8,10 @@ class ApiEndpoints {
 
   static String categoryProducts(String categoryId) =>
       'api/products/?category_id=$categoryId';
+  static const String login = '/api/auth/signin/';
+  static const String signup = '/api/auth/signup/';
+  static const String sendOtp = '/api/auth/send-otp/';
+  static const String verifyOTP = '/api/auth/verify-otp/';
+
+  static const String addAddress = '/api/auth/address/';
 }

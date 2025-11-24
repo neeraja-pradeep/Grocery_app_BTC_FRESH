@@ -15,7 +15,7 @@ import '../states/category_state.dart';
 final categoryLocalDataSourceProvider = Provider<CategoryLocalDataSource>((
   ref,
 ) {
-  final box = Hive.box<dynamic>(AppHiveBoxes.cache);
+  final box = Hive.box<dynamic>(Boxes.cache);
   return CategoryLocalDataSource(box);
 });
 

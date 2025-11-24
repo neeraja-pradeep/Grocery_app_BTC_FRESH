@@ -10,4 +10,7 @@ class AppColors {
   static const Color grey = Colors.grey;
   static const Color green100 = Color(0xFF016064);
   static const Color green10 = Color.fromARGB(255, 239, 244, 235);
+  static const borderColor = Color(0xFF84C318);
+  static const lightGreen = Color(0xffC9F4AA);
+  static const titleColor = Color(0xff016064);
 }

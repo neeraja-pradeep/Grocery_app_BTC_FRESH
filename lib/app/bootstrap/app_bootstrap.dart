@@ -4,16 +4,20 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'hive_init.dart';
+import 'package:grocery_app/core/network/api_client.dart';
 
-typedef AppBuilder = FutureOr<Widget> Function();
+class AppBootstrapResult {
+  final ApiClient apiClient;
 
-/// Handles all application level bootstrapping before rendering the widget tree.
+  AppBootstrapResult({required this.apiClient});
+}
+
 class AppBootstrap {
   const AppBootstrap._();
 
-  /// Ensures bindings are initialised, wires up global error handling, and
-  /// executes the provided [builder] inside a guarded zone.
-  static Future<void> run(AppBuilder builder) async {
+  static late AppBootstrapResult result;
+
+  static Future<void> run(FutureOr<Widget> Function() builder) async {
     await runZonedGuarded(
       () async {
         WidgetsFlutterBinding.ensureInitialized();
@@ -25,21 +29,29 @@ class AppBootstrap {
           );
         };
 
-        await _initialize();
+        // 🔥 COMBINED INITIALIZATION (theirs + yours)
+        result = await _initialize();
 
         final widget = await builder();
         runApp(widget);
       },
-      (error, stackTrace) {
+      (error, stack) {
         if (kDebugMode) {
-          // ignore: avoid_print
-          log('Uncaught zone error: $error\n$stackTrace');
+          log("Uncaught zone error: $error\n$stack");
         }
       },
     );
   }
 
-  static Future<void> _initialize() async {
+  /// 🔥 This is the MERGED INITIALIZE function
+  static Future<AppBootstrapResult> _initialize() async {
+    // --- THEIR Hive init ---
     await HiveInit.initialize();
+
+    // --- YOUR API client init ---
+    final apiClient = ApiClient();
+    await apiClient.init();
+
+    return AppBootstrapResult(apiClient: apiClient);
   }
 }
