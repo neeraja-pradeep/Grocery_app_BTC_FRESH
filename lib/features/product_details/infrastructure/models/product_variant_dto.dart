@@ -1,4 +1,66 @@
+import 'dart:developer' as developer;
+
 import '../../domain/entities/product_variant.dart';
+
+/// Utility function to fix malformed URLs
+/// 1. Adds missing protocol (https://) if not present
+/// 2. Removes duplicate domain paths if found
+/// Example: "cdn.com/cdn.com/path/file.jpg" → "https://cdn.com/path/file.jpg"
+String _fixDuplicateDomainInUrl(String url) {
+  try {
+    if (url.isEmpty) return url;
+
+    // STEP 1: Ensure URL has protocol
+    // API sometimes returns URLs without https:// prefix
+    String urlToProcess = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      urlToProcess = 'https://$url';
+    }
+
+    // STEP 2: Parse URL with protocol
+    final uri = Uri.parse(urlToProcess);
+    final domain = uri.host;
+    final pathString = uri.path;
+
+    // STEP 3: Check if domain appears in the path (duplication)
+    if (domain.isNotEmpty && pathString.contains(domain)) {
+      // Remove the first occurrence of domain/ from the path
+      final cleanPath = pathString.replaceFirst('$domain/', '');
+      // Reconstruct the URL
+      final fixedUrl = '${uri.scheme}://$domain$cleanPath';
+
+      developer.log(
+        '🔧 URL fixed: Removed duplicate domain path\n'
+        '   BEFORE: $url\n'
+        '   AFTER:  $fixedUrl',
+        name: 'ProductVariantDto',
+      );
+
+      return fixedUrl;
+    }
+
+    // If no duplicate found, but we added protocol, return the processed URL
+    if (urlToProcess != url) {
+      developer.log(
+        '🔧 URL fixed: Added missing protocol\n'
+        '   BEFORE: $url\n'
+        '   AFTER:  $urlToProcess',
+        name: 'ProductVariantDto',
+      );
+      return urlToProcess;
+    }
+
+    return url;
+  } catch (e) {
+    // If parsing fails, return original URL
+    developer.log(
+      '⚠ URL fix failed: $e\n'
+      '   URL: $url',
+      name: 'ProductVariantDto',
+    );
+    return url;
+  }
+}
 
 /// Data Transfer Object for ProductVariant
 /// Used for JSON serialization/deserialization from API
@@ -323,12 +385,31 @@ class ProductVariantMediaDto {
 
   /// Parse from JSON response
   factory ProductVariantMediaDto.fromJson(Map<String, dynamic> json) {
+    // Fix malformed URLs with duplicate domain paths from API
+    final rawImage = json['image'] as String? ?? '';
+    final cleanImage = rawImage.isNotEmpty
+        ? _fixDuplicateDomainInUrl(rawImage)
+        : '';
+
+    developer.log(
+      '📸 ProductVariantMediaDto.fromJson(): Parsed media item\n'
+      '   Raw image: $rawImage\n'
+      '   Clean image: $cleanImage\n'
+      '   Match: ${rawImage == cleanImage ? "NO CHANGE" : "CLEANED"}',
+      name: 'ProductVariantMediaDto',
+    );
+
+    final rawExternalUrl = json['external_url'] as String?;
+    final cleanExternalUrl = rawExternalUrl != null && rawExternalUrl.isNotEmpty
+        ? _fixDuplicateDomainInUrl(rawExternalUrl)
+        : rawExternalUrl;
+
     return ProductVariantMediaDto(
       id: json['id'] as int? ?? 0,
       filePath: json['file_path'] as String? ?? '',
-      image: json['image'] as String? ?? '',
+      image: cleanImage,
       alt: json['alt'] as String? ?? '',
-      externalUrl: json['external_url'] as String?,
+      externalUrl: cleanExternalUrl,
       oembedData: json['oembed_data'],
       toRemove: json['to_remove'] as bool? ?? false,
       productId: json['product_id'] as int? ?? 0,
