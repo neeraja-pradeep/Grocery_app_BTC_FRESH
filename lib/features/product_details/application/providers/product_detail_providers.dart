@@ -6,10 +6,13 @@ import 'package:grocery_app/core/storage/hive/boxes.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../domain/repositories/product_detail_repository.dart';
+import '../../domain/entities/product_variant.dart';
+import '../../domain/entities/product_base.dart';
 import '../../infrastructure/data_sources/local/product_detail_local_data_source.dart';
 import '../../infrastructure/data_sources/remote/product_detail_remote_data_source.dart';
 import '../../infrastructure/repositories/product_detail_repository_impl.dart';
 import '../states/product_detail_state.dart';
+import '../config/product_detail_config.dart';
 
 /// ============================================================================
 /// PRODUCT DETAIL POLLING SYSTEM - UNCONDITIONAL 30-SECOND UPDATES
@@ -85,7 +88,8 @@ final productDetailRepositoryProvider = Provider<ProductDetailRepository>((
 /// Product detail controller - manages product detail state with polling
 class ProductDetailController
     extends AutoDisposeFamilyNotifier<ProductDetailState, String> {
-  static const Duration _pollingInterval = Duration(seconds: 30);
+  // Use global polling interval from config - allows easy adjustment across entire feature
+  static final Duration _pollingInterval = ProductDetailConfig.pollingInterval;
 
   late ProductDetailRepository _repository;
   late String _variantId;
@@ -122,6 +126,7 @@ class ProductDetailController
 
   /// Load initial data from repository (cache or remote)
   /// Passes forceRefresh: true to bypass cache TTL and fetch fresh data from server
+  /// Also fetches product base data and merges with variant data
   Future<void> _loadInitial() async {
     try {
       state = state.copyWith(
@@ -144,9 +149,19 @@ class ProductDetailController
           isRefreshing: false,
         );
       } else {
+        // Fetch product base data to get description, rating, media
+        final productBase = await _repository.getProductBase(
+          productDetail.productId.toString(),
+          forceRefresh: true,
+        );
+
+        // Merge product base data into variant data
+        final mergedProduct = _mergeProductData(productDetail, productBase);
+
         state = state.copyWith(
           status: ProductDetailStatus.data,
-          productDetail: productDetail,
+          productDetail: mergedProduct,
+          productBase: productBase,
           lastSyncedAt: DateTime.now(),
           isRefreshing: false,
         );
@@ -177,18 +192,51 @@ class ProductDetailController
   }
 
   /// Internal refresh logic with conditional request support
-  /// Returns null when server responds with 304 (no data change)
+  /// Fetches BOTH variant API (conditional) and product API (fresh) independently
+  /// - Variant API: If-Modified-Since optimization (304 or 200)
+  /// - Product API: Always fresh data (no If-Modified-Since)
+  /// Merges data from both APIs before updating state
   Future<void> _refreshInternal({bool forceRemote = false}) async {
     try {
-      final result = await _repository.getProductDetail(_variantId);
+      // ALWAYS fetch both APIs independently
+      // Variant API: Uses conditional requests (304 or 200)
+      final variantResult = await _repository.getProductDetail(_variantId);
 
-      // null = 304 Not Modified (data unchanged, don't update UI)
-      if (result == null) {
+      // Get the product ID for product API call
+      // Use existing state's product ID if variant returned 304
+      final productId =
+          variantResult?.productId ?? state.productDetail?.productId;
+      if (productId == null) {
+        throw Exception('Cannot determine product ID for product API call');
+      }
+
+      // Product API: Always fetch fresh (no If-Modified-Since logic)
+      final productBaseResponse = await _repository.getProductBase(
+        productId.toString(),
+      );
+
+      // Determine which data to use
+      // If variant returned 304, use existing variant data
+      final variantDataToUse = variantResult ?? state.productDetail;
+
+      if (variantDataToUse == null) {
+        throw Exception('No variant data available');
+      }
+
+      // Use new product base if API returned 200, otherwise keep existing
+      // null = 304 or no change (use cached data)
+      final productBase = productBaseResponse ?? state.productBase;
+
+      // Check if anything changed
+      final variantChanged = variantResult != null;
+      final productChanged = productBaseResponse != null;
+
+      if (!variantChanged && !productChanged) {
+        // Both APIs returned no changes - keep state as is
         developer.log(
-          'Polling variant $_variantId: 304 Not Modified (no UI update)',
+          'Polling variant $_variantId: 304 Not Modified (variant), product unchanged',
           name: 'ProductDetail',
         );
-        // Don't update state - UI remains unchanged
         state = state.copyWith(
           isRefreshing: false,
           refreshEndedAt: DateTime.now(),
@@ -197,15 +245,24 @@ class ProductDetailController
         return;
       }
 
-      // 200 OK (data changed, update UI)
+      // Merge product base data into variant data
+      final mergedProduct = _mergeProductData(variantDataToUse, productBase);
+
+      // Log what changed
+      final changeLog = [
+        if (variantChanged) 'variant 200 OK' else 'variant 304 Not Modified',
+        if (productChanged) 'product 200 OK' else 'product (cached)',
+      ].join(', ');
+
       developer.log(
-        'Polling variant $_variantId: 200 OK (UI updated)',
+        'Polling variant $_variantId: $changeLog (UI updated)',
         name: 'ProductDetail',
       );
 
       state = state.copyWith(
         status: ProductDetailStatus.data,
-        productDetail: result,
+        productDetail: mergedProduct,
+        productBase: productBase,
         lastSyncedAt: DateTime.now(),
         isRefreshing: false,
         refreshEndedAt: DateTime.now(),
@@ -227,6 +284,59 @@ class ProductDetailController
 
       _scheduleIndicatorReset();
     }
+  }
+
+  /// Merge product base data into variant data
+  /// Fills in description, rating, and media from product base if available
+  ProductVariant _mergeProductData(
+    ProductVariant variant,
+    ProductBase? productBase,
+  ) {
+    if (productBase == null) {
+      return variant;
+    }
+
+    return ProductVariant(
+      id: variant.id,
+      sku: variant.sku,
+      name: variant.name,
+      variantName: variant.variantName,
+      productId: variant.productId,
+      trackInventory: variant.trackInventory,
+      price: variant.price,
+      originalPrice: variant.originalPrice,
+      discountedPrice: variant.discountedPrice,
+      isSelected: variant.isSelected,
+      isPreorder: variant.isPreorder,
+      preorderEndDate: variant.preorderEndDate,
+      preorderGlobalThreshold: variant.preorderGlobalThreshold,
+      quantityLimitPerCustomer: variant.quantityLimitPerCustomer,
+      createdAt: variant.createdAt,
+      updatedAt: variant.updatedAt,
+      weight: variant.weight,
+      status: variant.status,
+      tags: variant.tags,
+      barCode: variant.barCode,
+      // Use product base media if available, otherwise use variant media
+      media: productBase.media ?? variant.media,
+      currentQuantity: variant.currentQuantity,
+      stockUnit: variant.stockUnit,
+      prodDescription: variant.prodDescription,
+      productRating: variant.productRating,
+      warehouseName: variant.warehouseName,
+      categoryId: variant.categoryId,
+      // Use product base description if available
+      description: productBase.description ?? variant.description,
+      reviews: variant.reviews,
+      nutritionFacts: variant.nutritionFacts,
+      images: variant.images,
+      imageUrl: variant.imageUrl,
+      thumbnailUrl: variant.thumbnailUrl,
+      // Use product base rating if available
+      rating: productBase.rating ?? variant.rating,
+      // Use product base reviewCount if available
+      reviewCount: productBase.reviewCount ?? variant.reviewCount,
+    );
   }
 
   /// Start automatic polling every 30 seconds for this product.
@@ -257,10 +367,11 @@ class ProductDetailController
     });
   }
 
-  /// Schedule reset of refresh indicators after 1.5 seconds
+  /// Schedule reset of refresh indicators
+  /// Duration controlled globally via ProductDetailConfig
   void _scheduleIndicatorReset() {
     _indicatorTimer?.cancel();
-    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+    _indicatorTimer = Timer(ProductDetailConfig.refreshIndicatorDuration, () {
       state = state.copyWith(
         resetRefreshStartedAt: true,
         resetRefreshEndedAt: true,

@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+
 import '../../models/product_variant_dto.dart';
 import './product_detail_cache_dto.dart';
 
@@ -51,6 +52,28 @@ abstract class ProductDetailLocalDataSource {
   /// Removes both the product data and its metadata from Hive.
   Future<void> clearProductDetail(String productId);
 
+  /// Get cached metadata headers for product base API.
+  ///
+  /// Returns:
+  /// - ProductDetailCacheDto containing ONLY metadata (lastModified, eTag, lastSyncedAt)
+  /// - null if no cache exists
+  ///
+  /// Separate from getCachedProductDetail() to keep variant and product API caches distinct.
+  Future<ProductDetailCacheDto?> getCachedProductBase(String productId);
+
+  /// Cache metadata headers only for product base API.
+  ///
+  /// Stores:
+  /// - lastSyncedAt: Timestamp for cache TTL tracking
+  /// - lastModified: HTTP Last-Modified header (for next If-Modified-Since)
+  /// - eTag: HTTP ETag header (for next If-None-Match)
+  ///
+  /// Uses separate cache key prefix to distinguish from variant API cache.
+  Future<void> cacheProductBaseWithMetadata(
+    String productId,
+    ProductDetailCacheDto cacheDto,
+  );
+
   /// Get cached reviews
   Future<List<ProductVariantReviewDto>?> getProductReviews(String productId);
 
@@ -76,16 +99,19 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
 
   final Box<dynamic> _box;
 
-  static const String _productDetailPrefix = 'product_detail_metadata_';
-  static const String _productReviewPrefix = 'product_reviews_';
-  static const String _wishlistKey = 'wishlist_items';
+  // Single Hive box with namespaced keys to avoid collisions
+  // All HTTP conditional request metadata stored with type prefix
+  static const String _variantMetadataPrefix = 'variant_metadata:';
+  static const String _productMetadataPrefix = 'product_metadata:';
+  static const String _reviewsPrefix = 'reviews:';
+  static const String _wishlistKey = 'wishlist';
 
   @override
   Future<ProductDetailCacheDto?> getCachedProductDetail(
     String productId,
   ) async {
     try {
-      final key = '$_productDetailPrefix$productId';
+      final key = '$_variantMetadataPrefix$productId';
       final json = _box.get(key) as Map<String, dynamic>?;
       return json != null ? ProductDetailCacheDto.fromJson(json) : null;
     } catch (e) {
@@ -99,7 +125,7 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
     ProductDetailCacheDto cacheDto,
   ) async {
     try {
-      final key = '$_productDetailPrefix$productId';
+      final key = '$_variantMetadataPrefix$productId';
       await _box.put(key, cacheDto.toJson());
     } catch (e) {
       rethrow;
@@ -109,8 +135,32 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
   @override
   Future<void> clearProductDetail(String productId) async {
     try {
-      final key = '$_productDetailPrefix$productId';
+      final key = '$_variantMetadataPrefix$productId';
       await _box.delete(key);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<ProductDetailCacheDto?> getCachedProductBase(String productId) async {
+    try {
+      final key = '$_productMetadataPrefix$productId';
+      final json = _box.get(key) as Map<String, dynamic>?;
+      return json != null ? ProductDetailCacheDto.fromJson(json) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> cacheProductBaseWithMetadata(
+    String productId,
+    ProductDetailCacheDto cacheDto,
+  ) async {
+    try {
+      final key = '$_productMetadataPrefix$productId';
+      await _box.put(key, cacheDto.toJson());
     } catch (e) {
       rethrow;
     }
@@ -121,7 +171,7 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
     try {
       final keys = _box.keys.toList();
       for (final key in keys) {
-        if (key.toString().startsWith(_productDetailPrefix)) {
+        if (key.toString().startsWith(_variantMetadataPrefix)) {
           await _box.delete(key);
         }
       }
@@ -135,7 +185,7 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
     String productId,
   ) async {
     try {
-      final key = '$_productReviewPrefix$productId';
+      final key = '$_reviewsPrefix$productId';
       final jsonList = _box.get(key) as List<dynamic>?;
       return jsonList
           ?.map(
@@ -153,7 +203,7 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
     List<ProductVariantReviewDto> reviews,
   ) async {
     try {
-      final key = '$_productReviewPrefix$productId';
+      final key = '$_reviewsPrefix$productId';
       final jsonList = reviews.map((e) => e.toJson()).toList();
       await _box.put(key, jsonList);
     } catch (e) {

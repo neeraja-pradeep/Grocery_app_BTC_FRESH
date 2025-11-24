@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/product_variant.dart';
+import '../../domain/entities/product_base.dart';
 
 /// Status enum for product detail state
 enum ProductDetailStatus { initial, loading, data, empty, error }
@@ -12,6 +13,7 @@ class ProductDetailState extends Equatable {
   const ProductDetailState({
     this.status = ProductDetailStatus.initial,
     this.productDetail,
+    this.productBase,
     this.reviews,
     this.isInWishlist = false,
     this.quantity = 0,
@@ -27,6 +29,7 @@ class ProductDetailState extends Equatable {
 
   final ProductDetailStatus status;
   final ProductVariant? productDetail;
+  final ProductBase? productBase;
   final List<ProductVariantReview>? reviews;
   final bool isInWishlist;
   final int quantity;
@@ -43,6 +46,7 @@ class ProductDetailState extends Equatable {
   ProductDetailState copyWith({
     ProductDetailStatus? status,
     ProductVariant? productDetail,
+    ProductBase? productBase,
     List<ProductVariantReview>? reviews,
     bool? isInWishlist,
     int? quantity,
@@ -60,6 +64,7 @@ class ProductDetailState extends Equatable {
     return ProductDetailState(
       status: status ?? this.status,
       productDetail: productDetail ?? this.productDetail,
+      productBase: productBase ?? this.productBase,
       reviews: reviews ?? this.reviews,
       isInWishlist: isInWishlist ?? this.isInWishlist,
       quantity: quantity ?? this.quantity,
@@ -96,6 +101,7 @@ class ProductDetailState extends Equatable {
   List<Object?> get props => [
     status,
     productDetail,
+    productBase,
     reviews,
     isInWishlist,
     quantity,

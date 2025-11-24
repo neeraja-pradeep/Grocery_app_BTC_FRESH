@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import '../../domain/entities/product_variant.dart';
+import '../../domain/entities/product_base.dart';
 import '../../domain/repositories/product_detail_repository.dart';
 import '../data_sources/local/product_detail_local_data_source.dart';
 import '../data_sources/local/product_detail_cache_dto.dart' as cache_dto;
@@ -112,6 +113,60 @@ class ProductDetailRepositoryImpl implements ProductDetailRepository {
       return remoteResponse.productDetail.toDomain();
     } catch (e) {
       developer.log('Variant $variantId: Error - $e', name: 'ProductRepo');
+
+      rethrow;
+    }
+  }
+
+  @override
+  Future<ProductBase?> getProductBase(
+    String productId, {
+    bool forceRefresh = false,
+  }) async {
+    try {
+      // Product API: Always fetch FRESH data (NO If-Modified-Since logic)
+      //
+      // IMPORTANT: The product API endpoint does NOT properly support
+      // If-Modified-Since headers. Therefore, we ALWAYS fetch fresh data
+      // without conditional request headers.
+      //
+      // This is different from the variant API which has proper Last-Modified support.
+      //
+      // Strategy:
+      // - Variant API: Uses If-Modified-Since (bandwidth optimized, gets 304)
+      // - Product API: Always fetches fresh (ensures latest description/rating/media)
+      // - Polling: Still happens only every 30 seconds (not wasteful)
+
+      developer.log(
+        'ProductBase $productId: Fetching fresh (no If-Modified-Since support)',
+        name: 'ProductRepo',
+      );
+
+      // Always fetch fresh without conditional headers
+      final remoteResponse = await _remoteDataSource.fetchProductBase(
+        productId: productId,
+        ifNoneMatch: null, // ← SKIP conditional requests
+        ifModifiedSince: null, // ← SKIP conditional requests
+      );
+
+      // Product API should always return fresh data (200 OK)
+      if (remoteResponse == null) {
+        developer.log(
+          'ProductBase $productId: Got null response (unexpected)',
+          name: 'ProductRepo',
+        );
+        // Return null to keep existing cached data in state
+        return null;
+      }
+
+      developer.log(
+        'ProductBase $productId: 200 OK (fresh data fetched)',
+        name: 'ProductRepo',
+      );
+
+      return remoteResponse.productBase.toDomain();
+    } catch (e) {
+      developer.log('ProductBase $productId: Error - $e', name: 'ProductRepo');
 
       rethrow;
     }
