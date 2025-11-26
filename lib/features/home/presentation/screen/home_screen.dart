@@ -352,7 +352,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Text(
                 "Mega Fresh Offers",
                 style: TextStyle(
-                  fontSize: 40.sp,
+                  fontSize: 32.sp,
                   fontWeight: FontWeight.w900,
                   color: const Color(0xff016064),
                 ),

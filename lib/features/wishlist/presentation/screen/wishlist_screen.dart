@@ -65,7 +65,7 @@ class WishlistScreen extends ConsumerWidget {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         child: Column(
           children: [
-            // Product Grid with matching UI from product_horizontal_list
+            // Product Grid with fixed dimensions 140*215 (increased height for button space)
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -73,17 +73,22 @@ class WishlistScreen extends ConsumerWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12.w,
                 mainAxisSpacing: 12.h,
-                childAspectRatio: 0.68, // Adjusted to match card proportions
+                childAspectRatio:
+                    140 / 215, // Increased height slightly for button space
               ),
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final wishlistItem = items[index];
                 final productVariant = wishlistItem.toProductVariant();
-                return WishlistProductCard(
-                  product: productVariant,
-                  wishlistItem: wishlistItem,
-                  onTap: () => _handleProductTap(context, productVariant),
-                  ref: ref,
+                return SizedBox(
+                  width: 140.w,
+                  height: 215.h, // Increased height for button space
+                  child: WishlistProductCard(
+                    product: productVariant,
+                    wishlistItem: wishlistItem,
+                    onTap: () => _handleProductTap(context, productVariant),
+                    ref: ref,
+                  ),
                 );
               },
             ),
@@ -184,32 +189,35 @@ class WishlistProductCard extends StatelessWidget {
     const Color iconColor = Color(0xFF00695C);
     const Color priceColor = Color(0xFF2E7D32);
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // Main Card Content
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            decoration: BoxDecoration(
-              color: cardBgColor,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(10.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Image Section with WHITE Background
-                  Expanded(
-                    flex: 5,
-                    child: Container(
+    // Define the button size
+    final double buttonSize = 28.w;
+
+    return SizedBox(
+      child: Stack(
+        clipBehavior: Clip.none, // Allow button to float outside
+        children: [
+          // MAIN CARD CONTENT
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardBgColor,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(8.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Image Section
+                    Container(
                       width: double.infinity,
+                      height: 100.h,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12.r),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
-                      padding: EdgeInsets.all(8.w),
+                      padding: EdgeInsets.all(6.w),
                       child: Center(
                         child: imageUrl.isNotEmpty
                             ? CachedNetworkImage(
@@ -217,10 +225,10 @@ class WishlistProductCard extends StatelessWidget {
                                 fit: BoxFit.contain,
                                 placeholder: (context, url) => Center(
                                   child: SizedBox(
-                                    height: 20.h,
-                                    width: 20.w,
+                                    height: 16.h,
+                                    width: 16.w,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2.w,
+                                      strokeWidth: 1.5.w,
                                       color: iconColor,
                                     ),
                                   ),
@@ -228,139 +236,139 @@ class WishlistProductCard extends StatelessWidget {
                                 errorWidget: (context, url, error) => Icon(
                                   Icons.broken_image,
                                   color: Colors.grey,
-                                  size: 40.sp,
+                                  size: 24.sp,
                                 ),
                               )
                             : Icon(
                                 Icons.image_not_supported,
                                 color: Colors.grey,
-                                size: 40.sp,
+                                size: 24.sp,
                               ),
                       ),
                     ),
-                  ),
+                    SizedBox(height: 8.h),
 
-                  SizedBox(height: 10.h),
-
-                  // 2. Product Name
-                  Text(
-                    product.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                      height: 1.2,
+                    // 2. Product Name
+                    SizedBox(
+                      height: 32.h,
+                      child: Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                          height: 1.2,
+                        ),
+                      ),
                     ),
-                  ),
+                    SizedBox(height: 4.h),
 
-                  SizedBox(height: 6.h),
-
-                  // 3. Bottom Section: Price/Weight + Heart
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Left Side: Prices and Weight
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Price Row
-                            Row(
+                    // 3. Bottom Section
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Text(
-                                  "₹${product.hasDiscount ? product.discountedPrice?.toStringAsFixed(0) : product.price.toStringAsFixed(0)}",
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: priceColor,
-                                  ),
-                                ),
-                                if (product.hasDiscount) ...[
-                                  SizedBox(width: 4.w),
-                                  Text(
-                                    "₹${product.price.toStringAsFixed(0)}",
-                                    style: TextStyle(
-                                      fontSize: 11.sp,
-                                      decoration: TextDecoration.lineThrough,
-                                      color: Colors.grey,
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        "₹${product.hasDiscount ? product.discountedPrice?.toStringAsFixed(0) : product.price.toStringAsFixed(0)}",
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: priceColor,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
+                                  ],
+                                ),
+                                SizedBox(height: 2.h),
+                                Text(
+                                  wishlistItem.unitLabel.isNotEmpty
+                                      ? wishlistItem.unitLabel
+                                      : (product.stockUnit ?? "80 g"),
+                                  style: TextStyle(
+                                    fontSize: 9.sp,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w400,
                                   ),
-                                ],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ],
                             ),
-                            SizedBox(height: 2.h),
-                            // Weight
-                            Text(
-                              wishlistItem.unitLabel.isNotEmpty
-                                  ? wishlistItem.unitLabel
-                                  : (product.stockUnit ?? "80 g"),
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w400,
+                          ),
+                          GestureDetector(
+                            onTap: () async {
+                              final wishlistNotifier = ref.read(
+                                wishlistProvider.notifier,
+                              );
+                              await wishlistNotifier.toggleWishlist(
+                                product.id.toString(),
+                              );
+                            },
+                            child: Padding(
+                              padding: EdgeInsets.only(left: 4.w),
+                              child: Icon(
+                                Icons.favorite_rounded,
+                                color: Colors.red,
+                                size: 18.sp,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-
-                      // Right Side: Heart Icon (filled since it's in wishlist)
-                      GestureDetector(
-                        onTap: () async {
-                          final wishlistNotifier = ref.read(
-                            wishlistProvider.notifier,
-                          );
-                          await wishlistNotifier.toggleWishlist(
-                            product.id.toString(),
-                          );
-                        },
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: 2.h),
-                          child: Icon(
-                            Icons.favorite_rounded,
-                            color: Colors.red,
-                            size: 22.sp,
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Floating Add Button (+)
-        Positioned(
-          top: -8.h,
-          right: -8.w,
-          child: GestureDetector(
-            onTap: () {
-              // Add to cart logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${product.name} added to cart'),
-                  duration: const Duration(seconds: 2),
+                    ),
+                  ],
                 ),
-              );
-            },
-            child: Container(
-              width: 34.w,
-              height: 34.h,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(color: borderColor, width: 1.2.w),
               ),
-              child: Icon(Icons.add, color: iconColor, size: 20.sp),
             ),
           ),
-        ),
-      ],
+
+          // FLOATING ADD BUTTON (+)
+          // Now positioned outside the card with negative coordinates
+          Positioned(
+            top: -8.h, // Negative to float outside
+            right: -8.w, // Negative to float outside
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${product.name} added to cart'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: Container(
+                width: buttonSize,
+                height: buttonSize,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: borderColor, width: 1.w),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4.r,
+                      offset: Offset(0, 2.h),
+                    ),
+                  ],
+                ),
+                child: Icon(Icons.add, color: iconColor, size: 16.sp),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -2,7 +2,7 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:new_app/core/error/failure.dart';
-import 'package:new_app/features/home/domain/entities/product_variant.dart';
+import 'package:new_app/features/home/domain/entities/product.dart';
 
 part 'search_state.freezed.dart';
 
@@ -24,7 +24,7 @@ sealed class SearchState with _$SearchState {
   // Results available
   const factory SearchState.loaded({
     required String query,
-    required List<ProductVariant> results,
+    required List<Product> results,
     @Default(false) bool hasMore,
     @Default(1) int currentPage,
   }) = SearchLoaded;

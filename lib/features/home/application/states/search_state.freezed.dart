@@ -24,7 +24,7 @@ mixin _$SearchState {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )
@@ -39,7 +39,7 @@ mixin _$SearchState {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -54,7 +54,7 @@ mixin _$SearchState {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -157,7 +157,7 @@ class _$SearchInitialImpl implements SearchInitial {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )
@@ -176,7 +176,7 @@ class _$SearchInitialImpl implements SearchInitial {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -195,7 +195,7 @@ class _$SearchInitialImpl implements SearchInitial {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -333,7 +333,7 @@ class _$SearchListeningImpl implements SearchListening {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )
@@ -352,7 +352,7 @@ class _$SearchListeningImpl implements SearchListening {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -371,7 +371,7 @@ class _$SearchListeningImpl implements SearchListening {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -519,7 +519,7 @@ class _$SearchLoadingImpl implements SearchLoading {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )
@@ -538,7 +538,7 @@ class _$SearchLoadingImpl implements SearchLoading {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -557,7 +557,7 @@ class _$SearchLoadingImpl implements SearchLoading {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -638,7 +638,7 @@ abstract class _$$SearchLoadedImplCopyWith<$Res> {
   @useResult
   $Res call({
     String query,
-    List<ProductVariant> results,
+    List<Product> results,
     bool hasMore,
     int currentPage,
   });
@@ -670,7 +670,7 @@ class __$$SearchLoadedImplCopyWithImpl<$Res>
         results: null == results
             ? _value._results
             : results // ignore: cast_nullable_to_non_nullable
-                  as List<ProductVariant>,
+                  as List<Product>,
         hasMore: null == hasMore
             ? _value.hasMore
             : hasMore // ignore: cast_nullable_to_non_nullable
@@ -689,16 +689,16 @@ class __$$SearchLoadedImplCopyWithImpl<$Res>
 class _$SearchLoadedImpl implements SearchLoaded {
   const _$SearchLoadedImpl({
     required this.query,
-    required final List<ProductVariant> results,
+    required final List<Product> results,
     this.hasMore = false,
     this.currentPage = 1,
   }) : _results = results;
 
   @override
   final String query;
-  final List<ProductVariant> _results;
+  final List<Product> _results;
   @override
-  List<ProductVariant> get results {
+  List<Product> get results {
     if (_results is EqualUnmodifiableListView) return _results;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_results);
@@ -751,7 +751,7 @@ class _$SearchLoadedImpl implements SearchLoaded {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )
@@ -770,7 +770,7 @@ class _$SearchLoadedImpl implements SearchLoaded {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -789,7 +789,7 @@ class _$SearchLoadedImpl implements SearchLoaded {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -851,13 +851,13 @@ class _$SearchLoadedImpl implements SearchLoaded {
 abstract class SearchLoaded implements SearchState {
   const factory SearchLoaded({
     required final String query,
-    required final List<ProductVariant> results,
+    required final List<Product> results,
     final bool hasMore,
     final int currentPage,
   }) = _$SearchLoadedImpl;
 
   String get query;
-  List<ProductVariant> get results;
+  List<Product> get results;
   bool get hasMore;
   int get currentPage;
   @JsonKey(ignore: true)
@@ -936,7 +936,7 @@ class _$SearchEmptyImpl implements SearchEmpty {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )
@@ -955,7 +955,7 @@ class _$SearchEmptyImpl implements SearchEmpty {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -974,7 +974,7 @@ class _$SearchEmptyImpl implements SearchEmpty {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -1120,7 +1120,7 @@ class _$SearchErrorImpl implements SearchError {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )
@@ -1139,7 +1139,7 @@ class _$SearchErrorImpl implements SearchError {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?
@@ -1158,7 +1158,7 @@ class _$SearchErrorImpl implements SearchError {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<ProductVariant> results,
+      List<Product> results,
       bool hasMore,
       int currentPage,
     )?

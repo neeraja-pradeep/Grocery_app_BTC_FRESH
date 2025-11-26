@@ -6,6 +6,7 @@ import 'package:new_app/core/error/failure.dart';
 import 'package:new_app/core/utils/logger.dart';
 import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
+import 'package:new_app/features/home/domain/entities/product.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
 import 'package:new_app/features/home/domain/repositories/home_repository.dart'; // For PaginatedResult
@@ -25,6 +26,11 @@ abstract class HomeRemoteDataSource {
   Future<PaginatedResult<Banner>> getBanners({int page = 1});
 
   Future<List<ProductVariant>> searchProducts({
+    required String query,
+    int page = 1,
+  });
+
+  Future<PaginatedResult<Product>> searchProductsWithVariants({
     required String query,
     int page = 1,
   });
@@ -289,6 +295,18 @@ class HomeApiImpl implements HomeRemoteDataSource {
         'has_discount': 'true',
       },
       fromJson: ProductVariant.fromJson,
+    );
+  }
+
+  @override
+  Future<PaginatedResult<Product>> searchProductsWithVariants({
+    required String query,
+    int page = 1,
+  }) {
+    return _fetchPaginated(
+      '/api/products/',
+      queryParameters: {'search': query, 'page': page},
+      fromJson: Product.fromJson,
     );
   }
 }

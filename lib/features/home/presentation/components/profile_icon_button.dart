@@ -9,9 +9,13 @@ class ProfileIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.person_2_rounded, color: Color(0xff016064)),
-      onPressed: onProfileTap,
+    return GestureDetector(
+      onTap: onProfileTap,
+      child: Image.asset(
+        "assets/profile_icon.png",
+        color: const Color(0xff016064),
+      ),
+
       // Placeholder for fetching minimal profile summary
     );
   }

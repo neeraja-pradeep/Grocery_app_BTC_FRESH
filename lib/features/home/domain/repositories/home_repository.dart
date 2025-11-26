@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart'; // or 'package:dartz/dartz.dart'
 import 'package:new_app/core/error/failure.dart'; // Assumed location of Failure class
 import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
+import 'package:new_app/features/home/domain/entities/product.dart';
 // import 'package:new_app/features/home/domain/entities/category_discount_group.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
@@ -48,6 +49,12 @@ abstract class HomeRepository {
   // --- Search ---
   /// Searches for product variants based on a query string.
   Future<Either<Failure, List<ProductVariant>>> searchProducts({
+    required String query,
+    int page = 1,
+  });
+
+  /// Searches for products (with variants) based on a query string.
+  Future<Either<Failure, PaginatedResult<Product>>> searchProductsWithVariants({
     required String query,
     int page = 1,
   });

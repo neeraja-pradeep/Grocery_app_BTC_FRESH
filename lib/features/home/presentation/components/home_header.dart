@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
+import 'package:new_app/features/home/presentation/components/profile_icon_button.dart';
 import 'package:new_app/features/home/presentation/components/search_bar.dart';
+import 'package:new_app/features/home/presentation/screen/search_screen.dart';
 
 class HomeHeader extends StatelessWidget {
   final UserAddress? address;
@@ -16,17 +18,17 @@ class HomeHeader extends StatelessWidget {
   });
 
   // --- Search Handlers ---
-  // Updated to accept BuildContext so you can navigate
-  void _handleTextSearch(BuildContext context, String query) {
-    // debugPrint("Search query submitted: $query");
-    // TODO: Implement navigation to search results
-    // Navigator.push(context, MaterialPageRoute(builder: (_) => SearchResultsPage(query: query)));
-  }
+  // // Updated to accept BuildContext so you can navigate
+  // void _handleTextSearch(BuildContext context, String query) {
+  //   // debugPrint("Search query submitted: $query");
+  //   // TODO: Implement navigation to search results
+  //   // Navigator.push(context, MaterialPageRoute(builder: (_) => SearchResultsPage(query: query)));
+  // }
 
-  void _handleVoiceSearch(BuildContext context) {
-    // debugPrint("Voice search clicked");
-    // TODO: Implement voice search logic or navigation
-  }
+  // void _handleVoiceSearch(BuildContext context) {
+  //   // debugPrint("Voice search clicked");
+  //   // TODO: Implement voice search logic or navigation
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -157,21 +159,7 @@ class HomeHeader extends StatelessWidget {
                 ),
 
                 // Profile Icon
-                GestureDetector(
-                  onTap: onProfileClick,
-                  child: Container(
-                    padding: EdgeInsets.all(2.w),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: darkGreenColor, width: 2.w),
-                    ),
-                    child: Icon(
-                      Icons.person,
-                      size: 28.sp,
-                      color: darkGreenColor,
-                    ),
-                  ),
-                ),
+                ProfileIconButton(onProfileTap: onProfileClick),
               ],
             ),
           ),
@@ -181,10 +169,20 @@ class HomeHeader extends StatelessWidget {
           // --- 3. SEARCH BAR SECTION ---
           Padding(
             padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 20.h),
-            child: CustomSearchBar(
-              // Pass the context to the handlers
-              onTextSearch: (query) => _handleTextSearch(context, query),
-              onVoiceSearch: () => _handleVoiceSearch(context),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SearchScreen()),
+                );
+              },
+              // AbsorbPointer prevents the TextField inside CustomSearchBar from getting focus
+              child: AbsorbPointer(
+                child: CustomSearchBar(
+                  onTextSearch: (query) {}, // Won't be called here
+                  onVoiceSearch: () {}, // Handle separately if needed
+                ),
+              ),
             ),
           ),
         ],

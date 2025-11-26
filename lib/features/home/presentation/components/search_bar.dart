@@ -18,10 +18,10 @@ class CustomSearchBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(15.r),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
@@ -33,7 +33,11 @@ class CustomSearchBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.search, color: Colors.grey[400], size: 30.sp),
+          Image.asset(
+            "assets/search.png",
+            color: Colors.grey[600],
+            height: 30.sp,
+          ),
           SizedBox(width: 8.w),
           Expanded(
             child: TextField(
@@ -49,11 +53,11 @@ class CustomSearchBar extends ConsumerWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          Container(height: 24.h, width: 1.w, color: Colors.black),
+          Container(height: 24.h, width: 1.w, color: Colors.grey[400]),
           SizedBox(width: 8.w),
           GestureDetector(
             onTap: onVoiceSearch,
-            child: const Icon(Icons.mic, color: Color(0xff016064)),
+            child: Icon(Icons.mic, color: const Color(0xff016064), size: 30.sp),
           ),
         ],
       ),

@@ -16,6 +16,9 @@ class HomeEndpoints {
   // Path for searching products (query parameter will be appended by the repository)
   static const String search = '/api/v1/products/search';
 
+  // Path for searching products using the new API
+  static const String products = '/api/products/';
+
   // Path for fetching the minimal profile summary needed for the header (e.g., /users/profile/summary)
   static const String profileHeader = '/api/v1/users/profile/summary';
 }

@@ -99,6 +99,7 @@ class AdvertisementCard extends StatelessWidget {
                   ElevatedButton(
                     onPressed: onShopNowClick,
                     style: ElevatedButton.styleFrom(
+                      fixedSize: const Size(120, 50),
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
                       // Make button slightly more compact vertically
@@ -115,8 +116,8 @@ class AdvertisementCard extends StatelessWidget {
                     child: const Text(
                       'Shop Now',
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),

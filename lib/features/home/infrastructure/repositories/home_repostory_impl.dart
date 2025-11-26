@@ -7,6 +7,7 @@ import 'package:new_app/core/error/failure.dart'; // Corrected import name (plur
 import 'package:new_app/core/utils/logger.dart';
 import 'package:new_app/features/home/domain/entities/banner.dart';
 import 'package:new_app/features/home/domain/entities/category.dart';
+import 'package:new_app/features/home/domain/entities/product.dart';
 import 'package:new_app/features/home/domain/entities/product_variant.dart';
 import 'package:new_app/features/home/domain/entities/user_address.dart';
 import 'package:new_app/features/home/domain/repositories/home_repository.dart';
@@ -382,6 +383,36 @@ class HomeRepositoryImpl implements HomeRepository {
       return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
     } catch (e) {
       Logger.error('Unexpected error fetching selected address', error: e);
+      return Left(UnknownFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, PaginatedResult<Product>>> searchProductsWithVariants({
+    required String query,
+    int page = 1,
+  }) async {
+    try {
+      final result = await _remoteDataSource.searchProductsWithVariants(
+        query: query,
+        page: page,
+      );
+      Logger.debug(
+        'Product search results for "$query": ${result.results.length} items',
+      );
+
+      return Right(result);
+    } on NetworkException catch (e) {
+      Logger.warning('Network error searching products for "$query"', error: e);
+      return Left(NetworkFailure(e.toString()));
+    } on ServerException catch (e) {
+      Logger.error('Server error searching products for "$query"', error: e);
+      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+    } catch (e) {
+      Logger.error(
+        'Unexpected error searching products for "$query"',
+        error: e,
+      );
       return Left(UnknownFailure('Unexpected error: $e'));
     }
   }

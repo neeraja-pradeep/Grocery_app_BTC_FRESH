@@ -178,18 +178,18 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   Future<void> performSearch(String query) async {
-    final result = await _repository.searchProducts(query: query);
+    final result = await _repository.searchProductsWithVariants(query: query);
 
     result.fold(
       (failure) => state = SearchState.error(failure: failure, query: query),
-      (products) {
-        if (products.isEmpty) {
+      (paginatedResult) {
+        if (paginatedResult.results.isEmpty) {
           state = SearchState.empty(query: query);
         } else {
           state = SearchState.loaded(
             query: query,
-            results: products,
-            hasMore: false, // Pagination logic can be added later
+            results: paginatedResult.results,
+            hasMore: paginatedResult.next != null,
           );
         }
       },
