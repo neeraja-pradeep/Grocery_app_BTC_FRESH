@@ -45,7 +45,11 @@ class _ProductCardState extends ConsumerState<ProductCard> {
 
     if (variantId > 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(socketServiceProvider).joinVariantRoom(variantId);
+        // Check if widget is still mounted before using ref
+        // The callback may fire after the widget is disposed
+        if (mounted) {
+          ref.read(socketServiceProvider).joinVariantRoom(variantId);
+        }
       });
     }
   }
