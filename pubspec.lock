@@ -435,9 +435,11 @@ packages:
   naming_conventions_lint:
     dependency: "direct dev"
     description:
-      path: "../naming_conventions_lint"
-      relative: true
-    source: path
+      path: "."
+      ref: HEAD
+      resolved-ref: "2f3935ecde33e5291e5fb0fc40dd69f69857bc4b"
+      url: "https://github.com/Abin56/naming_conventions_lint.git"
+    source: git
     version: "0.0.1"
   nm:
     dependency: transitive

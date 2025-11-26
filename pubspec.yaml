@@ -19,8 +19,8 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.0.0
-  equatable: ^2.0.5  # Added for value-based equality in entities
-  socket_io_client: ^2.0.3  # Real-time Socket.IO client
+  equatable: ^2.0.5 # Added for value-based equality in entities
+  socket_io_client: ^2.0.3 # Real-time Socket.IO client
 
 dev_dependencies:
   flutter_test:
@@ -28,7 +28,8 @@ dev_dependencies:
 
   #  Custom lint plugin (your own rule package)
   naming_conventions_lint:
-    path: ../naming_conventions_lint
+    git:
+      url: https://github.com/Abin56/naming_conventions_lint.git
 
   #  Lint & Analysis tools
   custom_lint: ^0.6.4
