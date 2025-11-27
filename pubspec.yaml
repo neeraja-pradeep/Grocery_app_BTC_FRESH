@@ -26,7 +26,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  #  Custom lint plugin (your own rule package)
+  #  Custom lint plugin 
   naming_conventions_lint:
     git:
       url: https://github.com/Abin56/naming_conventions_lint.git 
@@ -43,3 +43,8 @@ flutter:
     - assets/svgs/
     - assets/svgs/nav_bar/
     - assets/svgs/category_screen/
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins/Poppins-Regular.ttf
