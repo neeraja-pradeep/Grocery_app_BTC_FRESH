@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
+import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
 
@@ -128,7 +129,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           SizedBox(width: 8.w),
           GestureDetector(
             onTap: () {
-              // TODO: Handle address change
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => const AddressSheet(),
+              );
             },
             child: AppText(
               text: 'Change',
