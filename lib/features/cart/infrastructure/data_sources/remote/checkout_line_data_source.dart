@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:grocery_app/core/network/api_client.dart';
 import 'package:grocery_app/core/network/network_exceptions.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../models/checkout_line_dto.dart';
+import '../../models/checkout_line_dto.dart';
 
 /// Exception thrown when there's insufficient stock for a product
 class InsufficientStockException implements Exception {

@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/application/providers/checkout_line_provider.dart';
-import 'package:grocery_app/features/cart/infrastructure/data_sources/checkout_line_data_source.dart';
+import 'package:grocery_app/features/cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../components/cart_item_card.dart';
 import '../components/cart_summary.dart';
 import '../components/minimum_order_warning.dart';

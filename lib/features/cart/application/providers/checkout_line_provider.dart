@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/core/network/api_client.dart';
 import 'package:grocery_app/core/storage/cache_config.dart';
 import '../../domain/entities/checkout_line.dart';
-import '../../infrastructure/data_sources/checkout_line_data_source.dart';
+import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../states/checkout_line_state.dart';
 
 /// Data source provider
@@ -196,7 +196,11 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
         final updatedItems = state.checkoutLines!.results.map((item) {
           if (item.id == lineId) {
             // Apply delta to current quantity
-            final newQuantity = item.quantity + quantity;
+            var newQuantity = item.quantity + quantity;
+            // Prevent going below 1
+            if (newQuantity < 1) {
+              newQuantity = 1;
+            }
             return item.copyWith(quantity: newQuantity);
           }
           return item;
