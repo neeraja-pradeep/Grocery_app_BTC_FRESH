@@ -44,6 +44,7 @@ class CartItemCard extends StatelessWidget {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
+
         children: [
           // Product image
           _buildProductImage(),
@@ -66,7 +67,13 @@ class CartItemCard extends StatelessWidget {
           SizedBox(width: 12.w),
 
           // Quantity controls
-          _buildQuantityControls(),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [_buildQuantityControls()],
+            ),
+          ),
         ],
       ),
     );

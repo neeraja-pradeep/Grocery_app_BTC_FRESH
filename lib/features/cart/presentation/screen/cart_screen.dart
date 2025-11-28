@@ -9,6 +9,7 @@ import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/application/providers/checkout_line_provider.dart';
 import 'package:grocery_app/features/cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
+import '../components/cart_app_bar.dart';
 import '../components/cart_item_card.dart';
 import '../components/cart_summary.dart';
 import '../components/minimum_order_warning.dart';
@@ -121,10 +122,10 @@ class _CartScreenState extends ConsumerState<CartScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFA5D6A7),
+      backgroundColor: AppColors.green60,
+      appBar: const CartAppBar(),
       body: Column(
         children: [
-          _buildGreenHeader(),
           Expanded(
             child: Container(
               color: Colors.white,
@@ -140,13 +141,6 @@ class _CartScreenState extends ConsumerState<CartScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildGreenHeader() {
-    return Container(
-      height: MediaQuery.of(context).padding.top,
-      color: const Color(0xFFA5D6A7),
     );
   }
 
@@ -195,7 +189,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [

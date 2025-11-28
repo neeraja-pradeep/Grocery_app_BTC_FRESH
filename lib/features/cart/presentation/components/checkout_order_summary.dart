@@ -75,7 +75,7 @@ class CheckoutOrderSummary extends StatelessWidget {
 
   Widget _buildApplyCouponSection(Function goto) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
       child: Row(
         children: [
           SvgPicture.asset(
@@ -99,8 +99,9 @@ class CheckoutOrderSummary extends StatelessWidget {
             onTap: () => goto(),
             child: Icon(
               Icons.arrow_forward_ios,
-              color: AppColors.grey,
+              color: AppColors.black,
               size: 14.sp,
+              weight: 600,
             ),
           ),
         ],
@@ -110,7 +111,7 @@ class CheckoutOrderSummary extends StatelessWidget {
 
   Widget _buildOrderSummary() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         children: [
           _buildSummaryRow('Item Total', itemTotal, isRegular: true),
@@ -141,28 +142,31 @@ class CheckoutOrderSummary extends StatelessWidget {
     bool isFree = false,
     bool isTotal = false,
   }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        AppText(
-          text: label,
-          fontSize: isTotal ? 16.sp : 14.sp,
-          fontWeight: isTotal ? FontWeight.w600 : FontWeight.w500,
-          color: isTotal
-              ? AppColors.black
-              : AppColors.black.withValues(alpha: 0.7),
-        ),
-        AppText(
-          text: isFree ? 'Free' : amount.toStringAsFixed(0),
-          fontSize: isTotal ? 16.sp : 14.sp,
-          fontWeight: isTotal ? FontWeight.w600 : FontWeight.w500,
-          color: isDiscount
-              ? AppColors.green100
-              : isTotal
-              ? AppColors.red
-              : AppColors.black,
-        ),
-      ],
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          AppText(
+            text: label,
+            fontSize: isTotal ? 16.sp : 14.sp,
+            fontWeight: isTotal ? FontWeight.w600 : FontWeight.w500,
+            color: isTotal
+                ? AppColors.black
+                : AppColors.black.withValues(alpha: 0.7),
+          ),
+          AppText(
+            text: isFree ? 'Free' : amount.toStringAsFixed(0),
+            fontSize: isTotal ? 16.sp : 14.sp,
+            fontWeight: isTotal ? FontWeight.w600 : FontWeight.w500,
+            color: isDiscount
+                ? AppColors.green100
+                : isTotal
+                ? AppColors.red
+                : AppColors.black,
+          ),
+        ],
+      ),
     );
   }
 
@@ -207,7 +211,7 @@ class CheckoutOrderSummary extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
               decoration: BoxDecoration(
                 color: const Color(0xFF8BC34A),
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(10.r),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
