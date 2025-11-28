@@ -137,7 +137,12 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         socketPriceUpdate,
         socketInventoryUpdate,
       ),
-      bottomSheet: _buildBottomSheet(productDetail, state, socketPriceUpdate),
+      bottomSheet: _buildBottomSheet(
+        productDetail,
+        state,
+        controller,
+        socketPriceUpdate,
+      ),
     );
   }
 
@@ -260,6 +265,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   Widget _buildBottomSheet(
     product_variant.ProductVariant productDetail,
     dynamic state,
+    dynamic controller,
     dynamic socketPriceUpdate,
   ) {
     // Use real-time price from Socket if available, otherwise use API price
@@ -267,6 +273,30 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         socketPriceUpdate?.newPrice?.toString() ?? productDetail.price;
     final unitPrice = extractNumericPrice(displayPrice);
 
-    return CheckoutSection(unitPrice: unitPrice, quantity: state.quantity);
+    return CheckoutSection(
+      unitPrice: unitPrice,
+      quantity: state.quantity,
+      onViewCart: () => _handleViewCart(controller),
+    );
+  }
+
+  /// Handle View Cart button tap
+  /// Adds item to cart and navigates to cart screen
+  Future<void> _handleViewCart(dynamic controller) async {
+    try {
+      // Add to cart first
+      await controller.addToCart();
+
+      // Navigate to cart screen
+      if (mounted) {
+        Navigator.pushNamed(context, '/cart');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to add to cart: $e')));
+      }
+    }
   }
 }

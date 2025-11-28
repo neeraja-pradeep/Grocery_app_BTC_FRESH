@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/core/network/api_client.dart';
+import 'package:grocery_app/core/polling/polling_manager.dart';
 import 'package:grocery_app/core/storage/cache_config.dart';
 
 import '../../domain/repositories/coupon_repository.dart';
@@ -191,6 +192,39 @@ class CouponController extends Notifier<CouponState> {
       }
       await refresh();
     });
+
+    // Register with PollingManager for screen-aware polling
+    PollingManager.instance.registerPoller(
+      featureName: 'cart',
+      resourceId: 'coupons',
+      onResume: _resumePolling,
+      onPause: _pausePolling,
+    );
+  }
+
+  /// Resume polling when user navigates back to cart screen
+  void _resumePolling() {
+    if (_pollingTimer == null) {
+      developer.log(
+        'Resuming polling for coupons',
+        name: 'CouponController',
+        level: 700,
+      );
+      _startPolling();
+    }
+  }
+
+  /// Pause polling when user navigates away from cart screen
+  void _pausePolling() {
+    if (_pollingTimer != null) {
+      developer.log(
+        'Pausing polling for coupons',
+        name: 'CouponController',
+        level: 700,
+      );
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    }
   }
 
   /// Schedule reset of refresh indicators
@@ -207,6 +241,10 @@ class CouponController extends Notifier<CouponState> {
 
   /// Dispose resources
   void _disposeController() {
+    PollingManager.instance.unregisterPoller(
+      featureName: 'cart',
+      resourceId: 'coupons',
+    );
     _pollingTimer?.cancel();
     _indicatorTimer?.cancel();
     _initialized = false;

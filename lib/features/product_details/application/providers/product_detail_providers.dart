@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/core/network/api_client.dart';
+import 'package:grocery_app/features/cart/application/providers/checkout_line_provider.dart';
 
 import '../../domain/repositories/product_detail_repository.dart';
 import '../../domain/entities/product_variant.dart';
@@ -11,6 +12,7 @@ import '../../infrastructure/data_sources/remote/product_detail_remote_data_sour
 import '../../infrastructure/repositories/product_detail_repository_impl.dart';
 import '../states/product_detail_state.dart';
 import '../config/product_detail_config.dart';
+import '../../../../core/polling/polling_manager.dart';
 
 /// ============================================================================
 /// PRODUCT DETAIL POLLING SYSTEM - UNCONDITIONAL 30-SECOND UPDATES
@@ -354,6 +356,11 @@ class ProductDetailController
   /// - Disposed when screen closes: No background polling
   /// - Conditional requests: Tiny 304 responses save bandwidth
   /// - Unconditional timing: Guarantees responsive UI updates
+  ///
+  /// SCREEN-AWARE POLLING (PollingManager):
+  /// - Polling only starts when user views this screen
+  /// - Polling pauses when user navigates away
+  /// - Polling resumes when user returns to this screen
   void _startPolling() {
     _pollingTimer ??= Timer.periodic(_pollingInterval, (_) async {
       if (state.isRefreshing) return;
@@ -362,6 +369,51 @@ class ProductDetailController
       }
       await refresh();
     });
+
+    // Register with PollingManager for screen-aware lifecycle
+    PollingManager.instance.registerPoller(
+      featureName: 'product_detail',
+      resourceId: _variantId,
+      onResume: _resumePolling,
+      onPause: _pausePolling,
+    );
+
+    developer.log(
+      'Polling registered with PollingManager for variant $_variantId',
+      name: 'ProductDetail',
+      level: 700,
+    );
+  }
+
+  /// Resume polling when user navigates back to this screen
+  void _resumePolling() {
+    if (_pollingTimer == null) {
+      developer.log(
+        'Resuming polling for variant $_variantId',
+        name: 'ProductDetail',
+        level: 700,
+      );
+      _startPolling();
+    } else {
+      developer.log(
+        'Polling already active for variant $_variantId',
+        name: 'ProductDetail',
+        level: 500,
+      );
+    }
+  }
+
+  /// Pause polling when user navigates away from this screen
+  void _pausePolling() {
+    if (_pollingTimer != null) {
+      developer.log(
+        'Pausing polling for variant $_variantId',
+        name: 'ProductDetail',
+        level: 700,
+      );
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    }
   }
 
   /// Schedule reset of refresh indicators
@@ -398,11 +450,61 @@ class ProductDetailController
     }
   }
 
+  /// Add current product to cart
+  /// Calls the CheckoutLineController to persist the cart item
+  Future<void> addToCart() async {
+    if (state.quantity <= 0) {
+      developer.log('Cannot add to cart: quantity is 0', name: 'ProductDetail');
+      return;
+    }
+
+    final variantId = int.tryParse(_variantId);
+    if (variantId == null) {
+      developer.log(
+        'Cannot add to cart: invalid variant ID',
+        name: 'ProductDetail',
+      );
+      return;
+    }
+
+    try {
+      // Import and call the checkout line controller
+      final checkoutController = ref.read(
+        checkoutLineControllerProvider.notifier,
+      );
+      await checkoutController.addToCart(
+        productVariantId: variantId,
+        quantity: state.quantity,
+      );
+
+      developer.log(
+        'Added to cart: variant $variantId, quantity ${state.quantity}',
+        name: 'ProductDetail',
+      );
+    } catch (e) {
+      developer.log('Failed to add to cart: $e', name: 'ProductDetail');
+      rethrow;
+    }
+  }
+
   /// Dispose resources
   void _disposeController() {
+    // Unregister from PollingManager
+    PollingManager.instance.unregisterPoller(
+      featureName: 'product_detail',
+      resourceId: _variantId,
+    );
+
+    // Cancel timers
     _pollingTimer?.cancel();
     _indicatorTimer?.cancel();
     _initialized = false;
+
+    developer.log(
+      'ProductDetailController disposed for variant $_variantId',
+      name: 'ProductDetail',
+      level: 700,
+    );
   }
 }
 

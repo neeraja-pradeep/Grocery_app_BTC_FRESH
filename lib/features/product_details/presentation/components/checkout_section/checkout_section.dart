@@ -10,17 +10,19 @@ const String _rupeeSymbol = '₹';
 ///
 /// This component displays:
 /// - Total price calculation (unit price × quantity)
-/// - View Cart button (currently placeholder)
+/// - View Cart button that adds to cart and navigates
 /// - Green themed styling to match app branding
 class CheckoutSection extends StatelessWidget {
   const CheckoutSection({
     super.key,
     required this.unitPrice,
     required this.quantity,
+    this.onViewCart,
   });
 
   final double unitPrice;
   final int quantity;
+  final VoidCallback? onViewCart;
 
   /// Calculate total price based on unit price and quantity
   double get _totalPrice => unitPrice * quantity;
@@ -76,7 +78,7 @@ class CheckoutSection extends StatelessWidget {
 
           // View Cart button
           GestureDetector(
-            onTap: () {},
+            onTap: onViewCart,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 65.w, vertical: 18.h),
               decoration: BoxDecoration(

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:grocery_app/core/network/api_client.dart';
@@ -143,19 +144,22 @@ class CheckoutLineDataSource {
   }
 
   /// Update checkout line quantity
+  /// API body: { "product_variant_id": int, "quantity": int }
+  /// [quantity] is a DELTA value: positive to add, negative to subtract
   Future<CheckoutLineDto> updateQuantity({
     required int lineId,
+    required int productVariantId,
     required int quantity,
   }) async {
     try {
       developer.log(
-        'PATCH REQUEST:\nURL: /api/order/checkout-lines/$lineId/\nData: {"quantity": $quantity}',
+        'PATCH REQUEST:\nURL: /api/order/checkout-lines/$lineId/\nData: {"product_variant_id": $productVariantId, "quantity": $quantity}',
         name: 'CheckoutLineDataSource',
       );
 
       final response = await _apiClient.patch(
         '/api/order/checkout-lines/$lineId/',
-        data: {'quantity': quantity},
+        data: {'product_variant_id': productVariantId, 'quantity': quantity},
       );
 
       developer.log(
@@ -164,25 +168,51 @@ class CheckoutLineDataSource {
       );
 
       return CheckoutLineDto.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (error) {
+    } on NetworkException catch (error) {
+      // ApiClient converts DioException to NetworkException, so we catch that
       developer.log(
-        'PATCH FAILED:\nStatus: ${error.response?.statusCode}\nMessage: ${error.message}\nResponse: ${error.response?.data}',
+        'PATCH FAILED:\nStatus: ${error.statusCode}\nBody: ${error.body}',
         name: 'CheckoutLineDataSource',
       );
 
       // Extract error message from response for 400 errors (insufficient stock)
-      if (error.response?.statusCode == 400) {
-        final responseData = error.response?.data;
-        if (responseData is Map<String, dynamic> &&
-            responseData.containsKey('quantity')) {
-          final quantityErrors = responseData['quantity'];
-          if (quantityErrors is List && quantityErrors.isNotEmpty) {
-            throw InsufficientStockException(quantityErrors.first.toString());
+      if (error.statusCode == 400 && error.body != null) {
+        dynamic responseData = error.body;
+
+        // Handle case where data is a String (needs JSON decoding)
+        if (responseData is String) {
+          try {
+            responseData = Map<String, dynamic>.from(
+              const JsonDecoder().convert(responseData) as Map,
+            );
+          } catch (_) {
+            // If JSON decoding fails, continue with NetworkException
+          }
+        }
+
+        if (responseData is Map<String, dynamic>) {
+          // Check for quantity errors (insufficient stock)
+          if (responseData.containsKey('quantity')) {
+            final quantityErrors = responseData['quantity'];
+            if (quantityErrors is List && quantityErrors.isNotEmpty) {
+              throw InsufficientStockException(quantityErrors.first.toString());
+            }
+          }
+          // Check for non_field_errors
+          if (responseData.containsKey('non_field_errors')) {
+            final errors = responseData['non_field_errors'];
+            if (errors is List && errors.isNotEmpty) {
+              throw InsufficientStockException(errors.first.toString());
+            }
+          }
+          // Check for detail message
+          if (responseData.containsKey('detail')) {
+            throw InsufficientStockException(responseData['detail'].toString());
           }
         }
       }
 
-      throw NetworkException.fromDio(error);
+      rethrow;
     }
   }
 
@@ -213,19 +243,25 @@ class CheckoutLineDataSource {
   }
 
   /// Add item to cart (create checkout line)
+  /// API body: { "product_variant_id": int, "quantity": int }
   Future<CheckoutLineDto> addToCart({
-    required int checkoutId,
     required int productVariantId,
     required int quantity,
   }) async {
     try {
+      developer.log(
+        'POST REQUEST:\nURL: /api/order/checkout-lines/\nData: {"product_variant_id": $productVariantId, "quantity": $quantity}',
+        name: 'CheckoutLineDataSource',
+      );
+
       final response = await _apiClient.post(
         '/api/order/checkout-lines/',
-        data: {
-          'checkout': checkoutId,
-          'product_variant_id': productVariantId,
-          'quantity': quantity,
-        },
+        data: {'product_variant_id': productVariantId, 'quantity': quantity},
+      );
+
+      developer.log(
+        'POST SUCCESS: Status ${response.statusCode}',
+        name: 'CheckoutLineDataSource',
       );
 
       return CheckoutLineDto.fromJson(response.data as Map<String, dynamic>);

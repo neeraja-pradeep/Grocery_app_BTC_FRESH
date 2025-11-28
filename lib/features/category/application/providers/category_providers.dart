@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/network_exceptions.dart';
+import '../../../../core/polling/polling_manager.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../infrastructure/data_sources/local/category_local_data_source.dart';
 import '../../infrastructure/data_sources/remote/category_remote_data_source.dart';
@@ -239,6 +241,39 @@ class CategoryController extends Notifier<CategoryState> {
       if (!state.hasData && state.status == CategoryStatus.loading) return;
       unawaited(refresh());
     });
+
+    // Register with PollingManager for screen-aware polling
+    PollingManager.instance.registerPoller(
+      featureName: 'category',
+      resourceId: 'default',
+      onResume: _resumePolling,
+      onPause: _pausePolling,
+    );
+  }
+
+  /// Resume polling when user navigates back to category screen
+  void _resumePolling() {
+    if (_pollingTimer == null) {
+      developer.log(
+        'Resuming polling for category',
+        name: 'CategoryController',
+        level: 700,
+      );
+      _startPolling();
+    }
+  }
+
+  /// Pause polling when user navigates away from category screen
+  void _pausePolling() {
+    if (_pollingTimer != null) {
+      developer.log(
+        'Pausing polling for category',
+        name: 'CategoryController',
+        level: 700,
+      );
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    }
   }
 
   void _scheduleIndicatorReset() {
@@ -252,6 +287,10 @@ class CategoryController extends Notifier<CategoryState> {
   }
 
   void _disposeController() {
+    PollingManager.instance.unregisterPoller(
+      featureName: 'category',
+      resourceId: 'default',
+    );
     _pollingTimer?.cancel();
     _pollingTimer = null;
     _indicatorTimer?.cancel();

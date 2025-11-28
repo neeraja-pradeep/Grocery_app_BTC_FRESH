@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/core/network/api_client.dart';
+import 'package:grocery_app/core/polling/polling_manager.dart';
 import 'package:grocery_app/core/storage/cache_config.dart';
 
 import '../../domain/entities/address.dart';
@@ -367,6 +368,39 @@ class AddressController extends Notifier<AddressState> {
       }
       await refresh();
     });
+
+    // Register with PollingManager for screen-aware polling
+    PollingManager.instance.registerPoller(
+      featureName: 'cart',
+      resourceId: 'addresses',
+      onResume: _resumePolling,
+      onPause: _pausePolling,
+    );
+  }
+
+  /// Resume polling when user navigates back to cart/address screen
+  void _resumePolling() {
+    if (_pollingTimer == null) {
+      developer.log(
+        'Resuming polling for cart addresses',
+        name: 'AddressController',
+        level: 700,
+      );
+      _startPolling();
+    }
+  }
+
+  /// Pause polling when user navigates away from cart/address screen
+  void _pausePolling() {
+    if (_pollingTimer != null) {
+      developer.log(
+        'Pausing polling for cart addresses',
+        name: 'AddressController',
+        level: 700,
+      );
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    }
   }
 
   /// Schedule reset of refresh indicators
@@ -383,6 +417,10 @@ class AddressController extends Notifier<AddressState> {
 
   /// Dispose resources
   void _disposeController() {
+    PollingManager.instance.unregisterPoller(
+      featureName: 'cart',
+      resourceId: 'addresses',
+    );
     _pollingTimer?.cancel();
     _indicatorTimer?.cancel();
     _initialized = false;

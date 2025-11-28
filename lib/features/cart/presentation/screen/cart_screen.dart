@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/network/socket_provider.dart';
+import 'package:grocery_app/core/polling/polling_manager.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/application/providers/checkout_line_provider.dart';
 import 'package:grocery_app/features/cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
+import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
 import '../components/cart_item_card.dart';
 import '../components/cart_summary.dart';
 import '../components/minimum_order_warning.dart';
@@ -28,21 +31,76 @@ class CartScreen extends ConsumerStatefulWidget {
 }
 
 class _CartScreenState extends ConsumerState<CartScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
 
   final double _minimumOrderValue = 150.0;
+  final Set<int> _joinedRooms = {};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    WidgetsBinding.instance.addObserver(this);
+
+    // Join socket rooms for cart items after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _joinCartItemRooms();
+      _activateCartPolling();
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _leaveAllRooms();
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Re-join rooms and resume polling when app comes to foreground
+      _joinCartItemRooms();
+      _activateCartPolling();
+    } else if (state == AppLifecycleState.paused) {
+      // Leave rooms when app goes to background
+      _leaveAllRooms();
+    }
+  }
+
+  /// Join socket rooms for all cart items to receive real-time price updates
+  void _joinCartItemRooms() {
+    final checkoutState = ref.read(checkoutLineControllerProvider);
+    final socketService = ref.read(socketServiceProvider);
+
+    for (final item in checkoutState.items) {
+      final variantId = item.productVariantId;
+      if (!_joinedRooms.contains(variantId)) {
+        socketService.joinVariantRoom(variantId);
+        _joinedRooms.add(variantId);
+      }
+    }
+  }
+
+  /// Leave all joined socket rooms
+  void _leaveAllRooms() {
+    final socketService = ref.read(socketServiceProvider);
+    for (final variantId in _joinedRooms) {
+      socketService.leaveVariantRoom(variantId);
+    }
+    _joinedRooms.clear();
+  }
+
+  /// Activate polling when cart screen becomes visible
+  void _activateCartPolling() {
+    // The CheckoutLineController already registers with PollingManager
+    // We just need to activate it when the cart screen is visible
+    PollingManager.instance.activatePoller(
+      featureName: 'cart',
+      resourceId: 'lines',
+    );
   }
 
   @override
@@ -215,7 +273,13 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   Widget _buildCartItemsTabWithSummary() {
     final checkoutState = ref.watch(checkoutLineControllerProvider);
-    final currentTotal = checkoutState.totalAmount;
+    final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+
+    // Calculate total with real-time socket price updates
+    final currentTotal = _calculateTotalWithSocketPrices(
+      checkoutState.items,
+      priceUpdates,
+    );
 
     return Column(
       children: [
@@ -233,10 +297,48 @@ class _CartScreenState extends ConsumerState<CartScreen>
     );
   }
 
+  /// Calculate cart total using real-time socket prices when available
+  double _calculateTotalWithSocketPrices(
+    List<dynamic> items,
+    PriceUpdateState priceUpdates,
+  ) {
+    double total = 0.0;
+    for (final item in items) {
+      final variantId = item.productVariantId;
+      final socketPriceUpdate = priceUpdates.getUpdate(variantId);
+
+      // Use socket price if available, otherwise use API price
+      double effectivePrice;
+      if (socketPriceUpdate != null) {
+        // Prefer discounted price if available, otherwise use newPrice
+        if (socketPriceUpdate.discountedPrice != null &&
+            socketPriceUpdate.discountedPrice! > 0) {
+          effectivePrice = socketPriceUpdate.discountedPrice!;
+        } else {
+          effectivePrice = socketPriceUpdate.newPrice;
+        }
+      } else {
+        effectivePrice = item.productVariantDetails.effectivePrice;
+      }
+
+      total += item.quantity * effectivePrice;
+    }
+    return total;
+  }
+
   Widget _buildCartItemsTab() {
     final checkoutState = ref.watch(checkoutLineControllerProvider);
-    final currentTotal = checkoutState.totalAmount;
+    final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+
+    // Use socket-aware total for minimum order check
+    final currentTotal = _calculateTotalWithSocketPrices(
+      checkoutState.items,
+      priceUpdates,
+    );
     final meetsMinimum = currentTotal >= _minimumOrderValue;
+
+    // Join rooms for any new cart items
+    _joinCartItemRooms();
 
     // Handle loading state
     if (checkoutState.isLoading) {
@@ -372,7 +474,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
       // PATCH request with delta +1
       await ref
           .read(checkoutLineControllerProvider.notifier)
-          .updateQuantity(lineId: lineId, quantity: 1);
+          .updateQuantity(lineId: lineId, delta: 1);
     } on InsufficientStockException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -393,28 +495,27 @@ class _CartScreenState extends ConsumerState<CartScreen>
   }
 
   Future<void> _handleDecrement(int lineId, int currentQuantity) async {
-    if (currentQuantity > 1) {
-      try {
-        // PATCH request with delta -1
-        await ref
-            .read(checkoutLineControllerProvider.notifier)
-            .updateQuantity(lineId: lineId, quantity: -1);
-      } on InsufficientStockException catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.message),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to update quantity: $e')),
-          );
-        }
+    // When quantity is 1, decrementing will delete the item (handled by controller)
+    try {
+      // PATCH request with delta -1
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: lineId, delta: -1);
+    } on InsufficientStockException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update quantity: $e')),
+        );
       }
     }
   }

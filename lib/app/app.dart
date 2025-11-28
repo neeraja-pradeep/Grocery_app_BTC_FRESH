@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../core/network/socket_provider.dart';
+import '../core/polling/polling_navigation_observer.dart';
 import '../core/widgets/network_status_banner.dart';
 import 'router/app_router.dart';
 import 'theme/theme.dart';
@@ -28,6 +29,9 @@ class App extends ConsumerWidget {
           theme: AppTheme.light,
           initialRoute: AppRouter.initialRoute,
           onGenerateRoute: _router.onGenerateRoute,
+          navigatorObservers: [
+            PollingNavigationObserver(), // ← Auto pause/resume polling on navigation
+          ],
           builder: (context, child) {
             return Column(
               children: [

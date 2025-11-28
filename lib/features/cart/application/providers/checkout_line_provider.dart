@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery_app/core/network/api_client.dart';
+import 'package:grocery_app/core/polling/polling_manager.dart';
 import 'package:grocery_app/core/storage/cache_config.dart';
 import '../../domain/entities/checkout_line.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
@@ -182,25 +183,37 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
   }
 
   /// Update quantity with optimistic UI update
-  /// [quantity] is a delta value (+1 for increment, -1 for decrement)
-  Future<void> updateQuantity({
-    required int lineId,
-    required int quantity,
-  }) async {
+  /// [delta] is a delta value (+1 for increment, -1 for decrement)
+  /// API expects delta values: positive for increment, negative for decrement
+  /// If the resulting quantity is 0 or less, the item will be deleted
+  Future<void> updateQuantity({required int lineId, required int delta}) async {
     // Store original state for rollback
     final originalState = state;
 
     try {
-      // Optimistic update - update UI immediately by applying delta
+      // Find the current item to calculate new quantity for UI
+      final currentItem = state.checkoutLines?.results.firstWhere(
+        (item) => item.id == lineId,
+        orElse: () => throw Exception('Item not found in cart'),
+      );
+
+      if (currentItem == null) {
+        throw Exception('Item not found in cart');
+      }
+
+      // Calculate new quantity for UI update
+      final newQuantity = currentItem.quantity + delta;
+
+      // If quantity becomes 0 or less, delete the item
+      if (newQuantity <= 0) {
+        await deleteCheckoutLine(lineId);
+        return;
+      }
+
+      // Optimistic update - update UI immediately
       if (state.checkoutLines != null) {
         final updatedItems = state.checkoutLines!.results.map((item) {
           if (item.id == lineId) {
-            // Apply delta to current quantity
-            var newQuantity = item.quantity + quantity;
-            // Prevent going below 1
-            if (newQuantity < 1) {
-              newQuantity = 1;
-            }
             return item.copyWith(quantity: newQuantity);
           }
           return item;
@@ -216,8 +229,12 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
         state = state.copyWith(checkoutLines: updatedResponse);
       }
 
-      // Make API call with delta value
-      await _dataSource.updateQuantity(lineId: lineId, quantity: quantity);
+      // Make API call with DELTA value (positive for increment, negative for decrement)
+      await _dataSource.updateQuantity(
+        lineId: lineId,
+        productVariantId: currentItem.productVariantId,
+        quantity: delta,
+      );
 
       // Refresh to get server state
       await refresh();
@@ -259,19 +276,47 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
   }
 
   /// Add item to cart
+  /// If the product variant already exists in cart, updates the quantity instead
   Future<void> addToCart({
-    required int checkoutId,
     required int productVariantId,
     required int quantity,
   }) async {
     try {
-      await _dataSource.addToCart(
-        checkoutId: checkoutId,
-        productVariantId: productVariantId,
-        quantity: quantity,
-      );
+      // Check if item already exists in cart
+      CheckoutLine? existingItem;
+      if (state.checkoutLines != null) {
+        for (final item in state.checkoutLines!.results) {
+          if (item.productVariantId == productVariantId) {
+            existingItem = item;
+            break;
+          }
+        }
+      }
 
-      // Refresh list after adding
+      if (existingItem != null) {
+        // Item exists - update quantity by adding delta (API expects delta value)
+        developer.log(
+          'Item already in cart, updating quantity. Line ID: ${existingItem.id}, adding: $quantity',
+          name: 'CheckoutLineController',
+        );
+        await _dataSource.updateQuantity(
+          lineId: existingItem.id,
+          productVariantId: productVariantId,
+          quantity: quantity, // Delta value to add
+        );
+      } else {
+        // New item - create new checkout line
+        developer.log(
+          'Adding new item to cart. Variant ID: $productVariantId',
+          name: 'CheckoutLineController',
+        );
+        await _dataSource.addToCart(
+          productVariantId: productVariantId,
+          quantity: quantity,
+        );
+      }
+
+      // Refresh list after adding/updating
       await refresh();
     } catch (e) {
       developer.log(
@@ -291,6 +336,39 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
       }
       await refresh();
     });
+
+    // Register with PollingManager for screen-aware polling
+    PollingManager.instance.registerPoller(
+      featureName: 'cart',
+      resourceId: 'lines',
+      onResume: _resumePolling,
+      onPause: _pausePolling,
+    );
+  }
+
+  /// Resume polling when user navigates back to cart screen
+  void _resumePolling() {
+    if (_pollingTimer == null) {
+      developer.log(
+        'Resuming polling for cart lines',
+        name: 'CheckoutLineController',
+        level: 700,
+      );
+      _startPolling();
+    }
+  }
+
+  /// Pause polling when user navigates away from cart screen
+  void _pausePolling() {
+    if (_pollingTimer != null) {
+      developer.log(
+        'Pausing polling for cart lines',
+        name: 'CheckoutLineController',
+        level: 700,
+      );
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    }
   }
 
   /// Schedule reset of refresh indicators
@@ -306,6 +384,10 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
 
   /// Dispose resources
   void _disposeController() {
+    PollingManager.instance.unregisterPoller(
+      featureName: 'cart',
+      resourceId: 'lines',
+    );
     _pollingTimer?.cancel();
     _indicatorTimer?.cancel();
     _initialized = false;
