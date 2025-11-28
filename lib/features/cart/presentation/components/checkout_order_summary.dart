@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/presentation/screen/coupons_screen.dart';
@@ -77,13 +78,21 @@ class CheckoutOrderSummary extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       child: Row(
         children: [
-          Image.asset('assets/images/coupon.png', width: 20.w, height: 20.h),
+          SvgPicture.asset(
+            'assets/svgs/order/coupon.svg',
+            width: 16.w,
+            height: 10.w,
+            colorFilter: const ColorFilter.mode(
+              AppColors.green100,
+              BlendMode.srcIn,
+            ),
+          ),
           SizedBox(width: 8.w),
           AppText(
             text: 'APPLY COUPON',
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
-            color: AppColors.green100,
+            color: AppColors.black,
           ),
           const Spacer(),
           GestureDetector(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
@@ -96,18 +97,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final addressState = ref.watch(addressControllerProvider);
     final selectedAddress = addressState.selectedAddress;
 
-    // Get icon based on address type
-    IconData getAddressIcon(String? type) {
-      switch (type?.toLowerCase()) {
-        case 'work':
-          return Icons.work_outline;
-        case 'other':
-          return Icons.location_on_outlined;
-        default:
-          return Icons.home_outlined;
-      }
-    }
-
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
@@ -121,12 +110,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            getAddressIcon(selectedAddress?.addressType),
-            size: 20.sp,
-            color: AppColors.green100,
+          // Icon container
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.green60, // Background color
+              // shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: SvgPicture.asset(
+              'assets/svgs/order/home.svg',
+              width: 20,
+              height: 20,
+              colorFilter: const ColorFilter.mode(
+                AppColors.couponGreen, // icon color on green bg
+                BlendMode.srcIn,
+              ),
+            ),
           ),
+
           SizedBox(width: 8.w),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +156,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ],
             ),
           ),
+
           SizedBox(width: 8.w),
+
           GestureDetector(
             onTap: () {
               showModalBottomSheet(
