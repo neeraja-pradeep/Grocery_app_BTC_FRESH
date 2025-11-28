@@ -175,28 +175,33 @@ class CheckoutOrderSummary extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       child: Row(
         children: [
-          // Pay Using section
+          // Pay Using section (vertical layout)
           Expanded(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText(
-                  text: 'Pay Using',
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.black.withValues(alpha: 0.7),
+                Row(
+                  children: [
+                    AppText(
+                      text: 'Pay Using',
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.black.withValues(alpha: 0.7),
+                    ),
+                    SizedBox(width: 4.w),
+                    Icon(
+                      Icons.keyboard_arrow_down,
+                      color: AppColors.grey,
+                      size: 18.sp,
+                    ),
+                  ],
                 ),
-                SizedBox(width: 8.w),
+                SizedBox(height: 4.h),
                 AppText(
                   text: selectedPaymentMethod,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.black,
-                ),
-                SizedBox(width: 4.w),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  color: AppColors.grey,
-                  size: 18.sp,
                 ),
               ],
             ),
