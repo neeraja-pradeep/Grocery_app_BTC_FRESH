@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/features/category/presentation/screen/category_screen.dart';
+import 'package:grocery_app/features/cart/presentation/screen/cart_screen.dart';
 
 class BottomNavigation extends StatefulWidget {
   const BottomNavigation({super.key});
@@ -15,7 +16,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
     CategoryScreen(),
     _PlaceholderPage(title: 'Home'),
     _PlaceholderPage(title: 'Wishlist'),
-    _PlaceholderPage(title: 'Cart'),
+    CartScreen(),
   ];
 
   int _currentIndex = 0;

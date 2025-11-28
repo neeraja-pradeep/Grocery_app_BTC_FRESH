@@ -1,0 +1,8 @@
+# Custom Lint Configuration
+# This file enables the custom_lint plugin to discover and run custom lint rules
+
+# Enable all plugins
+# Custom lint will automatically discover rules from:
+# - naming_conventions_lint package (defined in pubspec.yaml)
+
+# No additional configuration needed - rules are auto-discovered
