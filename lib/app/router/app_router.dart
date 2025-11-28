@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:grocery_app/features/cart/presentation/screen/cart_screen.dart';
+import 'package:grocery_app/features/cart/presentation/screen/coupons_screen.dart';
 
 import '../../features/auth/presentation/screen/login_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
@@ -11,6 +13,8 @@ class AppRouter {
   static const String login = '/auth/login';
   static const String bottomNavBar = '/auth/login/bottomNavBar';
   static const String productDetails = '/product-details';
+  static const String cart = '/cart';
+  static const String coupon = '/coupon';
 
   static const String initialRoute = home;
 
@@ -34,6 +38,10 @@ class AppRouter {
           settings,
           ProductDetailsScreen(variantId: variantId),
         );
+      case cart:
+        return _buildRoute<void>(settings, const CartScreen());
+      case coupon:
+        return _buildRoute<void>(settings, const CouponsScreen());
 
       default:
         return _buildRoute<void>(

@@ -20,6 +20,7 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
 
   late CheckoutLineDataSource _dataSource;
   bool _initialized = false;
+  bool _disposed = false;
   Timer? _pollingTimer;
   Timer? _indicatorTimer;
 
@@ -27,12 +28,22 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
   CheckoutLineState build() {
     final dataSource = ref.watch(checkoutLineDataSourceProvider);
     _dataSource = dataSource;
+    //_disposed = false;
+    //_initialized = false; // Reset on rebuild to ensure initialization runs
+    //_pollingTimer?.cancel();
+    //_pollingTimer = null;
 
     ref.onDispose(_disposeController);
 
     Future.microtask(_initialize);
 
     return const CheckoutLineState();
+  }
+
+  /// Safely update state only if not disposed
+  void _safeSetState(CheckoutLineState newState) {
+    if (_disposed) return;
+    state = newState;
   }
 
   /// Initialize and load data
@@ -47,20 +58,27 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
 
   /// Load initial data
   Future<void> _loadInitial() async {
+    if (_disposed) return;
+
     try {
-      state = state.copyWith(
-        status: CheckoutLineStatus.loading,
-        isRefreshing: true,
-        refreshStartedAt: DateTime.now(),
+      _safeSetState(
+        state.copyWith(
+          status: CheckoutLineStatus.loading,
+          isRefreshing: true,
+          refreshStartedAt: DateTime.now(),
+        ),
       );
 
       final response = await _dataSource.fetchCheckoutLines();
+      if (_disposed) return;
 
       if (response == null) {
-        state = state.copyWith(
-          status: CheckoutLineStatus.error,
-          errorMessage: 'No checkout data available',
-          isRefreshing: false,
+        _safeSetState(
+          state.copyWith(
+            status: CheckoutLineStatus.error,
+            errorMessage: 'No checkout data available',
+            isRefreshing: false,
+          ),
         );
       } else if (response.checkoutLines.results.isEmpty) {
         // Save cache metadata even if empty
@@ -69,11 +87,13 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
           etag: response.eTag,
         );
 
-        state = state.copyWith(
-          status: CheckoutLineStatus.empty,
-          checkoutLines: response.checkoutLines.toEntity(),
-          lastSyncedAt: DateTime.now(),
-          isRefreshing: false,
+        _safeSetState(
+          state.copyWith(
+            status: CheckoutLineStatus.empty,
+            checkoutLines: response.checkoutLines.toEntity(),
+            lastSyncedAt: DateTime.now(),
+            isRefreshing: false,
+          ),
         );
       } else {
         // Save cache metadata
@@ -82,49 +102,79 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
           etag: response.eTag,
         );
 
-        state = state.copyWith(
-          status: CheckoutLineStatus.data,
-          checkoutLines: response.checkoutLines.toEntity(),
-          lastSyncedAt: DateTime.now(),
-          isRefreshing: false,
+        _safeSetState(
+          state.copyWith(
+            status: CheckoutLineStatus.data,
+            checkoutLines: response.checkoutLines.toEntity(),
+            lastSyncedAt: DateTime.now(),
+            isRefreshing: false,
+          ),
         );
       }
 
       _scheduleIndicatorReset();
     } catch (e) {
-      state = state.copyWith(
-        status: CheckoutLineStatus.error,
-        errorMessage: e.toString(),
-        isRefreshing: false,
+      if (_disposed) return;
+
+      _safeSetState(
+        state.copyWith(
+          status: CheckoutLineStatus.error,
+          errorMessage: e.toString(),
+          isRefreshing: false,
+        ),
       );
 
       _scheduleIndicatorReset();
     }
   }
 
-  /// Refresh checkout lines data
+  /// Refresh checkout lines data (uses conditional headers for bandwidth optimization)
   Future<void> refresh() async {
-    if (state.isRefreshing) return;
+    if (_disposed || state.isRefreshing) return;
 
-    state = state.copyWith(
-      isRefreshing: true,
-      refreshStartedAt: DateTime.now(),
+    _safeSetState(
+      state.copyWith(isRefreshing: true, refreshStartedAt: DateTime.now()),
     );
 
-    await _refreshInternal();
+    await _refreshInternal(useConditionalHeaders: true);
   }
 
-  /// Internal refresh logic with conditional request support
-  Future<void> _refreshInternal() async {
-    try {
-      // Get cache metadata
-      final metadata = await _dataSource.getCacheMetadata();
+  /// Force refresh without conditional headers (used after mutations)
+  Future<void> _forceRefresh() async {
+    if (_disposed || state.isRefreshing) return;
 
-      // Fetch with conditional request
+    // Clear cache metadata to ensure fresh fetch
+    await _dataSource.clearCacheMetadata();
+
+    _safeSetState(
+      state.copyWith(isRefreshing: true, refreshStartedAt: DateTime.now()),
+    );
+
+    await _refreshInternal(useConditionalHeaders: false);
+  }
+
+  /// Internal refresh logic with optional conditional request support
+  Future<void> _refreshInternal({bool useConditionalHeaders = true}) async {
+    if (_disposed) return;
+
+    try {
+      String? ifNoneMatch;
+      String? ifModifiedSince;
+
+      // Only use conditional headers if requested
+      if (useConditionalHeaders) {
+        final metadata = await _dataSource.getCacheMetadata();
+        if (_disposed) return;
+        ifNoneMatch = metadata['etag'];
+        ifModifiedSince = metadata['lastModified'];
+      }
+
+      // Fetch with or without conditional request
       final response = await _dataSource.fetchCheckoutLines(
-        ifNoneMatch: metadata['etag'],
-        ifModifiedSince: metadata['lastModified'],
+        ifNoneMatch: ifNoneMatch,
+        ifModifiedSince: ifModifiedSince,
       );
+      if (_disposed) return;
 
       // 304 Not Modified - no changes on server
       if (response == null) {
@@ -132,9 +182,8 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
           'Polling checkout lines: 304 Not Modified (no UI update)',
           name: 'CheckoutLineController',
         );
-        state = state.copyWith(
-          isRefreshing: false,
-          refreshEndedAt: DateTime.now(),
+        _safeSetState(
+          state.copyWith(isRefreshing: false, refreshEndedAt: DateTime.now()),
         );
         _scheduleIndicatorReset();
         return;
@@ -151,31 +200,38 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
         lastModified: response.lastModified,
         etag: response.eTag,
       );
+      if (_disposed) return;
 
       final newStatus = response.checkoutLines.results.isEmpty
           ? CheckoutLineStatus.empty
           : CheckoutLineStatus.data;
 
-      state = state.copyWith(
-        status: newStatus,
-        checkoutLines: response.checkoutLines.toEntity(),
-        lastSyncedAt: DateTime.now(),
-        isRefreshing: false,
-        refreshEndedAt: DateTime.now(),
+      _safeSetState(
+        state.copyWith(
+          status: newStatus,
+          checkoutLines: response.checkoutLines.toEntity(),
+          lastSyncedAt: DateTime.now(),
+          isRefreshing: false,
+          refreshEndedAt: DateTime.now(),
+        ),
       );
 
       _scheduleIndicatorReset();
     } catch (e) {
+      if (_disposed) return;
+
       developer.log(
         'Polling failed for checkout lines: $e',
         name: 'CheckoutLineController',
       );
 
-      state = state.copyWith(
-        status: CheckoutLineStatus.error,
-        errorMessage: e.toString(),
-        isRefreshing: false,
-        refreshEndedAt: DateTime.now(),
+      _safeSetState(
+        state.copyWith(
+          status: CheckoutLineStatus.error,
+          errorMessage: e.toString(),
+          isRefreshing: false,
+          refreshEndedAt: DateTime.now(),
+        ),
       );
 
       _scheduleIndicatorReset();
@@ -187,6 +243,8 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
   /// API expects delta values: positive for increment, negative for decrement
   /// If the resulting quantity is 0 or less, the item will be deleted
   Future<void> updateQuantity({required int lineId, required int delta}) async {
+    if (_disposed) return;
+
     // Store original state for rollback
     final originalState = state;
 
@@ -211,7 +269,7 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
       }
 
       // Optimistic update - update UI immediately
-      if (state.checkoutLines != null) {
+      if (state.checkoutLines != null && !_disposed) {
         final updatedItems = state.checkoutLines!.results.map((item) {
           if (item.id == lineId) {
             return item.copyWith(quantity: newQuantity);
@@ -226,7 +284,7 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
           results: updatedItems,
         );
 
-        state = state.copyWith(checkoutLines: updatedResponse);
+        _safeSetState(state.copyWith(checkoutLines: updatedResponse));
       }
 
       // Make API call with DELTA value (positive for increment, negative for decrement)
@@ -236,11 +294,11 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
         quantity: delta,
       );
 
-      // Refresh to get server state
-      await refresh();
+      // Force refresh to get server state (no conditional headers)
+      await _forceRefresh();
     } on InsufficientStockException catch (e) {
       // Rollback on insufficient stock error
-      state = originalState;
+      _safeSetState(originalState);
 
       developer.log(
         'Insufficient stock: ${e.message}',
@@ -249,7 +307,7 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
       rethrow;
     } catch (e) {
       // Rollback on error
-      state = originalState;
+      _safeSetState(originalState);
 
       developer.log(
         'Failed to update quantity: $e',
@@ -264,8 +322,8 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
     try {
       await _dataSource.deleteCheckoutLine(lineId);
 
-      // Refresh list after deleting
-      await refresh();
+      // Force refresh list after deleting (no conditional headers)
+      await _forceRefresh();
     } catch (e) {
       developer.log(
         'Failed to delete checkout line: $e',
@@ -316,8 +374,8 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
         );
       }
 
-      // Refresh list after adding/updating
-      await refresh();
+      // Force refresh list after adding/updating (no conditional headers)
+      await _forceRefresh();
     } catch (e) {
       developer.log(
         'Failed to add to cart: $e',
@@ -373,23 +431,28 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
 
   /// Schedule reset of refresh indicators
   void _scheduleIndicatorReset() {
+    if (_disposed) return;
+
     _indicatorTimer?.cancel();
     _indicatorTimer = Timer(CacheConfig.refreshIndicatorDuration, () {
-      state = state.copyWith(
-        resetRefreshStartedAt: true,
-        resetRefreshEndedAt: true,
+      if (_disposed) return;
+      _safeSetState(
+        state.copyWith(resetRefreshStartedAt: true, resetRefreshEndedAt: true),
       );
     });
   }
 
   /// Dispose resources
   void _disposeController() {
+    _disposed = true;
     PollingManager.instance.unregisterPoller(
       featureName: 'cart',
       resourceId: 'lines',
     );
     _pollingTimer?.cancel();
     _indicatorTimer?.cancel();
+    _pollingTimer = null;
+    _indicatorTimer = null;
     _initialized = false;
   }
 }

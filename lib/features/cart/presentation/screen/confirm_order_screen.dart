@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/button_styles.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/widgets/app_text.dart';
 
 class ConfirmOrderScreen extends StatelessWidget {
   const ConfirmOrderScreen({super.key});
@@ -16,28 +17,24 @@ class ConfirmOrderScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(height: 140.h),
-              Text(
-                'Order Success!',
-                style: TextStyle(
-                  color: AppColors.black,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Poppins',
-                ),
+              AppText(
+                text: 'Order Success!',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
               ),
 
               SizedBox(height: 16.h),
 
               // Description
-              Text(
-                'Your order is on the way. We\'ll keep you posted every step of the journey, so you\'ll know exactly when to get excited for your needs.',
+              AppText(
+                text:
+                    'Your order is on the way. We\'ll keep you posted every step of the journey, so you\'ll know exactly when to get excited for your needs.',
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                color: AppColors.lightGrey,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.lightGrey,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'Poppins',
-                ),
+                maxLines: 5,
               ),
               SizedBox(height: 60.h),
               Row(
@@ -62,14 +59,11 @@ class ConfirmOrderScreen extends StatelessWidget {
                     Navigator.pop(context);
                   },
                   style: ButtonStyles.greyButton,
-                  child: Text(
-                    'Back to Home',
-                    style: TextStyle(
-                      color: AppColors.black,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Poppins',
-                    ),
+                  child: AppText(
+                    text: 'Back to Home',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.black,
                   ),
                 ),
               ),

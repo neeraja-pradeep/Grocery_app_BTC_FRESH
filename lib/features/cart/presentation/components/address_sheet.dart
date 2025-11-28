@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/button_styles.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
 import 'package:grocery_app/features/cart/application/states/address_state.dart';
 import 'package:grocery_app/features/cart/presentation/screen/address_screen.dart';
@@ -25,7 +26,7 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
     final addressState = ref.watch(addressControllerProvider);
 
     return Container(
-      height: 410.h,
+      height: 390.h,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.only(
@@ -51,14 +52,11 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Select an Address',
-                  style: TextStyle(
-                    color: AppColors.black,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Poppins',
-                  ),
+                AppText(
+                  text: 'Select an Address',
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.black,
                 ),
                 // Show refresh indicator when polling
                 if (addressState.isRefreshing)
@@ -95,14 +93,11 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
                   );
                 },
                 style: ButtonStyles.greenButton,
-                child: Text(
-                  'Add New Address',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Poppins',
-                  ),
+                child: AppText(
+                  text: 'Add New Address',
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
                 ),
               ),
             ),
@@ -124,13 +119,11 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Failed to load addresses',
-              style: TextStyle(
-                color: AppColors.grey,
-                fontSize: 14.sp,
-                fontFamily: 'Poppins',
-              ),
+            AppText(
+              text: 'Failed to load addresses',
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w400,
+              color: AppColors.grey,
             ),
             SizedBox(height: 16.h),
             ElevatedButton(
@@ -152,26 +145,22 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
           children: [
             Icon(
               Icons.location_off_outlined,
-              size: 48.sp,
+              size: 40.sp,
               color: AppColors.grey,
             ),
             SizedBox(height: 16.h),
-            Text(
-              'No addresses found',
-              style: TextStyle(
-                color: AppColors.grey,
-                fontSize: 14.sp,
-                fontFamily: 'Poppins',
-              ),
+            AppText(
+              text: 'No addresses found',
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w400,
+              color: AppColors.grey,
             ),
             SizedBox(height: 8.h),
-            Text(
-              'Add a new address to continue',
-              style: TextStyle(
-                color: AppColors.lightGrey,
-                fontSize: 12.sp,
-                fontFamily: 'Poppins',
-              ),
+            AppText(
+              text: 'Add a new address to continue',
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w400,
+              color: AppColors.lightGrey,
             ),
           ],
         ),
@@ -260,36 +249,28 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            address.addressType.toUpperCase(),
-                            style: TextStyle(
-                              color: AppColors.black,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'Poppins',
-                            ),
+                          AppText(
+                            text: address.addressType.toUpperCase(),
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.black,
                           ),
                           SizedBox(width: 8.w),
-                          Text(
-                            '(${address.fullName})',
-                            style: TextStyle(
-                              color: AppColors.grey,
-                              fontSize: 12.sp,
-                              fontFamily: 'Poppins',
-                            ),
+                          AppText(
+                            text: '(${address.fullName})',
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.grey,
                           ),
                         ],
                       ),
                       SizedBox(height: 4.h),
-                      Text(
-                        address.formattedAddress,
-                        style: TextStyle(
-                          color: AppColors.lightGrey,
-                          fontSize: 12.sp,
-                          fontFamily: 'Poppins',
-                        ),
+                      AppText(
+                        text: address.formattedAddress,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.lightGrey,
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -306,7 +287,7 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
                     );
                   },
                   icon: const Icon(Icons.more_vert),
-                  iconSize: 20.h,
+                  iconSize: 18.h,
                   color: AppColors.black,
                 ),
               ],

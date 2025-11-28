@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/button_styles.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/widgets/app_text.dart';
 
 class FailedOrderScreen extends StatelessWidget {
   const FailedOrderScreen({super.key});
@@ -27,27 +28,21 @@ class FailedOrderScreen extends StatelessWidget {
 
               SizedBox(height: 40.h),
 
-              Text(
-                'Oops! Order Failed',
-                style: TextStyle(
-                  color: AppColors.black,
-                  fontSize: 28.sp,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Poppins',
-                ),
+              AppText(
+                text: 'Oops! Order Failed',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
               ),
 
               SizedBox(height: 12.h),
 
-              Text(
-                'Something went terribly wrong.',
+              AppText(
+                text: 'Something went terribly wrong.',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: AppColors.lightGrey,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.lightGrey,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w400,
-                  fontFamily: 'Poppins',
-                ),
               ),
 
               const Spacer(),
@@ -59,14 +54,11 @@ class FailedOrderScreen extends StatelessWidget {
                     Navigator.pop(context);
                   },
                   style: ButtonStyles.greenButton,
-                  child: Text(
-                    'Go to cart',
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Poppins',
-                    ),
+                  child: AppText(
+                    text: 'Go to cart',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.white,
                   ),
                 ),
               ),
@@ -82,14 +74,11 @@ class FailedOrderScreen extends StatelessWidget {
                     Navigator.popUntil(context, (route) => route.isFirst);
                   },
                   style: ButtonStyles.greyButton,
-                  child: Text(
-                    'Back to Home',
-                    style: TextStyle(
-                      color: AppColors.black,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Poppins',
-                    ),
+                  child: AppText(
+                    text: 'Back to Home',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.black,
                   ),
                 ),
               ),

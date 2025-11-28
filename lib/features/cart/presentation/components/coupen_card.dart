@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/widgets/app_text.dart';
 
 class CouponCard extends StatelessWidget {
   final CouponModel coupon;
@@ -34,14 +35,11 @@ class CouponCard extends StatelessWidget {
               SizedBox(width: 12.w),
 
               // Coupon Code
-              Text(
-                coupon.code,
-                style: TextStyle(
-                  color: AppColors.black,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'Poppins',
-                ),
+              AppText(
+                text: coupon.code,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+                color: AppColors.black,
               ),
 
               const Spacer(),
@@ -49,14 +47,11 @@ class CouponCard extends StatelessWidget {
               // Apply Button
               GestureDetector(
                 onTap: onApply,
-                child: Text(
-                  'APPLY',
-                  style: TextStyle(
-                    color: AppColors.couponGreen,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Poppins',
-                  ),
+                child: AppText(
+                  text: 'APPLY',
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.couponGreen,
                 ),
               ),
             ],
@@ -64,25 +59,20 @@ class CouponCard extends StatelessWidget {
           const Divider(color: Colors.grey, thickness: 0.3),
 
           // Title
-          Text(
-            coupon.title,
-            style: TextStyle(
-              color: AppColors.lightGrey,
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w500,
-              fontFamily: 'Poppins',
-            ),
+          AppText(
+            text: coupon.title,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w500,
+            color: AppColors.lightGrey,
           ),
           SizedBox(height: 8.h),
 
           // Description
-          Text(
-            coupon.description,
-            style: TextStyle(
-              color: AppColors.lightGrey,
-              fontSize: 10.sp,
-              fontFamily: 'Poppins',
-            ),
+          AppText(
+            text: coupon.description,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w400,
+            color: AppColors.lightGrey,
           ),
         ],
       ),

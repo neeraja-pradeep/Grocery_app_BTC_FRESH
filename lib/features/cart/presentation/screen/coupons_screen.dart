@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/presentation/components/coupen_card.dart';
 import 'package:grocery_app/features/cart/presentation/components/input_field.dart';
 import 'package:grocery_app/features/cart/application/providers/coupon_providers.dart';
@@ -67,14 +68,11 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Applying coupon',
-                style: TextStyle(
-                  color: AppColors.black,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Poppins',
-                ),
+              AppText(
+                text: 'Applying coupon',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
               ),
               SizedBox(height: 24.h),
               LinearProgressIndicator(
@@ -123,14 +121,11 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
           icon: Icon(Icons.arrow_back_ios, color: AppColors.black, size: 20.sp),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          'Apply Coupon',
-          style: TextStyle(
-            color: AppColors.black,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Poppins',
-          ),
+        title: AppText(
+          text: 'Apply Coupon',
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          color: AppColors.black,
         ),
         actions: [
           // Show refresh indicator when polling
@@ -181,13 +176,11 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Failed to load coupons',
-              style: TextStyle(
-                color: AppColors.grey,
-                fontSize: 14.sp,
-                fontFamily: 'Poppins',
-              ),
+            AppText(
+              text: 'Failed to load coupons',
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w400,
+              color: AppColors.grey,
             ),
             SizedBox(height: 16.h),
             ElevatedButton(
@@ -220,14 +213,11 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
         // Available Coupons Header
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Text(
-            'Available coupons',
-            style: TextStyle(
-              color: AppColors.black,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Poppins',
-            ),
+          child: AppText(
+            text: 'Available coupons',
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+            color: AppColors.black,
           ),
         ),
         SizedBox(height: 16.h),
@@ -236,15 +226,13 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
         Expanded(
           child: filteredCoupons.isEmpty
               ? Center(
-                  child: Text(
-                    _searchQuery.isEmpty
+                  child: AppText(
+                    text: _searchQuery.isEmpty
                         ? 'No coupons available'
                         : 'No coupons found',
-                    style: TextStyle(
-                      color: AppColors.grey,
-                      fontSize: 14.sp,
-                      fontFamily: 'Poppins',
-                    ),
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.grey,
                   ),
                 )
               : ListView.separated(
@@ -270,14 +258,11 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
         Padding(
           padding: EdgeInsets.all(16.w),
           child: Center(
-            child: Text(
-              'Terms and Conditions Apply',
-              style: TextStyle(
-                color: AppColors.grey,
-                fontWeight: FontWeight.w600,
-                fontSize: 16.sp,
-                fontFamily: 'Poppins',
-              ),
+            child: AppText(
+              text: 'Terms and Conditions Apply',
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.grey,
             ),
           ),
         ),

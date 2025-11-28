@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/network/socket_provider.dart';
+import 'package:grocery_app/core/network/socket_service.dart';
 import 'package:grocery_app/core/polling/polling_manager.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/application/providers/checkout_line_provider.dart';
@@ -37,14 +38,21 @@ class _CartScreenState extends ConsumerState<CartScreen>
   final double _minimumOrderValue = 150.0;
   final Set<int> _joinedRooms = {};
 
+  // CACHE the socket service here so we don't call ref.read(...) in dispose
+  late final SocketService socketService;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addObserver(this);
 
+    // cache socket service (safe to call ref.read in initState)
+    socketService = ref.read(socketServiceProvider);
+
     // Join socket rooms for cart items after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _joinCartItemRooms();
       _activateCartPolling();
     });
@@ -53,6 +61,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    // use cached socketService; avoid using ref.read here
     _leaveAllRooms();
     _tabController.dispose();
     super.dispose();
@@ -86,7 +95,13 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   /// Leave all joined socket rooms
   void _leaveAllRooms() {
-    final socketService = ref.read(socketServiceProvider);
+    // guard in case called after widget unmounted
+    if (!mounted) {
+      _joinedRooms.clear();
+      return;
+    }
+
+    // use cached socketService instead of ref.read
     for (final variantId in _joinedRooms) {
       socketService.leaveVariantRoom(variantId);
     }

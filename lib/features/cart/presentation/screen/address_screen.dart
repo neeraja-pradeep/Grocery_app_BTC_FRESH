@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/button_styles.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
 import 'package:grocery_app/features/cart/domain/entities/address.dart';
 
@@ -176,14 +177,11 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
           icon: Icon(Icons.arrow_back_ios, color: AppColors.black, size: 20.sp),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          _isEditMode ? 'Edit Address' : 'Add New Address',
-          style: TextStyle(
-            color: AppColors.black,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Poppins',
-          ),
+        title: AppText(
+          text: _isEditMode ? 'Edit Address' : 'Add New Address',
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          color: AppColors.black,
         ),
         actions: _isEditMode
             ? [
@@ -222,13 +220,13 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                           color: AppColors.green.withValues(alpha: 0.3),
                         ),
                       ),
-                      child: Text(
-                        'A Detailed address will help our delivery partner reach your doorstep easily',
-                        style: TextStyle(
-                          color: AppColors.green100,
-                          fontSize: 12.sp,
-                          fontFamily: 'Poppins',
-                        ),
+                      child: AppText(
+                        text:
+                            'A Detailed address will help our delivery partner reach your doorstep easily',
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.green100,
+                        maxLines: 3,
                       ),
                     ),
 
@@ -237,12 +235,12 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                     // First Name
                     TextField(
                       controller: _firstNameController,
-                      style: TextStyle(fontFamily: 'Poppins', fontSize: 14.sp),
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12.sp),
                       decoration: InputDecoration(
                         labelText: 'First Name *',
                         labelStyle: TextStyle(
                           color: AppColors.lightGrey,
-                          fontSize: 14.sp,
+                          fontSize: 12.sp,
                           fontFamily: 'Poppins',
                         ),
                         enabledBorder: UnderlineInputBorder(
@@ -265,12 +263,12 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                     // Last Name
                     TextField(
                       controller: _lastNameController,
-                      style: TextStyle(fontFamily: 'Poppins', fontSize: 14.sp),
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12.sp),
                       decoration: InputDecoration(
                         labelText: 'Last Name *',
                         labelStyle: TextStyle(
                           color: AppColors.lightGrey,
-                          fontSize: 14.sp,
+                          fontSize: 12.sp,
                           fontFamily: 'Poppins',
                         ),
                         enabledBorder: UnderlineInputBorder(
@@ -293,12 +291,12 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                     // House / Flat / Block No.
                     TextField(
                       controller: _houseController,
-                      style: TextStyle(fontFamily: 'Poppins', fontSize: 14.sp),
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12.sp),
                       decoration: InputDecoration(
                         labelText: 'House / Flat / Block No.',
                         labelStyle: TextStyle(
                           color: AppColors.lightGrey,
-                          fontSize: 14.sp,
+                          fontSize: 12.sp,
                           fontFamily: 'Poppins',
                         ),
                         enabledBorder: UnderlineInputBorder(
@@ -321,12 +319,12 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                     // Apartment / Road / Area
                     TextField(
                       controller: _apartmentController,
-                      style: TextStyle(fontFamily: 'Poppins', fontSize: 14.sp),
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12.sp),
                       decoration: InputDecoration(
                         labelText: 'Apartment / Road / Area ( Recommended )',
                         labelStyle: TextStyle(
                           color: AppColors.lightGrey,
-                          fontSize: 14.sp,
+                          fontSize: 12.sp,
                           fontFamily: 'Poppins',
                         ),
                         enabledBorder: UnderlineInputBorder(
@@ -347,13 +345,11 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                     SizedBox(height: 32.h),
 
                     // Save As Label
-                    Text(
-                      'Save As',
-                      style: TextStyle(
-                        color: AppColors.lightGrey,
-                        fontSize: 14.sp,
-                        fontFamily: 'Poppins',
-                      ),
+                    AppText(
+                      text: 'Save As',
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.lightGrey,
                     ),
 
                     SizedBox(height: 12.h),
@@ -388,14 +384,11 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                                   color: AppColors.white,
                                 ),
                               )
-                            : Text(
-                                'Done',
-                                style: TextStyle(
-                                  color: AppColors.white,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Poppins',
-                                ),
+                            : AppText(
+                                text: 'Done',
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.white,
                               ),
                       ),
                     ),
@@ -437,13 +430,11 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
               color: isSelected ? AppColors.black : AppColors.grey,
             ),
             SizedBox(width: 6.w),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? AppColors.black : AppColors.grey,
-                fontSize: 14.sp,
-                fontFamily: 'Poppins',
-              ),
+            AppText(
+              text: label,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w400,
+              color: isSelected ? AppColors.black : AppColors.grey,
             ),
           ],
         ),

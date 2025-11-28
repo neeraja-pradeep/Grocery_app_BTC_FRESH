@@ -17,12 +17,12 @@ class AppInputField extends StatelessWidget {
     return TextField(
       controller: _couponController,
       onChanged: onChanged,
-      style: TextStyle(fontFamily: 'Poppins', fontSize: 14.sp),
+      style: TextStyle(fontFamily: 'Poppins', fontSize: 12.sp),
       decoration: InputDecoration(
         hintText: 'Enter coupon code',
         hintStyle: TextStyle(
           color: AppColors.lightGrey,
-          fontSize: 14.sp,
+          fontSize: 12.sp,
           fontFamily: 'Poppins',
         ),
         filled: true,
