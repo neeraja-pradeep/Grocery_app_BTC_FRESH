@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
+import 'package:grocery_app/features/cart/presentation/screen/coupons_screen.dart';
 
 /// Checkout order summary component
 /// Displays order breakdown, payment method, and place order button
@@ -44,7 +45,12 @@ class CheckoutOrderSummary extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Apply Coupon Section
-          _buildApplyCouponSection(),
+          _buildApplyCouponSection(() {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CouponsScreen()),
+            );
+          }),
 
           Divider(height: 1, color: AppColors.grey.withValues(alpha: 0.2)),
 
@@ -66,7 +72,7 @@ class CheckoutOrderSummary extends StatelessWidget {
     );
   }
 
-  Widget _buildApplyCouponSection() {
+  Widget _buildApplyCouponSection(Function goto) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       child: Row(
@@ -80,7 +86,14 @@ class CheckoutOrderSummary extends StatelessWidget {
             color: AppColors.green100,
           ),
           const Spacer(),
-          Icon(Icons.arrow_forward_ios, color: AppColors.grey, size: 14.sp),
+          GestureDetector(
+            onTap: () => goto(),
+            child: Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.grey,
+              size: 14.sp,
+            ),
+          ),
         ],
       ),
     );

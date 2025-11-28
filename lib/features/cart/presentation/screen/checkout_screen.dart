@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
+import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
 import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
 
-/// Checkout screen - displays cart items and order summary
-class CheckoutScreen extends StatefulWidget {
+/// Checkout screen - displays cart items and order summary with selected address
+class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key, this.cartItems = const []});
 
   final List<Map<String, dynamic>> cartItems;
 
   @override
-  State<CheckoutScreen> createState() => _CheckoutScreenState();
+  ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
-class _CheckoutScreenState extends State<CheckoutScreen> {
+class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   late List<Map<String, dynamic>> _checkoutItems;
 
   @override
@@ -90,6 +92,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildDeliveryAddressSection() {
+    // Watch selected address from provider
+    final addressState = ref.watch(addressControllerProvider);
+    final selectedAddress = addressState.selectedAddress;
+
+    // Get icon based on address type
+    IconData getAddressIcon(String? type) {
+      switch (type?.toLowerCase()) {
+        case 'work':
+          return Icons.work_outline;
+        case 'other':
+          return Icons.location_on_outlined;
+        default:
+          return Icons.home_outlined;
+      }
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
@@ -103,21 +121,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       child: Row(
         children: [
-          Image.asset('assets/images/home.png', width: 20.w, height: 20.h),
+          Icon(
+            getAddressIcon(selectedAddress?.addressType),
+            size: 20.sp,
+            color: AppColors.green100,
+          ),
           SizedBox(width: 8.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppText(
-                  text: 'Delivering to: Home',
+                  text: selectedAddress != null
+                      ? 'Delivering to: ${selectedAddress.addressType.toUpperCase()}'
+                      : 'No address selected',
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.black,
                 ),
                 SizedBox(height: 2.h),
                 AppText(
-                  text: '123 Main Street, City, State - 123456',
+                  text:
+                      selectedAddress?.formattedAddress ??
+                      'Please select a delivery address',
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w400,
                   color: AppColors.grey,

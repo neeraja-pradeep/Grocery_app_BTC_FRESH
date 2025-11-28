@@ -1,36 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/button_styles.dart';
 import 'package:grocery_app/app/theme/colors.dart';
+import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
+import 'package:grocery_app/features/cart/application/states/address_state.dart';
 import 'package:grocery_app/features/cart/presentation/screen/address_screen.dart';
 
-class AddressSheet extends StatefulWidget {
+/// Address Sheet with 30-second polling for real-time updates
+/// Uses Riverpod to watch address list from API with automatic refresh
+class AddressSheet extends ConsumerStatefulWidget {
   const AddressSheet({super.key});
 
   @override
-  State<AddressSheet> createState() => _AddressSheetState();
+  ConsumerState<AddressSheet> createState() => _AddressSheetState();
 }
 
-class _AddressSheetState extends State<AddressSheet> {
-  String _selectedAddress = 'Home';
-
-  final List<AddressModel> _addresses = [
-    AddressModel(
-      type: 'Home',
-      address: 'Kovoor , medical college , Near Devagiri College , 645670',
-    ),
-    AddressModel(
-      type: 'Work',
-      address: 'Kovoor , medical college , Near Devagiri College , 645670',
-    ),
-    AddressModel(
-      type: 'Other',
-      address: 'Kovoor , medical college , Near Devagiri College , 645670',
-    ),
-  ];
+class _AddressSheetState extends ConsumerState<AddressSheet> {
+  int? _selectedAddressId;
 
   @override
   Widget build(BuildContext context) {
+    // Watch address state from Riverpod provider (with 30-second polling)
+    final addressState = ref.watch(addressControllerProvider);
+
     return Container(
       height: 410.h,
       decoration: BoxDecoration(
@@ -45,14 +38,14 @@ class _AddressSheetState extends State<AddressSheet> {
         children: [
           SizedBox(height: 10.h),
 
-          Divider(
+          const Divider(
             indent: 140,
             endIndent: 140,
             thickness: 3,
-            radius: BorderRadiusGeometry.circular(5.r),
             color: AppColors.lightGrey,
           ),
-          // Header
+
+          // Header with refresh indicator
           Padding(
             padding: EdgeInsets.all(20.w),
             child: Row(
@@ -67,6 +60,16 @@ class _AddressSheetState extends State<AddressSheet> {
                     fontFamily: 'Poppins',
                   ),
                 ),
+                // Show refresh indicator when polling
+                if (addressState.isRefreshing)
+                  SizedBox(
+                    width: 16.w,
+                    height: 16.h,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.green100,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -75,109 +78,7 @@ class _AddressSheetState extends State<AddressSheet> {
           Divider(height: 1.h, color: AppColors.grey.withValues(alpha: 0.2)),
 
           // Address List
-          Expanded(
-            child: ListView.separated(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-              itemCount: _addresses.length,
-              separatorBuilder: (context, index) => SizedBox(height: 16.h),
-              itemBuilder: (context, index) {
-                final address = _addresses[index];
-                final isSelected = _selectedAddress == address.type;
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedAddress = address.type;
-                    });
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: AppColors.grey.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        // Radio Button
-                        Container(
-                          width: 20.w,
-                          height: 20.h,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.green100
-                                  : AppColors.grey.withValues(alpha: 0.4),
-                              width: 2,
-                            ),
-                          ),
-                          child: isSelected
-                              ? Center(
-                                  child: Container(
-                                    width: 10.w,
-                                    height: 10.h,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppColors.green100,
-                                    ),
-                                  ),
-                                )
-                              : null,
-                        ),
-
-                        SizedBox(width: 12.w),
-
-                        // Address Details
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                address.type,
-                                style: TextStyle(
-                                  color: AppColors.black,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                address.address,
-                                style: TextStyle(
-                                  color: AppColors.lightGrey,
-                                  fontSize: 12.sp,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // More Options Icon
-                        IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AddressScreen(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.more_vert),
-                          iconSize: 20.h,
-                          color: AppColors.black,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          Expanded(child: _buildBody(addressState)),
 
           // Add New Address Button
           Padding(
@@ -186,8 +87,12 @@ class _AddressSheetState extends State<AddressSheet> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigate to address screen or add new address
-                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddressScreen(),
+                    ),
+                  );
                 },
                 style: ButtonStyles.greenButton,
                 child: Text(
@@ -206,11 +111,209 @@ class _AddressSheetState extends State<AddressSheet> {
       ),
     );
   }
-}
 
-class AddressModel {
-  final String type;
-  final String address;
+  Widget _buildBody(AddressState state) {
+    // Handle loading state
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  AddressModel({required this.type, required this.address});
+    // Handle error state
+    if (state.hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Failed to load addresses',
+              style: TextStyle(
+                color: AppColors.grey,
+                fontSize: 14.sp,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            SizedBox(height: 16.h),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(addressControllerProvider.notifier).refresh();
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Handle empty state
+    if (state.isEmpty || state.addresses.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.location_off_outlined,
+              size: 48.sp,
+              color: AppColors.grey,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'No addresses found',
+              style: TextStyle(
+                color: AppColors.grey,
+                fontSize: 14.sp,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'Add a new address to continue',
+              style: TextStyle(
+                color: AppColors.lightGrey,
+                fontSize: 12.sp,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Display addresses from API
+    final addresses = state.addresses;
+    final selectedAddress = state.selectedAddress;
+
+    // Initialize selected address ID if not set
+    if (_selectedAddressId == null && selectedAddress != null) {
+      _selectedAddressId = selectedAddress.id;
+    }
+
+    return ListView.separated(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+      itemCount: addresses.length,
+      separatorBuilder: (context, index) => SizedBox(height: 16.h),
+      itemBuilder: (context, index) {
+        final address = addresses[index];
+        final isSelected = _selectedAddressId == address.id;
+
+        return GestureDetector(
+          onTap: () {
+            // Update local selection (no API call needed)
+            setState(() {
+              _selectedAddressId = address.id;
+            });
+
+            // Update the selected address in the provider state (local only)
+            ref
+                .read(addressControllerProvider.notifier)
+                .setLocalSelectedAddress(address);
+
+            // Close the bottom sheet
+            Navigator.pop(context);
+          },
+          child: Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.green100
+                    : AppColors.grey.withValues(alpha: 0.2),
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Radio Button
+                Container(
+                  width: 20.w,
+                  height: 20.h,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.green100
+                          : AppColors.grey.withValues(alpha: 0.4),
+                      width: 2,
+                    ),
+                  ),
+                  child: isSelected
+                      ? Center(
+                          child: Container(
+                            width: 10.w,
+                            height: 10.h,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.green100,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+
+                SizedBox(width: 12.w),
+
+                // Address Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            address.addressType.toUpperCase(),
+                            style: TextStyle(
+                              color: AppColors.black,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            '(${address.fullName})',
+                            style: TextStyle(
+                              color: AppColors.grey,
+                              fontSize: 12.sp,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        address.formattedAddress,
+                        style: TextStyle(
+                          color: AppColors.lightGrey,
+                          fontSize: 12.sp,
+                          fontFamily: 'Poppins',
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // More Options Icon
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddressScreen(address: address),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.more_vert),
+                  iconSize: 20.h,
+                  color: AppColors.black,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

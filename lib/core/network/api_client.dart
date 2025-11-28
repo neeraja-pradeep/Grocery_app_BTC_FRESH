@@ -90,6 +90,58 @@ class ApiClient {
       throw NetworkException.fromDio(error);
     }
   }
+
+  Future<Response<T>> patch<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    Options? options,
+  }) async {
+    try {
+      final mergedHeaders = <String, dynamic>{
+        if (options?.headers != null) ...options!.headers!,
+        if (headers != null) ...headers,
+      };
+      final requestHeaders = mergedHeaders.isEmpty ? null : mergedHeaders;
+
+      final response = await _dio.patch<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: (options ?? Options()).copyWith(headers: requestHeaders),
+      );
+      return response;
+    } on DioException catch (error) {
+      throw NetworkException.fromDio(error);
+    }
+  }
+
+  Future<Response<T>> delete<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    Options? options,
+  }) async {
+    try {
+      final mergedHeaders = <String, dynamic>{
+        if (options?.headers != null) ...options!.headers!,
+        if (headers != null) ...headers,
+      };
+      final requestHeaders = mergedHeaders.isEmpty ? null : mergedHeaders;
+
+      final response = await _dio.delete<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: (options ?? Options()).copyWith(headers: requestHeaders),
+      );
+      return response;
+    } on DioException catch (error) {
+      throw NetworkException.fromDio(error);
+    }
+  }
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());

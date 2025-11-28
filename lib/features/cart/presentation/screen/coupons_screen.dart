@@ -1,52 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/features/cart/presentation/components/coupen_card.dart';
 import 'package:grocery_app/features/cart/presentation/components/input_field.dart';
+import 'package:grocery_app/features/cart/application/providers/coupon_providers.dart';
+import 'package:grocery_app/features/cart/application/states/coupon_state.dart';
+import 'package:grocery_app/features/cart/domain/entities/coupon.dart';
 
-class CouponsScreen extends StatefulWidget {
+/// Coupons Screen with 30-second polling for real-time updates
+/// Uses Riverpod to watch coupon list from API with automatic refresh
+class CouponsScreen extends ConsumerStatefulWidget {
   const CouponsScreen({super.key});
 
   @override
-  State<CouponsScreen> createState() => _CouponsScreenState();
+  ConsumerState<CouponsScreen> createState() => _CouponsScreenState();
 }
 
-class _CouponsScreenState extends State<CouponsScreen> {
+class _CouponsScreenState extends ConsumerState<CouponsScreen> {
   final TextEditingController _couponController = TextEditingController();
-
-  final List<CouponModel> _availableCoupons = [
-    CouponModel(
-      code: 'EASYGROS',
-      title: 'Get 10% OFF on your first order',
-      description:
-          'Perfect for new users. Save on your first basket of groceries fresh, fast, and delivered to your door!',
-    ),
-    CouponModel(
-      code: 'FRESH10',
-      title: 'Get 10% OFF on your first order',
-      description:
-          'Perfect for new users. Save on your first basket of groceries fresh, fast, and delivered to your door!',
-    ),
-    CouponModel(
-      code: 'SAVE50',
-      title: 'Get 10% OFF on your first order',
-      description:
-          'Perfect for new users. Save on your first basket of groceries fresh, fast, and delivered to your door!',
-    ),
-    CouponModel(
-      code: 'ORGNC20',
-      title: 'Get 10% OFF on your first order',
-      description:
-          'Perfect for new users. Save on your first basket of groceries fresh, fast, and delivered to your door!',
-    ),
-  ];
-
-  List<CouponModel> _filteredCoupons = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _filteredCoupons = _availableCoupons;
+    // Polling starts automatically when provider is initialized
   }
 
   @override
@@ -117,21 +95,25 @@ class _CouponsScreenState extends State<CouponsScreen> {
 
   void _filterCoupons(String query) {
     setState(() {
-      if (query.isEmpty) {
-        _filteredCoupons = _availableCoupons;
-      } else {
-        _filteredCoupons = _availableCoupons
-            .where(
-              (coupon) =>
-                  coupon.code.toLowerCase().contains(query.toLowerCase()),
-            )
-            .toList();
-      }
+      _searchQuery = query.toLowerCase();
     });
+  }
+
+  /// Filter coupons based on search query
+  List<Coupon> _getFilteredCoupons(List<Coupon> allCoupons) {
+    if (_searchQuery.isEmpty) {
+      return allCoupons;
+    }
+    return allCoupons
+        .where((coupon) => coupon.name.toLowerCase().contains(_searchQuery))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch coupon state from Riverpod provider (with 30-second polling)
+    final couponState = ref.watch(couponControllerProvider);
+
     return Scaffold(
       backgroundColor: AppColors.green10,
       appBar: AppBar(
@@ -150,6 +132,23 @@ class _CouponsScreenState extends State<CouponsScreen> {
             fontFamily: 'Poppins',
           ),
         ),
+        actions: [
+          // Show refresh indicator when polling
+          if (couponState.isRefreshing)
+            Padding(
+              padding: EdgeInsets.only(right: 16.w),
+              child: Center(
+                child: SizedBox(
+                  width: 20.w,
+                  height: 20.h,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.couponGreen,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -162,82 +161,127 @@ class _CouponsScreenState extends State<CouponsScreen> {
                   topRight: Radius.circular(24.r),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Coupon Input Field
-                  Padding(
-                    padding: EdgeInsets.all(16.w),
-                    child: AppInputField(
-                      couponController: _couponController,
-                      onChanged: _filterCoupons,
-                    ),
-                  ),
-
-                  // Available Coupons Header
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    child: Text(
-                      'Available coupons',
-                      style: TextStyle(
-                        color: AppColors.black,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // Coupons List
-                  Expanded(
-                    child: _filteredCoupons.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No coupons found',
-                              style: TextStyle(
-                                color: AppColors.grey,
-                                fontSize: 14.sp,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w),
-                            itemCount: _filteredCoupons.length,
-                            separatorBuilder: (context, index) =>
-                                SizedBox(height: 16.h),
-                            itemBuilder: (context, index) {
-                              final coupon = _filteredCoupons[index];
-                              return CouponCard(
-                                coupon: coupon,
-                                onApply: () => _applyCoupon(coupon.code),
-                              );
-                            },
-                          ),
-                  ),
-
-                  // Terms and Conditions
-                  Padding(
-                    padding: EdgeInsets.all(16.w),
-                    child: Center(
-                      child: Text(
-                        'Terms and Conditions Apply',
-                        style: TextStyle(
-                          color: AppColors.grey,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16.sp,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: _buildBody(couponState),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody(CouponState state) {
+    // Handle loading state
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Handle error state
+    if (state.hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Failed to load coupons',
+              style: TextStyle(
+                color: AppColors.grey,
+                fontSize: 14.sp,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            SizedBox(height: 16.h),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(couponControllerProvider.notifier).refresh();
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Get all coupons (only active/available ones)
+    final allCoupons = state.activeCoupons;
+    final filteredCoupons = _getFilteredCoupons(allCoupons);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Coupon Input Field
+        Padding(
+          padding: EdgeInsets.all(16.w),
+          child: AppInputField(
+            couponController: _couponController,
+            onChanged: _filterCoupons,
+          ),
+        ),
+
+        // Available Coupons Header
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Text(
+            'Available coupons',
+            style: TextStyle(
+              color: AppColors.black,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Poppins',
+            ),
+          ),
+        ),
+        SizedBox(height: 16.h),
+
+        // Coupons List
+        Expanded(
+          child: filteredCoupons.isEmpty
+              ? Center(
+                  child: Text(
+                    _searchQuery.isEmpty
+                        ? 'No coupons available'
+                        : 'No coupons found',
+                    style: TextStyle(
+                      color: AppColors.grey,
+                      fontSize: 14.sp,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  itemCount: filteredCoupons.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 16.h),
+                  itemBuilder: (context, index) {
+                    final coupon = filteredCoupons[index];
+                    return CouponCard(
+                      coupon: CouponModel(
+                        code: coupon.name,
+                        title:
+                            'Get ${coupon.discountPercentage}% OFF on your order',
+                        description: coupon.description,
+                      ),
+                      onApply: () => _applyCoupon(coupon.name),
+                    );
+                  },
+                ),
+        ),
+
+        // Terms and Conditions
+        Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Center(
+            child: Text(
+              'Terms and Conditions Apply',
+              style: TextStyle(
+                color: AppColors.grey,
+                fontWeight: FontWeight.w600,
+                fontSize: 16.sp,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
