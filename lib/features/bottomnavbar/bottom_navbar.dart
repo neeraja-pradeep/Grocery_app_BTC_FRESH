@@ -4,15 +4,20 @@ import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/polling/polling_tab_controller.dart';
 import 'package:grocery_app/features/category/presentation/screen/category_screen.dart';
 import 'package:grocery_app/features/cart/presentation/screen/cart_screen.dart';
+import 'package:grocery_app/features/category/presentation/components/widgets/review_bottom_sheet.dart';
 
 class BottomNavigation extends StatefulWidget {
   const BottomNavigation({super.key});
 
+  /// Global key to access BottomNavigation state from anywhere
+  static final GlobalKey<BottomNavigationState> globalKey =
+      GlobalKey<BottomNavigationState>();
+
   @override
-  State<BottomNavigation> createState() => _BottomNavigationState();
+  State<BottomNavigation> createState() => BottomNavigationState();
 }
 
-class _BottomNavigationState extends State<BottomNavigation> {
+class BottomNavigationState extends State<BottomNavigation> {
   static const List<Widget> _pages = [
     CategoryScreen(),
     _PlaceholderPage(title: 'Home'),
@@ -22,6 +27,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
 
   int _currentIndex = 0;
   late final PollingTabController _pollingController;
+  bool _showReviewSheetOnCategoryLoad = false;
 
   @override
   void initState() {
@@ -44,6 +50,23 @@ class _BottomNavigationState extends State<BottomNavigation> {
     setState(() => _currentIndex = index);
     // Notify polling controller about tab change
     _pollingController.selectTab(index);
+  }
+
+  /// Navigate to category tab and show review bottom sheet
+  void navigateToCategoryAndShowReview() {
+    setState(() {
+      _currentIndex = 0;
+      _showReviewSheetOnCategoryLoad = true;
+    });
+    _pollingController.selectTab(0);
+
+    // Show the review bottom sheet after navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_showReviewSheetOnCategoryLoad && mounted) {
+        _showReviewSheetOnCategoryLoad = false;
+        ReviewBottomSheet.show(context);
+      }
+    });
   }
 
   @override

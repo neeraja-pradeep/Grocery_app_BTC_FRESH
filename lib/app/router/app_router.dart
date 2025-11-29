@@ -23,9 +23,15 @@ class AppRouter {
       case login:
         return _buildRoute<void>(settings, const LoginScreen());
       case home:
-        return _buildRoute<void>(settings, const BottomNavigation());
+        return _buildRoute<void>(
+          settings,
+          BottomNavigation(key: BottomNavigation.globalKey),
+        );
       case bottomNavBar:
-        return _buildRoute<void>(settings, const BottomNavigation());
+        return _buildRoute<void>(
+          settings,
+          BottomNavigation(key: BottomNavigation.globalKey),
+        );
       case productDetails:
         final variantId = settings.arguments as String?;
         if (variantId == null || variantId.isEmpty) {

@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
 import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
+import 'package:grocery_app/features/bottomnavbar/bottom_navbar.dart';
 import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
@@ -239,9 +240,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   void _handlePlaceOrder(BuildContext context) {
-    // TODO: Navigate to order confirmation
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Order placed successfully!')));
+    // Navigate to category tab and show review bottom sheet
+    BottomNavigation.globalKey.currentState?.navigateToCategoryAndShowReview();
   }
 }
