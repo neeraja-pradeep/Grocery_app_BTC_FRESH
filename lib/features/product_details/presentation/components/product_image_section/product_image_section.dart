@@ -3,8 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/app_spacing.dart';
-import 'package:grocery_app/app/theme/colors.dart';
+import '../../../../../app/theme/app_spacing.dart';
+import '../../../../../app/theme/colors.dart';
 
 import '../../../domain/entities/product_variant.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/features/cart/domain/repositories/checkout_repository.dart';
-import 'package:grocery_app/features/cart/infrastructure/data_sources/remote/checkout_data_source.dart';
+import '../../../../core/network/api_client.dart';
+import '../../domain/repositories/checkout_repository.dart';
+import '../../infrastructure/data_sources/remote/checkout_data_source.dart';
 
 final checkoutDataSourceProvider = Provider<CheckoutDataSource>((ref) {
   final apiClient = ref.watch(apiClientProvider);

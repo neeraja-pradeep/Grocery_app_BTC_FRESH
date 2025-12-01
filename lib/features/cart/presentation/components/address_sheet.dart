@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/button_styles.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
-import 'package:grocery_app/features/cart/application/states/address_state.dart';
-import 'package:grocery_app/features/cart/presentation/screen/address_screen.dart';
+import '../../../../app/theme/button_styles.dart';
+import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_text.dart';
+import '../../application/providers/address_providers.dart';
+import '../../application/states/address_state.dart';
+import '../screen/address_screen.dart';
 
 /// Address Sheet with 30-second polling for real-time updates
 /// Uses Riverpod to watch address list from API with automatic refresh

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
+import '../../app/theme/colors.dart';
+import '../widgets/app_text.dart';
 
 /// Error view page displayed when something goes wrong
 class ErrorView extends StatelessWidget {

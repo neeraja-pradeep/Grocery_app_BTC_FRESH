@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/polling/polling_tab_controller.dart';
-import 'package:grocery_app/features/category/presentation/screen/category_screen.dart';
-import 'package:grocery_app/features/cart/presentation/screen/cart_screen.dart';
-import 'package:grocery_app/features/category/presentation/components/widgets/review_bottom_sheet.dart';
+import '../../app/theme/colors.dart';
+import '../../core/polling/polling_tab_controller.dart';
+import '../category/presentation/screen/category_screen.dart';
+import '../cart/presentation/screen/cart_screen.dart';
+import '../category/presentation/components/widgets/review_bottom_sheet.dart';
 
 class BottomNavigation extends StatefulWidget {
   const BottomNavigation({super.key});

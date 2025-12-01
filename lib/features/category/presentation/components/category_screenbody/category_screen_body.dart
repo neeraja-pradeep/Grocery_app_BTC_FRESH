@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grocery_app/app/theme/app_spacing.dart';
-import 'package:grocery_app/features/category/application/providers/category_providers.dart';
-import 'package:grocery_app/features/category/application/states/category_state.dart';
-import 'package:grocery_app/features/category/presentation/components/views/category_empty_view.dart';
-import 'package:grocery_app/features/category/presentation/components/views/category_error_view.dart';
-import 'package:grocery_app/features/category/presentation/components/widgets/category_list.dart';
-import 'package:grocery_app/features/category/presentation/components/widgets/filter_bar.dart';
-import 'package:grocery_app/features/category/presentation/components/product_grid/product_grid.dart';
+import '../../../../../app/theme/app_spacing.dart';
+import '../../../application/providers/category_providers.dart';
+import '../../../application/states/category_state.dart';
+import '../views/category_empty_view.dart';
+import '../views/category_error_view.dart';
+import '../widgets/category_list.dart';
+import '../widgets/filter_bar.dart';
+import '../product_grid/product_grid.dart';
 
 /// Main category screen layout that combines:
 /// - Left sidebar: Category list for navigation

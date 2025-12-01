@@ -1,5 +1,5 @@
-import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/features/cart/infrastructure/models/checkout_model.dart';
+import '../../../../../core/network/api_client.dart';
+import '../../models/checkout_model.dart';
 
 class CheckoutDataSource {
   final ApiClient _apiClient;
@@ -18,7 +18,8 @@ class CheckoutDataSource {
   /// Optional – list all checkouts (if needed)
   Future<List<CheckoutModel>> getAllCheckouts() async {
     final response = await _apiClient.get('/api/order/checkouts/');
-    final data = response.data['results'] as List;
+    final responseData = response.data as Map<String, dynamic>;
+    final data = responseData['results'] as List;
     return data.map((e) => CheckoutModel.fromJson(e)).toList();
   }
 }

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
-import 'package:grocery_app/features/bottomnavbar/bottom_navbar.dart';
+import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_text.dart';
+import '../../application/providers/address_providers.dart';
+import '../../../bottomnavbar/bottom_navbar.dart';
 import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
@@ -38,7 +38,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final itemTotal = _calculateItemTotal();
     final discount = itemTotal * 0.1; // 10% mock discount
     final gst = (itemTotal - discount) * 0.18; // 18% GST
-    final deliveryFee = 0.0; // Free delivery
+    const deliveryFee = 0.0; // Free delivery
     final grandTotal = itemTotal - discount + gst + deliveryFee;
 
     return Column(

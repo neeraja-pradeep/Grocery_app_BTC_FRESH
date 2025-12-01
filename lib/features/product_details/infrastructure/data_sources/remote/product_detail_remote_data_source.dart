@@ -1,7 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
-import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/core/network/network_exceptions.dart';
+import '../../../../../core/network/api_client.dart';
+import '../../../../../core/network/network_exceptions.dart';
 import '../../models/product_variant_dto.dart';
 import '../../models/product_base_dto.dart';
 
@@ -324,7 +324,8 @@ class ProductDetailRemoteDataSourceImpl
   Future<bool> isInWishlist(String productId) async {
     try {
       final response = await _apiClient.get('/wishlist/check/$productId');
-      return response.data['inWishlist'] as bool? ?? false;
+      final responseData = response.data as Map<String, dynamic>;
+      return responseData['inWishlist'] as bool? ?? false;
     } catch (e) {
       rethrow;
     }

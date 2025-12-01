@@ -3,13 +3,13 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/category/application/providers/category_product_providers.dart'
+import '../../../../../app/theme/colors.dart';
+import '../../../../../core/widgets/app_text.dart';
+import '../../../application/providers/category_product_providers.dart'
     as category_products;
-import 'package:grocery_app/features/category/domain/entities/category_product.dart';
-import 'package:grocery_app/features/category/presentation/components/widgets/_product_card.dart';
-import 'package:grocery_app/features/category/presentation/components/widgets/category_list.dart';
+import '../../../domain/entities/category_product.dart';
+import '../widgets/_product_card.dart';
+import '../widgets/category_list.dart';
 
 /// Displays products in a grid with category headings
 ///

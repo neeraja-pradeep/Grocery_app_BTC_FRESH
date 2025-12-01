@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/core/polling/polling_manager.dart';
-import 'package:grocery_app/core/storage/cache_config.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/polling/polling_manager.dart';
+import '../../../../core/storage/cache_config.dart';
 
 import '../../domain/entities/address.dart';
 import '../../domain/repositories/address_repository.dart';
@@ -83,7 +83,7 @@ final addressRepositoryProvider = Provider<AddressRepository>((ref) {
 /// Address list controller - manages address list state with 30-second polling
 class AddressController extends Notifier<AddressState> {
   // Use global polling interval from CacheConfig - same 30 seconds as product_details
-  static final Duration _pollingInterval = CacheConfig.pollingInterval;
+  static const Duration _pollingInterval = CacheConfig.pollingInterval;
 
   late AddressRepository _repository;
   bool _initialized = false;

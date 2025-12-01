@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grocery_app/features/category/application/providers/category_product_providers.dart'
+import '../../application/providers/category_product_providers.dart'
     as category_products;
-import 'package:grocery_app/features/category/application/providers/category_providers.dart';
-import 'package:grocery_app/features/category/application/states/category_state.dart';
-import 'package:grocery_app/features/category/presentation/helpers/category_selection_manager.dart';
+import '../../application/providers/category_providers.dart';
+import '../../application/states/category_state.dart';
+import 'category_selection_manager.dart';
 
 /// Handles category state listening and side effects
 class CategoryStateListener {

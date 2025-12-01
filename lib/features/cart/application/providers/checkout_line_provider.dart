@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/core/polling/polling_manager.dart';
-import 'package:grocery_app/core/storage/cache_config.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/polling/polling_manager.dart';
+import '../../../../core/storage/cache_config.dart';
 import '../../domain/entities/checkout_line.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../states/checkout_line_state.dart';
@@ -16,7 +16,7 @@ final checkoutLineDataSourceProvider = Provider<CheckoutLineDataSource>((ref) {
 
 /// Checkout lines controller - manages cart state with 30-second polling
 class CheckoutLineController extends Notifier<CheckoutLineState> {
-  static final Duration _pollingInterval = CacheConfig.pollingInterval;
+  static const Duration _pollingInterval = CacheConfig.pollingInterval;
 
   late CheckoutLineDataSource _dataSource;
   bool _initialized = false;

@@ -1,4 +1,4 @@
-import 'package:grocery_app/features/cart/infrastructure/data_sources/remote/checkout_data_source.dart';
+import '../../infrastructure/data_sources/remote/checkout_data_source.dart';
 
 import '../../domain/entities/checkout.dart';
 

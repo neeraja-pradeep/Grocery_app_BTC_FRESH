@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/app_spacing.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/network/socket_provider.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/category/application/providers/inventory_update_notifier.dart';
-import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
-import 'package:grocery_app/features/product_details/presentation/components/checkout_section/checkout_section.dart';
-import 'package:grocery_app/features/product_details/presentation/components/price_row/price_row.dart';
-import 'package:grocery_app/features/product_details/presentation/components/product_info/product_info.dart';
-import 'package:grocery_app/features/product_details/presentation/components/rating_section/rating_section.dart';
+import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/colors.dart';
+import '../../../../core/network/socket_models.dart';
+import '../../../../core/network/socket_provider.dart';
+import '../../../../core/widgets/app_text.dart';
+import '../../../category/application/providers/inventory_update_notifier.dart';
+import '../../../category/application/providers/price_update_notifier.dart';
+import '../components/checkout_section/checkout_section.dart';
+import '../components/price_row/price_row.dart';
+import '../components/product_info/product_info.dart';
+import '../components/rating_section/rating_section.dart';
 
 import '../../application/providers/product_detail_providers.dart';
 import '../../application/states/product_detail_state.dart';
@@ -180,14 +181,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   /// Builds main scrollable body - delegates to component widgets
   Widget _buildBody(
     product_variant.ProductVariant productDetail,
-    dynamic state,
-    dynamic controller,
-    dynamic socketPriceUpdate,
-    dynamic socketInventoryUpdate,
+    ProductDetailState state,
+    ProductDetailController controller,
+    PriceUpdateEvent? socketPriceUpdate,
+    InventoryUpdateEvent? socketInventoryUpdate,
   ) {
     // Use real-time price from Socket if available, otherwise use API price
     final displayPrice =
-        socketPriceUpdate?.newPrice?.toString() ?? productDetail.price;
+        socketPriceUpdate?.newPrice.toString() ?? productDetail.price;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -241,7 +242,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
             // Product weight/nutrition section
             ExpandableSection(
-              title: "Nutritions",
+              title: 'Nutritions',
               onToggle: () {},
               badge: productDetail.weight,
               child: const SizedBox(),
@@ -264,13 +265,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   /// Price calculation handled by CheckoutSection component
   Widget _buildBottomSheet(
     product_variant.ProductVariant productDetail,
-    dynamic state,
-    dynamic controller,
-    dynamic socketPriceUpdate,
+    ProductDetailState state,
+    ProductDetailController controller,
+    PriceUpdateEvent? socketPriceUpdate,
   ) {
     // Use real-time price from Socket if available, otherwise use API price
     final displayPrice =
-        socketPriceUpdate?.newPrice?.toString() ?? productDetail.price;
+        socketPriceUpdate?.newPrice.toString() ?? productDetail.price;
     final unitPrice = extractNumericPrice(displayPrice);
 
     return CheckoutSection(
@@ -282,7 +283,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
   /// Handle View Cart button tap
   /// Adds item to cart and navigates to cart screen
-  Future<void> _handleViewCart(dynamic controller) async {
+  Future<void> _handleViewCart(ProductDetailController controller) async {
     try {
       // Add to cart first
       await controller.addToCart();

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/features/cart/application/providers/checkout_line_provider.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../cart/application/providers/checkout_line_provider.dart';
 
 import '../../domain/repositories/product_detail_repository.dart';
 import '../../domain/entities/product_variant.dart';

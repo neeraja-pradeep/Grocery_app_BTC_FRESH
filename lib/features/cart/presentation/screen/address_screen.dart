@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/button_styles.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/cart/application/providers/address_providers.dart';
-import 'package:grocery_app/features/cart/domain/entities/address.dart';
+import '../../../../app/theme/button_styles.dart';
+import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_text.dart';
+import '../../application/providers/address_providers.dart';
+import '../../domain/entities/address.dart';
 
 /// Address Screen for creating or editing addresses
 /// Supports both create and edit modes based on whether address parameter is provided

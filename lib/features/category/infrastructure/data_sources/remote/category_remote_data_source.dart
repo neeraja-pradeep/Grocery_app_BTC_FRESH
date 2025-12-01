@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/core/network/endpoints.dart';
-import 'package:grocery_app/core/network/network_exceptions.dart';
+import '../../../../../core/network/api_client.dart';
+import '../../../../../core/network/endpoints.dart';
+import '../../../../../core/network/network_exceptions.dart';
 
 import '../../models/category_dto.dart';
 

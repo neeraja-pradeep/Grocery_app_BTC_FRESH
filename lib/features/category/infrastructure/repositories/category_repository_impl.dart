@@ -1,4 +1,4 @@
-import 'package:grocery_app/features/category/domain/repositories/category_repository.dart';
+import '../../domain/repositories/category_repository.dart';
 
 import '../../../../core/network/network_exceptions.dart';
 import '../../domain/entities/category.dart';

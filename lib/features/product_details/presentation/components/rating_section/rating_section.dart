@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/app_spacing.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
+import '../../../../../app/theme/app_spacing.dart';
+import '../../../../../app/theme/colors.dart';
+import '../../../../../core/widgets/app_text.dart';
 
 /// Rating and Review Section Component
 ///
@@ -40,7 +40,7 @@ class RatingSection extends StatelessWidget {
       child: Row(
         children: [
           AppText(
-            text: "Review",
+            text: 'Review',
             fontSize: 15.sp,
             fontWeight: FontWeight.w700,
             color: AppColors.black,

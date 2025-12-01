@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:grocery_app/app/theme/app_spacing.dart';
-import 'package:grocery_app/core/extensions/context_extensions.dart';
+import '../../../../../app/theme/app_spacing.dart';
+import '../../../../../core/extensions/context_extensions.dart';
 
 /// Filter controls bar with icon + filter chips
 /// - Left: Filter icon (SVG)

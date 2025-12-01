@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/app_spacing.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/network/socket_provider.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/category/application/providers/inventory_update_notifier.dart';
-import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
-import 'package:grocery_app/features/category/domain/entities/category_product.dart';
+import '../../../../../app/theme/app_spacing.dart';
+import '../../../../../app/theme/colors.dart';
+import '../../../../../core/network/socket_provider.dart';
+import '../../../../../core/widgets/app_text.dart';
+import '../../../application/providers/inventory_update_notifier.dart';
+import '../../../application/providers/price_update_notifier.dart';
+import '../../../domain/entities/category_product.dart';
 
 const String _rupeeSymbol = '\u20B9';
 
@@ -277,7 +277,7 @@ class _ProductImage extends StatelessWidget {
     }
 
     return Image(
-      image: NetworkImage(image!, headers: {"User-Agent": "Mozilla/5.0"}),
+      image: NetworkImage(image!, headers: {'User-Agent': 'Mozilla/5.0'}),
       fit: BoxFit.fitHeight,
       errorBuilder: (context, error, stackTrace) => Container(
         color: AppColors.green10,

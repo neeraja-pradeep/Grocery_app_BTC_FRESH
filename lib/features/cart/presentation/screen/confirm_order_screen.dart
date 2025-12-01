@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/button_styles.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
+import '../../../../app/theme/button_styles.dart';
+import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_text.dart';
 
 class ConfirmOrderScreen extends StatelessWidget {
   const ConfirmOrderScreen({super.key});
@@ -41,7 +41,7 @@ class ConfirmOrderScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                    "assets/images/success.png",
+                    'assets/images/success.png',
                     width: 269.w,
                     height: 240.h,
                   ),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:grocery_app/app/theme/app_spacing.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/extensions/context_extensions.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
+import '../../../../../app/theme/app_spacing.dart';
+import '../../../../../app/theme/colors.dart';
+import '../../../../../core/extensions/context_extensions.dart';
+import '../../../../../core/widgets/app_text.dart';
 
 class Header extends StatelessWidget {
   const Header({super.key, required this.colorScheme});

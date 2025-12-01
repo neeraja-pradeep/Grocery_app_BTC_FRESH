@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/cart/presentation/components/coupen_card.dart';
-import 'package:grocery_app/features/cart/presentation/components/input_field.dart';
-import 'package:grocery_app/features/cart/application/providers/coupon_providers.dart';
-import 'package:grocery_app/features/cart/application/states/coupon_state.dart';
-import 'package:grocery_app/features/cart/domain/entities/coupon.dart';
+import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_text.dart';
+import '../components/coupen_card.dart';
+import '../components/input_field.dart';
+import '../../application/providers/coupon_providers.dart';
+import '../../application/states/coupon_state.dart';
+import '../../domain/entities/coupon.dart';
 
 /// Coupons Screen with 30-second polling for real-time updates
 /// Uses Riverpod to watch coupon list from API with automatic refresh

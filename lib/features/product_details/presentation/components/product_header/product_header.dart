@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/colors.dart';
+import '../../../../../app/theme/colors.dart';
 import '../../../domain/entities/product_variant.dart';
 
 /// Product header with image gallery and wishlist button

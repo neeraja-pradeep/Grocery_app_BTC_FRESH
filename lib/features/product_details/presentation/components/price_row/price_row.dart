@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
+import '../../../../../app/theme/colors.dart';
+import '../../../../../core/widgets/app_text.dart';
 
 const String _rupeeSymbol = '₹';
 

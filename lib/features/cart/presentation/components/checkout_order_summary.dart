@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/cart/presentation/screen/coupons_screen.dart';
+import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_text.dart';
+import '../screen/coupons_screen.dart';
 
 /// Checkout order summary component
 /// Displays order breakdown, payment method, and place order button
@@ -73,7 +73,7 @@ class CheckoutOrderSummary extends StatelessWidget {
     );
   }
 
-  Widget _buildApplyCouponSection(Function goto) {
+  Widget _buildApplyCouponSection(VoidCallback goto) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
       child: Row(

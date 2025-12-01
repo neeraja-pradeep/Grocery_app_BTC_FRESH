@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/colors.dart';
-import 'package:grocery_app/core/network/socket_provider.dart';
-import 'package:grocery_app/core/network/socket_service.dart';
-import 'package:grocery_app/core/polling/polling_manager.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
-import 'package:grocery_app/features/cart/application/providers/checkout_line_provider.dart';
-import 'package:grocery_app/features/cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
-import 'package:grocery_app/features/category/application/providers/price_update_notifier.dart';
+import '../../../../app/theme/colors.dart';
+import '../../../../core/network/socket_provider.dart';
+import '../../../../core/network/socket_service.dart';
+import '../../../../core/polling/polling_manager.dart';
+import '../../../../core/widgets/app_text.dart';
+import '../../application/providers/checkout_line_provider.dart';
+import '../../domain/entities/checkout_line.dart';
+import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
+import '../../../category/application/providers/price_update_notifier.dart';
 import '../components/cart_app_bar.dart';
 import '../components/cart_item_card.dart';
 import '../components/cart_summary.dart';
@@ -308,7 +309,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   /// Calculate cart total using real-time socket prices when available
   double _calculateTotalWithSocketPrices(
-    List<dynamic> items,
+    List<CheckoutLine> items,
     PriceUpdateState priceUpdates,
   ) {
     double total = 0.0;

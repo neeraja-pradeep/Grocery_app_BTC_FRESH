@@ -1,5 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:grocery_app/core/storage/cache_config.dart';
+import '../../../../../core/storage/cache_config.dart';
 import 'coupon_cache_dto.dart';
 
 /// Local data source for coupon cache metadata

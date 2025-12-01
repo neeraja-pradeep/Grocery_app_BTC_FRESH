@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grocery_app/core/network/connectivity_provider.dart';
+import '../network/connectivity_provider.dart';
 
 /// Animated banner widget that displays network status
 /// Shows offline indicator when there's no internet connection

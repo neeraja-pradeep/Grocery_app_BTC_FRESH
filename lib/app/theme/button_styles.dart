@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/app/theme/colors.dart';
+import 'colors.dart';
 
 class ButtonStyles {
   static final ButtonStyle greenButton = ElevatedButton.styleFrom(

@@ -1,4 +1,4 @@
-import 'package:grocery_app/core/network/endpoints.dart';
+import '../../../../core/network/endpoints.dart';
 
 import '../../domain/entities/category.dart';
 
@@ -132,7 +132,7 @@ String? _resolveImageUrl(String? imageUrl, String? imagePath) {
   }
 
   if (imagePath != null && imagePath.isNotEmpty) {
-    final base = ApiEndpoints.baseUrl;
+    const base = ApiEndpoints.baseUrl;
     if (base.endsWith('/') && imagePath.startsWith('/')) {
       return '${base.substring(0, base.length - 1)}$imagePath';
     }

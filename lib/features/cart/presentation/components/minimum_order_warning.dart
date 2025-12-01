@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:grocery_app/core/widgets/app_text.dart';
+import '../../../../core/widgets/app_text.dart';
 
 /// Minimum order warning banner
 /// Shows when cart total is below minimum order value

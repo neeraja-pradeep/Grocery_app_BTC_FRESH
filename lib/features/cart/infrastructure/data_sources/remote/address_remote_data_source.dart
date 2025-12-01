@@ -1,7 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
-import 'package:grocery_app/core/network/api_client.dart';
-import 'package:grocery_app/core/network/network_exceptions.dart';
+import '../../../../../core/network/api_client.dart';
+import '../../../../../core/network/network_exceptions.dart';
 import '../../models/address_dto.dart';
 
 /// Response model for address list with cache headers

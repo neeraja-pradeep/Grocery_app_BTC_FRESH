@@ -1,4 +1,4 @@
-import 'package:grocery_app/features/category/domain/entities/category.dart';
+import '../../domain/entities/category.dart';
 
 /// Manages category selection state and synchronization logic
 class CategorySelectionManager {

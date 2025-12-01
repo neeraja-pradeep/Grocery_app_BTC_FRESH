@@ -1,5 +1,5 @@
-import 'package:grocery_app/features/category/domain/entities/category_product.dart';
-import 'package:grocery_app/features/product_details/domain/entities/product_variant.dart';
+import '../../../category/domain/entities/category_product.dart';
+import '../../domain/entities/product_variant.dart';
 
 /// Utility functions for Product Details feature
 /// Handles data conversion and validation logic
