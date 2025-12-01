@@ -13,21 +13,28 @@ class CartItemCard extends StatelessWidget {
     required this.weight,
     required this.pricePerKg,
     required this.quantity,
-    required this.stockBadge,
     required this.onIncrement,
     required this.onDecrement,
     required this.onRemove,
+    this.originalPrice,
+    this.hasDiscount = false,
+    this.discountPercentage = 0,
   });
 
   final String? imageUrl;
   final String name;
   final String weight;
-  final String pricePerKg;
+  final String
+  pricePerKg; // This is the effective price (discounted if applicable)
   final int quantity;
-  final String stockBadge;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
   final VoidCallback? onRemove;
+
+  // New fields for discount display
+  final String? originalPrice; // Original price before discount
+  final bool hasDiscount;
+  final double discountPercentage;
 
   @override
   Widget build(BuildContext context) {
@@ -44,9 +51,8 @@ class CartItemCard extends StatelessWidget {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-
         children: [
-          // Product image
+          // Product image with discount badge
           _buildProductImage(),
           SizedBox(width: 12.w),
 
@@ -55,9 +61,9 @@ class CartItemCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildStockBadge(),
-                SizedBox(height: 4.h),
                 _buildProductName(),
+                SizedBox(height: 4.h),
+                _buildWeightInfo(),
                 SizedBox(height: 6.h),
                 _buildPriceInfo(),
               ],
@@ -90,9 +96,9 @@ class CartItemCard extends StatelessWidget {
       child: imageUrl != null && imageUrl!.isNotEmpty
           ? ClipRRect(
               borderRadius: BorderRadius.circular(8.r),
-              child: Image.asset(
+              child: Image.network(
                 imageUrl!,
-                fit: BoxFit.fitWidth,
+                fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Icon(
                     Icons.image_not_supported_outlined,
@@ -110,18 +116,6 @@ class CartItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStockBadge() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 0.w, vertical: 2.h),
-      child: AppText(
-        text: stockBadge,
-        fontSize: 10.sp,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xFF689F38),
-      ),
-    );
-  }
-
   Widget _buildProductName() {
     return AppText(
       text: name,
@@ -132,22 +126,36 @@ class CartItemCard extends StatelessWidget {
     );
   }
 
+  Widget _buildWeightInfo() {
+    return AppText(
+      text: "$weight g",
+      fontSize: 11.sp,
+      fontWeight: FontWeight.w400,
+      color: AppColors.grey,
+    );
+  }
+
   Widget _buildPriceInfo() {
     return Row(
       children: [
+        // Effective/Discounted price
         AppText(
-          text: pricePerKg,
-          fontSize: 13.sp,
-          fontWeight: FontWeight.w500,
-          color: AppColors.grey,
+          text: '₹$pricePerKg',
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w600,
+          color: hasDiscount ? AppColors.couponGreen : AppColors.black,
         ),
-        SizedBox(width: 4.w),
-        AppText(
-          text: '/ kg',
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w400,
-          color: AppColors.grey.withValues(alpha: 0.7),
-        ),
+        SizedBox(width: 6.w),
+        // Original price with strikethrough if discounted
+        if (hasDiscount && originalPrice != null) ...[
+          AppText(
+            text: '₹$originalPrice',
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w400,
+            color: AppColors.grey,
+            decoration: TextDecoration.lineThrough,
+          ),
+        ],
       ],
     );
   }

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:grocery_app/app/theme/colors.dart';
 import 'package:grocery_app/core/widgets/app_text.dart';
+import 'package:grocery_app/features/cart/application/providers/applied_coupon_provider.dart';
+import 'package:grocery_app/features/cart/application/providers/checkout_line_provider.dart';
+import 'package:grocery_app/features/cart/application/providers/coupon_providers.dart';
+import 'package:grocery_app/features/cart/domain/entities/coupon.dart';
 import 'package:grocery_app/features/cart/presentation/screen/coupons_screen.dart';
 
 /// Checkout order summary component
 /// Displays order breakdown, payment method, and place order button
-class CheckoutOrderSummary extends StatelessWidget {
+class CheckoutOrderSummary extends ConsumerWidget {
   const CheckoutOrderSummary({
     super.key,
     required this.itemTotal,
@@ -18,6 +23,7 @@ class CheckoutOrderSummary extends StatelessWidget {
     required this.onPlaceOrder,
     this.selectedPaymentMethod = 'UPI',
     this.deliveryAddressWidget,
+    this.appliedCoupon,
   });
 
   final double itemTotal;
@@ -28,9 +34,10 @@ class CheckoutOrderSummary extends StatelessWidget {
   final VoidCallback onPlaceOrder;
   final String selectedPaymentMethod;
   final Widget? deliveryAddressWidget;
+  final Coupon? appliedCoupon;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -46,12 +53,7 @@ class CheckoutOrderSummary extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Apply Coupon Section
-          _buildApplyCouponSection(() {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CouponsScreen()),
-            );
-          }),
+          _buildApplyCouponSection(context, ref),
 
           Divider(height: 1, color: AppColors.grey.withValues(alpha: 0.2)),
 
@@ -73,52 +75,142 @@ class CheckoutOrderSummary extends StatelessWidget {
     );
   }
 
-  Widget _buildApplyCouponSection(Function goto) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-      child: Row(
-        children: [
-          SvgPicture.asset(
-            'assets/svgs/order/coupon.svg',
-            width: 16.w,
-            height: 10.w,
-            colorFilter: const ColorFilter.mode(
-              AppColors.green100,
-              BlendMode.srcIn,
+  Widget _buildApplyCouponSection(BuildContext context, WidgetRef ref) {
+    final hasCoupon = appliedCoupon != null;
+
+    return GestureDetector(
+      onTap: () => _navigateToCoupons(context, ref),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        child: Row(
+          children: [
+            SvgPicture.asset(
+              'assets/svgs/order/coupon.svg',
+              width: 16.w,
+              height: 10.w,
+              colorFilter: ColorFilter.mode(
+                hasCoupon ? AppColors.couponGreen : AppColors.green100,
+                BlendMode.srcIn,
+              ),
             ),
-          ),
-          SizedBox(width: 8.w),
-          AppText(
-            text: 'APPLY COUPON',
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            color: AppColors.black,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => goto(),
-            child: Icon(
-              Icons.arrow_forward_ios,
-              color: AppColors.black,
-              size: 14.sp,
-              weight: 600,
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (hasCoupon) ...[
+                    // Show applied coupon
+                    Row(
+                      children: [
+                        AppText(
+                          text: appliedCoupon!.name,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.couponGreen,
+                        ),
+                        SizedBox(width: 8.w),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6.w,
+                            vertical: 2.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.couponGreen.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: AppText(
+                            text: 'APPLIED',
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.couponGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 2.h),
+                    AppText(
+                      text:
+                          'You saved ₹${discount.toStringAsFixed(0)} on this order!',
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.couponGreen,
+                    ),
+                  ] else ...[
+                    AppText(
+                      text: 'APPLY COUPON',
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.black,
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+            if (hasCoupon)
+              GestureDetector(
+                onTap: () {
+                  ref.read(appliedCouponProvider.notifier).removeCoupon();
+                },
+                child: Icon(Icons.close, color: AppColors.grey, size: 18.sp),
+              )
+            else
+              Icon(
+                Icons.arrow_forward_ios,
+                color: AppColors.black,
+                size: 14.sp,
+              ),
+          ],
+        ),
       ),
     );
   }
 
+  Future<void> _navigateToCoupons(BuildContext context, WidgetRef ref) async {
+    // Navigate to coupons screen and wait for result
+    final selectedCouponCode = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const CouponsScreen()),
+    );
+
+    // If a coupon was selected, find and apply it
+    if (selectedCouponCode != null) {
+      final couponState = ref.read(couponControllerProvider);
+      final selectedCoupon = couponState.coupons.firstWhere(
+        (c) => c.name == selectedCouponCode,
+        orElse: () => throw Exception('Coupon not found'),
+      );
+
+      // Get current item total
+      final checkoutState = ref.read(checkoutLineControllerProvider);
+      final currentItemTotal = checkoutState.totalAmount;
+
+      // Apply the coupon
+      ref
+          .read(appliedCouponProvider.notifier)
+          .applyCoupon(selectedCoupon, currentItemTotal);
+    }
+  }
+
   Widget _buildOrderSummary() {
+    final hasCoupon = appliedCoupon != null;
+    final discountLabel = hasCoupon
+        ? 'Discount (${appliedCoupon!.discountPercentage}%)'
+        : 'Discount';
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         children: [
           _buildSummaryRow('Item Total', itemTotal, isRegular: true),
           SizedBox(height: 8.h),
-          _buildSummaryRow('Discount', discount, isDiscount: true),
+          _buildSummaryRow(
+            discountLabel,
+            discount,
+            isDiscount: true,
+            showMinus: discount > 0,
+          ),
           SizedBox(height: 8.h),
-          _buildSummaryRow('GST', gst, isRegular: true),
+          _buildSummaryRow('GST (18%)', gst, isRegular: true),
           SizedBox(height: 8.h),
           _buildSummaryRow(
             'Delivery Fee',
@@ -141,9 +233,19 @@ class CheckoutOrderSummary extends StatelessWidget {
     bool isDiscount = false,
     bool isFree = false,
     bool isTotal = false,
+    bool showMinus = false,
   }) {
+    String amountText;
+    if (isFree) {
+      amountText = 'Free';
+    } else if (isDiscount && showMinus) {
+      amountText = '-₹${amount.toStringAsFixed(0)}';
+    } else {
+      amountText = '₹${amount.toStringAsFixed(0)}';
+    }
+
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6.h),
+      padding: EdgeInsets.symmetric(vertical: 4.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -156,11 +258,11 @@ class CheckoutOrderSummary extends StatelessWidget {
                 : AppColors.black.withValues(alpha: 0.7),
           ),
           AppText(
-            text: isFree ? 'Free' : amount.toStringAsFixed(0),
+            text: amountText,
             fontSize: isTotal ? 16.sp : 14.sp,
             fontWeight: isTotal ? FontWeight.w600 : FontWeight.w500,
             color: isDiscount
-                ? AppColors.green100
+                ? AppColors.couponGreen
                 : isTotal
                 ? AppColors.red
                 : AppColors.black,
@@ -222,7 +324,7 @@ class CheckoutOrderSummary extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AppText(
-                    text: '${grandTotal.toStringAsFixed(0)} |',
+                    text: '₹${grandTotal.toStringAsFixed(0)} |',
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                     color: AppColors.white,

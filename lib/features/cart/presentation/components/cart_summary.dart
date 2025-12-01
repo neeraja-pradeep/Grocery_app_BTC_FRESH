@@ -58,7 +58,7 @@ class CartSummary extends StatelessWidget {
                       ),
                       SizedBox(height: 4.h),
                       AppText(
-                        text: totalWithoutTax.toStringAsFixed(2),
+                        text: '₹${totalWithoutTax.toStringAsFixed(2)}',
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
                         color: AppColors.red,
