@@ -44,6 +44,7 @@ flutter:
     - assets/svgs/nav_bar/
     - assets/svgs/category_screen/
     - assets/svgs/order/
+    - assets/svgs/profile/
 
   fonts:
     - family: Poppins

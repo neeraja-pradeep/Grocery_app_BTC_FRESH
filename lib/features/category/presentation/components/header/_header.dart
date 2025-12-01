@@ -31,11 +31,16 @@ class Header extends StatelessWidget {
           // crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AppSpacing.w12,
-            SvgPicture.asset(
-              'assets/svgs/category_screen/category_icon.svg',
-              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
-              width: 22.w,
-              height: 22.w,
+            GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(context, '/profile');
+              },
+              child: SvgPicture.asset(
+                'assets/svgs/category_screen/category_icon.svg',
+                colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                width: 22.w,
+                height: 22.w,
+              ),
             ),
             AppSpacing.w16,
             AppText.pageTitle(
