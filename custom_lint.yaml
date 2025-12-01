@@ -1,8 +1,109 @@
-# Custom Lint Configuration
-# This file enables the custom_lint plugin to discover and run custom lint rules
+# ================================================
+# Custom Lint Configuration for Clean Architecture
+# Enforces folder structure and import rules
+# ================================================
 
-# Enable all plugins
-# Custom lint will automatically discover rules from:
-# - naming_conventions_lint package (defined in pubspec.yaml)
+# Enable custom lint plugins
+plugins:
+  - naming_conventions_lint
 
-# No additional configuration needed - rules are auto-discovered
+# ================================================
+# ARCHITECTURE RULES
+# ================================================
+# Clean Architecture Layer Dependencies:
+#
+# ┌─────────────────────────────────────────────┐
+# │              PRESENTATION                    │
+# │  (screens, components, widgets)              │
+# │  Can import: application, domain            │
+# └─────────────────────────────────────────────┘
+#                     │
+#                     ▼
+# ┌─────────────────────────────────────────────┐
+# │              APPLICATION                     │
+# │  (providers, states, usecases)              │
+# │  Can import: domain ONLY                    │
+# └─────────────────────────────────────────────┘
+#                     │
+#                     ▼
+# ┌─────────────────────────────────────────────┐
+# │                DOMAIN                        │
+# │  (entities, repository interfaces)          │
+# │  Can import: NOTHING (pure Dart only)       │
+# └─────────────────────────────────────────────┘
+#                     ▲
+#                     │
+# ┌─────────────────────────────────────────────┐
+# │            INFRASTRUCTURE                    │
+# │  (data_sources, repository impls)           │
+# │  Can import: domain, core                   │
+# └─────────────────────────────────────────────┘
+#
+# ================================================
+
+# ================================================
+# FOLDER STRUCTURE RULES
+# ================================================
+#
+# lib/
+# ├── app/                    # App configuration
+# │   ├── bootstrap/          # App initialization
+# │   ├── config/             # Environment & constants
+# │   ├── router/             # Navigation & guards
+# │   ├── theme/              # Colors, typography, theme
+# │   ├── localization/       # i18n & l10n
+# │   └── monitoring/         # Analytics & crash reporting
+# │
+# ├── core/                   # Shared utilities
+# │   ├── network/            # API client & endpoints
+# │   ├── storage/            # Hive & secure storage
+# │   ├── utils/              # Helpers & validators
+# │   ├── widgets/            # Reusable UI components
+# │   └── error/              # Error handling
+# │
+# └── features/               # Feature modules
+#     └── [feature_name]/
+#         ├── domain/         # Business logic (PURE)
+#         │   ├── entities/   # Business objects
+#         │   └── repositories/ # Abstract contracts
+#         │
+#         ├── application/    # State management
+#         │   ├── providers/  # Riverpod providers
+#         │   ├── states/     # State classes
+#         │   └── usecases/   # Business operations
+#         │
+#         ├── infrastructure/ # External implementations
+#         │   ├── data_sources/
+#         │   │   ├── remote/ # API calls
+#         │   │   └── local/  # Local storage
+#         │   └── repositories/ # Concrete implementations
+#         │
+#         └── presentation/   # UI layer
+#             ├── screen/     # Page widgets
+#             └── components/ # Feature-specific widgets
+#
+# ================================================
+
+# ================================================
+# NAMING CONVENTIONS
+# ================================================
+#
+# Files:
+#   - snake_case.dart (e.g., user_repository.dart)
+#   - Screens: *_screen.dart
+#   - Providers: *_provider.dart
+#   - States: *_state.dart
+#   - Entities: singular noun (e.g., user.dart)
+#
+# Classes:
+#   - PascalCase (e.g., UserRepository)
+#   - Screens: *Screen (e.g., LoginScreen)
+#   - Providers: *Provider or *Notifier
+#   - States: *State
+#
+# Variables & Functions:
+#   - camelCase
+#   - Private: _prefixed
+#   - Constants: lowerCamelCase or SCREAMING_SNAKE_CASE
+#
+# ================================================

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:grocery_app/features/cart/presentation/screen/cart_screen.dart';
-import 'package:grocery_app/features/cart/presentation/screen/coupons_screen.dart';
-import 'package:grocery_app/features/profile/presentation/screens/profile_screen.dart';
+import '../../features/cart/presentation/screen/cart_screen.dart';
+import '../../features/cart/presentation/screen/coupons_screen.dart';
 
 import '../../features/auth/presentation/screen/login_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
@@ -50,8 +49,6 @@ class AppRouter {
         return _buildRoute<void>(settings, const CartScreen());
       case coupon:
         return _buildRoute<void>(settings, const CouponsScreen());
-      case profile:
-        return _buildRoute<void>(settings, const ProfileScreen());
 
       default:
         return _buildRoute<void>(

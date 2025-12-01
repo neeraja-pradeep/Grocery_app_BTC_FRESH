@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
@@ -25,13 +23,7 @@ import '../states/category_product_state.dart';
 ///    - Extract Last-Modified header from response
 ///    - Save cache + Last-Modified to Hive with categoryId key
 ///
-/// 2. PERIODIC POLLING (every 30 seconds):
-///    - Read If-Modified-Since from Hive for this category
-///    - Send conditional GET with If-Modified-Since header
-///    - If server returns 304: Keep using cached data, update lastSyncedAt
-///    - If server returns 200: New products available, update cache + Last-Modified
-///
-/// 3. CACHE STORAGE (Hive):
+/// 2. CACHE STORAGE (Hive):
 ///    - categoryId: The category these products belong to
 ///    - products: List of product items
 ///    - lastSyncedAt: When we last checked
@@ -44,11 +36,6 @@ import '../states/category_product_state.dart';
 /// Each category's products are cached separately with key:
 /// 'category_products_{categoryId}'
 /// This means viewing multiple categories doesn't cause conflicts.
-///
-/// POLLING BEHAVIOR:
-/// -----------------
-/// Each category view has its own polling timer (FamilyNotifier).
-/// When you switch to a different category, the old timer is disposed.
 /// ============================================================================
 
 final categoryProductLocalDataSourceProvider =
@@ -78,15 +65,10 @@ final categoryProductControllerProvider =
 
 class CategoryProductController
     extends AutoDisposeFamilyNotifier<CategoryProductState, String> {
-  static const Duration _pollingInterval = Duration(seconds: 30);
-
   CategoryProductRepository get _repository =>
       ref.read(categoryProductRepositoryProvider);
 
   bool _initialized = false;
-  DateTime? _lastRefreshAttempt;
-  Timer? _pollingTimer;
-  Timer? _indicatorTimer;
   late String _categoryId;
 
   @override
@@ -95,7 +77,6 @@ class CategoryProductController
     if (!_initialized) {
       _initialized = true;
       Future<void>.microtask(_loadInitial);
-      _startPolling();
     }
 
     ref.onDispose(_handleDispose);
@@ -115,33 +96,24 @@ class CategoryProductController
         lastSyncedAt: cached.lastSyncedAt,
         lastModified: cached.lastModified,
         isRefreshing: cached.isStale,
-        refreshStartedAt: cached.isStale
-            ? DateTime.now()
-            : state.refreshStartedAt,
-        refreshEndedAt: cached.isStale ? null : DateTime.now(),
-        resetRefreshEndedAt: cached.isStale,
         totalCount: cached.totalCount,
         next: cached.next,
         previous: cached.previous,
         clearError: true,
       );
-      _scheduleIndicatorReset();
     } else {
       state = state.copyWith(
         status: CategoryProductStatus.loading,
         isRefreshing: true,
-        refreshStartedAt: DateTime.now(),
-        resetRefreshEndedAt: true,
         clearError: true,
       );
-      _scheduleIndicatorReset();
     }
 
     final shouldRefresh = cached == null || cached.isStale;
     if (shouldRefresh) {
       await _refreshInternal(forceRemote: cached == null);
     } else {
-      state = state.copyWith(isRefreshing: false, resetRefreshStartedAt: true);
+      state = state.copyWith(isRefreshing: false);
     }
   }
 
@@ -153,14 +125,8 @@ class CategoryProductController
     final lastSyncedAt = state.lastSyncedAt;
     final now = DateTime.now();
 
-    final recentlyRequested =
-        _lastRefreshAttempt != null &&
-        now.difference(_lastRefreshAttempt!) < _pollingInterval;
-    if (recentlyRequested) return;
-
     if (lastSyncedAt == null ||
         now.difference(lastSyncedAt) >= _repository.cacheTtl) {
-      _lastRefreshAttempt = now;
       await refresh();
     }
   }
@@ -174,11 +140,8 @@ class CategoryProductController
           ? CategoryProductStatus.data
           : CategoryProductStatus.loading,
       isRefreshing: true,
-      refreshStartedAt: DateTime.now(),
-      resetRefreshEndedAt: true,
       clearError: true,
     );
-    _scheduleIndicatorReset();
 
     try {
       final result = await _repository.syncProducts(
@@ -194,16 +157,11 @@ class CategoryProductController
         lastSyncedAt: result.lastSyncedAt,
         lastModified: result.lastModified,
         isRefreshing: false,
-        resetRefreshStartedAt: true,
-        refreshEndedAt: DateTime.now(),
-        resetRefreshEndedAt: false,
         totalCount: result.totalCount,
         next: result.next,
         previous: result.previous,
         clearError: true,
       );
-      _scheduleIndicatorReset();
-      _lastRefreshAttempt = DateTime.now();
     } catch (error) {
       final message = _mapError(error);
 
@@ -211,21 +169,11 @@ class CategoryProductController
         state = state.copyWith(
           status: CategoryProductStatus.error,
           isRefreshing: false,
-          resetRefreshStartedAt: true,
-          refreshEndedAt: DateTime.now(),
-          resetRefreshEndedAt: false,
           errorMessage: message,
         );
       } else {
-        state = state.copyWith(
-          isRefreshing: false,
-          resetRefreshStartedAt: true,
-          refreshEndedAt: DateTime.now(),
-          resetRefreshEndedAt: false,
-          errorMessage: message,
-        );
+        state = state.copyWith(isRefreshing: false, errorMessage: message);
       }
-      _scheduleIndicatorReset();
     }
   }
 
@@ -239,45 +187,7 @@ class CategoryProductController
     return 'Something went wrong. Please try again.';
   }
 
-  /// Starts periodic polling to check for product updates every 30 seconds.
-  ///
-  /// How it works:
-  /// 1. Every 30 seconds, a refresh is triggered
-  /// 2. The repository reads lastModified from Hive for this category
-  /// 3. A GET request is sent with If-Modified-Since header
-  /// 4. If server responds with 304: UI keeps showing cached products (bandwidth saved!)
-  /// 5. If server responds with 200: New products are cached and UI is updated
-  ///
-  /// Safeguards:
-  /// - Skips if already refreshing (prevents overlapping requests)
-  /// - Skips if loading initial data
-  /// - Per-category: Each category has its own polling timer
-  void _startPolling() {
-    _pollingTimer ??= Timer.periodic(_pollingInterval, (_) {
-      if (state.isRefreshing) return;
-      if (!state.hasData && state.status == CategoryProductStatus.loading) {
-        return;
-      }
-      unawaited(refresh());
-    });
-  }
-
-  void _scheduleIndicatorReset() {
-    _indicatorTimer?.cancel();
-    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
-      state = state.copyWith(
-        resetRefreshStartedAt: true,
-        resetRefreshEndedAt: true,
-      );
-    });
-  }
-
   void _handleDispose() {
-    _pollingTimer?.cancel();
-    _pollingTimer = null;
-    _indicatorTimer?.cancel();
-    _indicatorTimer = null;
     _initialized = false;
-    _lastRefreshAttempt = null;
   }
 }

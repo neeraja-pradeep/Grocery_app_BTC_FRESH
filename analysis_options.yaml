@@ -7,16 +7,58 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "build/**"
+    - ".dart_tool/**"
   errors:
+    # Code quality
     avoid_print: error
     prefer_const_constructors: error
     require_trailing_commas: error
+    # Architecture enforcement
+    depend_on_referenced_packages: error
+    implementation_imports: error
+    library_private_types_in_public_api: error
 
 linter:
   rules:
+    # ===== Naming Conventions =====
     camel_case_types: true
+    camel_case_extensions: true
     file_names: true
+    constant_identifier_names: true
+    non_constant_identifier_names: true
+    library_names: true
+    library_prefixes: true
+
+    # ===== Code Style =====
     prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
     require_trailing_commas: true
     avoid_print: true
     use_key_in_widget_constructors: true
+    prefer_single_quotes: true
+    sort_child_properties_last: true
+
+    # ===== Architecture & Structure =====
+    library_private_types_in_public_api: true
+    implementation_imports: true
+    avoid_relative_lib_imports: true
+    prefer_relative_imports: true
+    depend_on_referenced_packages: true
+
+    # ===== Clean Code =====
+    avoid_empty_else: true
+    avoid_unnecessary_containers: true
+    prefer_is_empty: true
+    prefer_is_not_empty: true
+    unnecessary_null_checks: true
+    unnecessary_nullable_for_final_variable_declarations: true
+    use_build_context_synchronously: true
+
+    # ===== Type Safety =====
+    always_declare_return_types: true
+    avoid_dynamic_calls: true
+    prefer_void_to_null: true
+
+    # ===== Documentation =====
+    slash_for_doc_comments: true
