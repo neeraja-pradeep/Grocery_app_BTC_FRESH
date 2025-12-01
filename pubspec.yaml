@@ -1,39 +1,70 @@
 name: grocery_app
 description: "A new Flutter project."
-publish_to: "none" # Prevent accidental publication to pub.dev
+publish_to: "none"
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.2
+  sdk: ^3.9.0
 
 dependencies:
   flutter:
     sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Functional Programming
+  fpdart: ^1.1.0
+
+  # UI/UX
   cupertino_icons: ^1.0.8
   flutter_screenutil: ^5.9.0
   google_fonts: ^6.1.0
   flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.3.0
+  pull_to_refresh: ^2.0.0
+
+  # Networking
   dio: ^5.4.0
-  flutter_riverpod: ^2.5.1
-  hive: ^2.2.3
+  dio_cookie_manager: ^3.1.0
+  cookie_jar: ^4.0.0
+  http: ^1.1.0
+
+  # Code Generation
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+
+  # Local Storage
   hive_flutter: ^1.1.0
+  hive: ^2.2.3
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  #  Custom lint plugin (your own rule package)
+  # Custom lint plugin
   naming_conventions_lint:
     path: ../naming_conventions_lint
 
-  #  Lint & Analysis tools
+  # Lint & Analysis tools
   custom_lint: ^0.6.4
   flutter_lints: ^6.0.0
   very_good_analysis: ^10.0.0
 
+  # Code Generation
+  build_runner: ^2.4.13
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  hive_generator: ^2.0.1
+  riverpod_generator: ^2.4.0
+
 flutter:
   uses-material-design: true
   assets:
+    - assets/
     - assets/images/
     - assets/svgs/

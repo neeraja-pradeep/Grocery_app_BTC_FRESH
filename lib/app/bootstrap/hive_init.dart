@@ -11,9 +11,18 @@ class HiveInit {
     if (_initialized) return;
 
     await Hive.initFlutter();
-    await Hive.openBox<dynamic>(AppHiveBoxes.cache);
-    await Hive.openBox<dynamic>(AppHiveBoxes.profile);
-    await Hive.openBox<dynamic>(AppHiveBoxes.address);
+
+    // Open all required boxes concurrently for better performance
+    await Future.wait([
+      // Profile module boxes
+      Hive.openBox<dynamic>(AppHiveBoxes.cache),
+      Hive.openBox<dynamic>(AppHiveBoxes.profile),
+      Hive.openBox<dynamic>(AppHiveBoxes.address),
+      // Home/Wishlist module boxes
+      Hive.openBox<dynamic>(AppHiveBoxes.homeBox),
+      Hive.openBox<dynamic>(AppHiveBoxes.catalogBox),
+      Hive.openBox<dynamic>(AppHiveBoxes.userPrefsBox),
+    ]);
 
     _initialized = true;
   }

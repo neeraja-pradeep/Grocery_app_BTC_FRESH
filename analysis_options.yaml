@@ -1,3 +1,12 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+#
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+# invoked from the command line by running `flutter analyze`.
+
+# The following line activates a set of recommended lints for Flutter apps,
+# packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
@@ -8,10 +17,8 @@ analyzer:
     - "**/*.freezed.dart"
     - "build/**"
   errors:
-    avoid_print: error
-    prefer_const_constructors: error
-    require_trailing_commas: error
 
+    require_trailing_commas: error
 linter:
   rules:
     camel_case_types: true

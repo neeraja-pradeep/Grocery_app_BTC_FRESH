@@ -54,4 +54,15 @@ class AppTheme {
     ),
     textTheme: Typography.whiteMountainView,
   );
+
+  // Alternative light theme using feature branch colors
+  static ThemeData get lightTheme => ThemeData(
+    primarySwatch: Colors.green,
+    primaryColor: AppColors.primaryGreenDark,
+    scaffoldBackgroundColor: AppColors.white,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.primaryGreenDark,
+      foregroundColor: AppColors.headerDarkText,
+    ),
+  );
 }

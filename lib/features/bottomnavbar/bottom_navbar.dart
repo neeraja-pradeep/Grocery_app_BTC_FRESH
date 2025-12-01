@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:grocery_app/features/category/presentation/screen/category_screen.dart';
+import 'package:grocery_app/features/home/presentation/screen/home_screen.dart';
+import 'package:grocery_app/features/home/presentation/screen/categories_with_sidebar_screen.dart';
+import 'package:grocery_app/features/wishlist/presentation/screen/wishlist_screen.dart';
+import 'package:grocery_app/features/home/presentation/screen/cart_screen.dart';
+import 'package:grocery_app/features/profile/presentation/screen/profile_screen.dart';
 
 class BottomNavigation extends StatefulWidget {
   const BottomNavigation({super.key});
@@ -10,10 +14,11 @@ class BottomNavigation extends StatefulWidget {
 
 class _BottomNavigationState extends State<BottomNavigation> {
   static const List<Widget> _pages = [
-    CategoryScreen(),
-    _PlaceholderPage(title: 'Home'),
-    _PlaceholderPage(title: 'Wishlist'),
-    _PlaceholderPage(title: 'Cart'),
+    HomeScreen(),
+    CategoriesWithSidebarScreen(),
+    WishlistScreen(),
+    CartScreen(),
+    ProfileScreen(),
   ];
 
   int _currentIndex = 0;
@@ -52,12 +57,13 @@ class _BottomNavBar extends StatelessWidget {
       selectedItemColor: colorScheme.primary,
       unselectedItemColor: colorScheme.onSurfaceVariant,
       showUnselectedLabels: true,
+      type: BottomNavigationBarType.fixed,
       items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
         BottomNavigationBarItem(
           icon: Icon(Icons.category_outlined),
           label: 'Categories',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
         BottomNavigationBarItem(
           icon: Icon(Icons.favorite_border),
           label: 'Wishlist',
@@ -66,18 +72,11 @@ class _BottomNavBar extends StatelessWidget {
           icon: Icon(Icons.shopping_bag_outlined),
           label: 'Cart',
         ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profile',
+        ),
       ],
     );
-  }
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text(title));
   }
 }
