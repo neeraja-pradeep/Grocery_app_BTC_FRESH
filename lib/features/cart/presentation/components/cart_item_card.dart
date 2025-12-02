@@ -164,7 +164,7 @@ class CartItemCard extends StatelessWidget {
     return Row(
       children: [
         // Decrement button
-        _buildControlButton(icon: Icons.remove, onTap: onDecrement),
+        _QuantityControlButton(icon: Icons.remove, onTap: onDecrement),
         SizedBox(width: 4.w),
 
         // Quantity display
@@ -186,30 +186,96 @@ class CartItemCard extends StatelessWidget {
         SizedBox(width: 4.w),
 
         // Increment button
-        _buildControlButton(icon: Icons.add, onTap: onIncrement),
+        _QuantityControlButton(icon: Icons.add, onTap: onIncrement),
       ],
     );
   }
+}
 
-  Widget _buildControlButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+/// Animated quantity control button with border highlight effect
+class _QuantityControlButton extends StatefulWidget {
+  const _QuantityControlButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  State<_QuantityControlButton> createState() => _QuantityControlButtonState();
+}
+
+class _QuantityControlButtonState extends State<_QuantityControlButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Color?> _borderColorAnimation;
+  late Animation<Color?> _iconColorAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _borderColorAnimation = ColorTween(
+      begin: AppColors.grey.withValues(alpha: 0.3),
+      end: const Color(0xFF8BC34A),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _iconColorAnimation = ColorTween(
+      begin: AppColors.grey,
+      end: const Color(0xFF8BC34A),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.92,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward().then((_) {
+      _controller.reverse();
+    });
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32.w,
-        height: 26.h,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          border: Border.all(
-            color: AppColors.grey.withValues(alpha: 0.3),
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        alignment: Alignment.center,
-        child: Icon(icon, size: 16.sp, color: AppColors.grey),
+      onTap: _handleTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              width: 32.w,
+              height: 26.h,
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                border: Border.all(
+                  color: _borderColorAnimation.value ?? AppColors.grey,
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                widget.icon,
+                size: 16.sp,
+                color: _iconColorAnimation.value ?? AppColors.grey,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
