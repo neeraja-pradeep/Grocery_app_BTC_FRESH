@@ -17,12 +17,18 @@ final checkoutLineDataSourceProvider = Provider<CheckoutLineDataSource>((ref) {
 /// Checkout lines controller - manages cart state with 30-second polling
 class CheckoutLineController extends Notifier<CheckoutLineState> {
   static const Duration _pollingInterval = CacheConfig.pollingInterval;
+  static const Duration _debounceDelay = Duration(milliseconds: 150);
 
   late CheckoutLineDataSource _dataSource;
   bool _initialized = false;
   bool _disposed = false;
   Timer? _pollingTimer;
   Timer? _indicatorTimer;
+
+  // Quantity update debouncing - prevents rapid tap race conditions
+  final Map<int, Timer> _debounceTimers = {};
+  final Map<int, int> _pendingDeltas = {};
+  final Set<int> _processingLines = {};
 
   @override
   CheckoutLineState build() {
@@ -53,7 +59,8 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
     _initialized = true;
 
     await _loadInitial();
-    _startPolling();
+    // Register for polling - timer will start when 'cart' feature becomes active
+    _registerForPolling();
   }
 
   /// Load initial data
@@ -238,82 +245,155 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
     }
   }
 
-  /// Update quantity with optimistic UI update
+  /// Update quantity with debouncing to handle rapid taps
   /// [delta] is a delta value (+1 for increment, -1 for decrement)
   /// API expects delta values: positive for increment, negative for decrement
   /// If the resulting quantity is 0 or less, the item will be deleted
+  ///
+  /// DEBOUNCING LOGIC:
+  /// - Rapid taps accumulate deltas (e.g., tap-tap-tap = delta of 3)
+  /// - UI updates immediately (optimistic)
+  /// - API call is debounced - only fires after 300ms of no taps
+  /// - Prevents race conditions from concurrent API calls
   Future<void> updateQuantity({required int lineId, required int delta}) async {
     if (_disposed) return;
 
-    // Store original state for rollback
-    final originalState = state;
+    // If this line is currently being processed by API, ignore new taps
+    if (_processingLines.contains(lineId)) {
+      developer.log(
+        'Ignoring tap - line $lineId is processing',
+        name: 'CheckoutLineController',
+      );
+      return;
+    }
 
-    try {
-      // Find the current item to calculate new quantity for UI
-      final currentItem = state.checkoutLines?.results.firstWhere(
-        (item) => item.id == lineId,
-        orElse: () => throw Exception('Item not found in cart'),
+    // Find the current item
+    final currentItem = state.checkoutLines?.results.firstWhere(
+      (item) => item.id == lineId,
+      orElse: () => throw Exception('Item not found in cart'),
+    );
+
+    if (currentItem == null) {
+      throw Exception('Item not found in cart');
+    }
+
+    // Accumulate delta for this line
+    _pendingDeltas[lineId] = (_pendingDeltas[lineId] ?? 0) + delta;
+    final cumulativeDelta = _pendingDeltas[lineId]!;
+
+    // Calculate new quantity for UI (from ORIGINAL server quantity + cumulative delta)
+    final originalQuantity = currentItem.quantity - (cumulativeDelta - delta);
+    final newQuantity = originalQuantity + cumulativeDelta;
+
+    developer.log(
+      'Debounce: line=$lineId, delta=$delta, cumulative=$cumulativeDelta, '
+      'original=$originalQuantity, new=$newQuantity',
+      name: 'CheckoutLineController',
+    );
+
+    // If quantity becomes 0 or less, delete immediately
+    if (newQuantity <= 0) {
+      _debounceTimers[lineId]?.cancel();
+      _debounceTimers.remove(lineId);
+      _pendingDeltas.remove(lineId);
+      await deleteCheckoutLine(lineId);
+      return;
+    }
+
+    // Optimistic UI update - show new quantity immediately
+    if (state.checkoutLines != null && !_disposed) {
+      final updatedItems = state.checkoutLines!.results.map((item) {
+        if (item.id == lineId) {
+          return item.copyWith(quantity: newQuantity);
+        }
+        return item;
+      }).toList();
+
+      final updatedResponse = CheckoutLinesResponse(
+        count: state.checkoutLines!.count,
+        next: state.checkoutLines!.next,
+        previous: state.checkoutLines!.previous,
+        results: updatedItems,
       );
 
-      if (currentItem == null) {
-        throw Exception('Item not found in cart');
-      }
+      _safeSetState(state.copyWith(checkoutLines: updatedResponse));
+    }
 
-      // Calculate new quantity for UI update
-      final newQuantity = currentItem.quantity + delta;
+    // Cancel existing debounce timer for this line
+    _debounceTimers[lineId]?.cancel();
 
-      // If quantity becomes 0 or less, delete the item
-      if (newQuantity <= 0) {
-        await deleteCheckoutLine(lineId);
-        return;
-      }
-
-      // Optimistic update - update UI immediately
-      if (state.checkoutLines != null && !_disposed) {
-        final updatedItems = state.checkoutLines!.results.map((item) {
-          if (item.id == lineId) {
-            return item.copyWith(quantity: newQuantity);
-          }
-          return item;
-        }).toList();
-
-        final updatedResponse = CheckoutLinesResponse(
-          count: state.checkoutLines!.count,
-          next: state.checkoutLines!.next,
-          previous: state.checkoutLines!.previous,
-          results: updatedItems,
-        );
-
-        _safeSetState(state.copyWith(checkoutLines: updatedResponse));
-      }
-
-      // Make API call with DELTA value (positive for increment, negative for decrement)
-      await _dataSource.updateQuantity(
+    // Start new debounce timer - API call fires after delay
+    _debounceTimers[lineId] = Timer(_debounceDelay, () async {
+      await _executeQuantityUpdate(
         lineId: lineId,
         productVariantId: currentItem.productVariantId,
-        quantity: delta,
+      );
+    });
+  }
+
+  /// Execute the actual API call after debounce delay
+  Future<void> _executeQuantityUpdate({
+    required int lineId,
+    required int productVariantId,
+  }) async {
+    if (_disposed) return;
+
+    final cumulativeDelta = _pendingDeltas[lineId];
+    if (cumulativeDelta == null || cumulativeDelta == 0) {
+      _pendingDeltas.remove(lineId);
+      return;
+    }
+
+    // Mark line as processing to block further taps + update UI
+    _processingLines.add(lineId);
+    _pendingDeltas.remove(lineId);
+    _debounceTimers.remove(lineId);
+
+    // Update state to show processing indicator in UI
+    _safeSetState(
+      state.copyWith(processingLineIds: Set.from(_processingLines)),
+    );
+
+    // Store state for rollback (with processing state)
+    final originalCheckoutLines = state.checkoutLines;
+
+    try {
+      developer.log(
+        'API call: line=$lineId, delta=$cumulativeDelta',
+        name: 'CheckoutLineController',
       );
 
-      // Force refresh to get server state (no conditional headers)
+      // Make API call with cumulative delta
+      await _dataSource.updateQuantity(
+        lineId: lineId,
+        productVariantId: productVariantId,
+        quantity: cumulativeDelta,
+      );
+
+      // Force refresh to get server state
       await _forceRefresh();
     } on InsufficientStockException catch (e) {
       // Rollback on insufficient stock error
-      _safeSetState(originalState);
-
+      _safeSetState(state.copyWith(checkoutLines: originalCheckoutLines));
       developer.log(
         'Insufficient stock: ${e.message}',
         name: 'CheckoutLineController',
       );
-      rethrow;
+      // Note: Can't rethrow here as we're in a timer callback
+      // The UI will show the rollback state
     } catch (e) {
       // Rollback on error
-      _safeSetState(originalState);
-
+      _safeSetState(state.copyWith(checkoutLines: originalCheckoutLines));
       developer.log(
         'Failed to update quantity: $e',
         name: 'CheckoutLineController',
       );
-      rethrow;
+    } finally {
+      // Remove from processing and update UI
+      _processingLines.remove(lineId);
+      _safeSetState(
+        state.copyWith(processingLineIds: Set.from(_processingLines)),
+      );
     }
   }
 
@@ -385,42 +465,58 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
     }
   }
 
-  /// Start automatic polling every 30 seconds
-  void _startPolling() {
-    _pollingTimer ??= Timer.periodic(_pollingInterval, (_) async {
+  /// Register for polling with PollingManager
+  ///
+  /// IMPORTANT: This does NOT start the polling timer immediately!
+  /// The timer only starts when PollingManager calls onResume,
+  /// which happens when the 'cart' feature is active.
+  ///
+  /// PAGE-FOCUSED POLLING:
+  /// - Timer starts only when user is viewing the Cart screen
+  /// - Timer stops when user navigates to Categories, Profile, etc.
+  /// - This prevents unnecessary API calls for inactive pages
+  void _registerForPolling() {
+    // Register with PollingManager - timer will start when feature is active
+    PollingManager.instance.registerPoller(
+      featureName: 'cart',
+      resourceId: 'lines',
+      onResume: _startPollingTimer,
+      onPause: _stopPollingTimer,
+    );
+
+    developer.log(
+      'Registered polling for cart lines (waiting for activation)',
+      name: 'CheckoutLineController',
+      level: 700,
+    );
+  }
+
+  /// Start the polling timer (called by PollingManager when 'cart' feature becomes active)
+  void _startPollingTimer() {
+    if (_disposed) return;
+    if (_pollingTimer != null) return; // Already running
+
+    developer.log(
+      'Starting polling timer for cart lines (interval: ${_pollingInterval.inSeconds}s)',
+      name: 'CheckoutLineController',
+      level: 700,
+    );
+
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) async {
+      if (_disposed) return;
       if (state.isRefreshing) return;
       if (!state.hasData && state.status == CheckoutLineStatus.loading) {
         return;
       }
       await refresh();
     });
-
-    // Register with PollingManager for screen-aware polling
-    PollingManager.instance.registerPoller(
-      featureName: 'cart',
-      resourceId: 'lines',
-      onResume: _resumePolling,
-      onPause: _pausePolling,
-    );
   }
 
-  /// Resume polling when user navigates back to cart screen
-  void _resumePolling() {
-    if (_pollingTimer == null) {
-      developer.log(
-        'Resuming polling for cart lines',
-        name: 'CheckoutLineController',
-        level: 700,
-      );
-      _startPolling();
-    }
-  }
-
-  /// Pause polling when user navigates away from cart screen
-  void _pausePolling() {
+  /// Stop the polling timer (called by PollingManager when 'cart' feature becomes inactive)
+  void _stopPollingTimer() {
     if (_pollingTimer != null) {
       developer.log(
-        'Pausing polling for cart lines',
+        'Stopping polling timer for cart lines',
         name: 'CheckoutLineController',
         level: 700,
       );
@@ -454,6 +550,14 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
     _pollingTimer = null;
     _indicatorTimer = null;
     _initialized = false;
+
+    // Clean up debounce timers
+    for (final timer in _debounceTimers.values) {
+      timer.cancel();
+    }
+    _debounceTimers.clear();
+    _pendingDeltas.clear();
+    _processingLines.clear();
   }
 }
 

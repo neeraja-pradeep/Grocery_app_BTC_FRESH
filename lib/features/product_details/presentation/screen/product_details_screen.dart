@@ -5,6 +5,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_models.dart';
 import '../../../../core/network/socket_provider.dart';
+import '../../../../core/polling/polling_manager.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
@@ -47,23 +48,42 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   /// This is UI-only state and doesn't need Riverpod
   bool _isProductDetailExpanded = true;
 
+  /// Store previous active feature to restore when popping back
+  String? _previousActiveFeature;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
     // Join variant room on mount for real-time Socket.IO updates
+    // and activate product_detail polling feature
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final socketService = ref.read(socketServiceProvider);
       final variantId = int.tryParse(widget.variantId) ?? 0;
       if (variantId > 0) {
         socketService.joinVariantRoom(variantId);
       }
+
+      // Save previous feature ONLY if it's not already 'product_detail'
+      // This handles nested product navigation correctly:
+      // Categories → Product1 → Product2 → pop → pop → back to Categories
+      final currentFeature = PollingManager.instance.activeFeature;
+      if (currentFeature != 'product_detail') {
+        _previousActiveFeature = currentFeature;
+      }
+      PollingManager.instance.setActiveFeature('product_detail');
     });
   }
 
   @override
   void dispose() {
+    // Restore previous active feature when leaving product details
+    // This reactivates category_products polling when going back to categories
+    if (_previousActiveFeature != null) {
+      PollingManager.instance.setActiveFeature(_previousActiveFeature!);
+    }
+
     // Don't use ref in dispose() - it's invalid after widget disposal
     // Socket.IO will handle cleanup automatically via Riverpod's ref.onDispose
     WidgetsBinding.instance.removeObserver(this);
@@ -186,9 +206,26 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     PriceUpdateEvent? socketPriceUpdate,
     InventoryUpdateEvent? socketInventoryUpdate,
   ) {
-    // Use real-time price from Socket if available, otherwise use API price
-    final displayPrice =
-        socketPriceUpdate?.newPrice.toString() ?? productDetail.price;
+    // Calculate display price and original price based on discounted_price
+    // If discountedPrice exists → it's the display price, price is strikethrough
+    // If discountedPrice is null → price is the display price, no strikethrough
+    final String displayPrice;
+    final String? originalPrice;
+
+    if (socketPriceUpdate != null) {
+      // Use real-time Socket.IO price if available
+      displayPrice = socketPriceUpdate.newPrice.toString();
+      originalPrice = socketPriceUpdate.oldPrice?.toString();
+    } else if (productDetail.discountedPrice != null &&
+        productDetail.discountedPrice!.isNotEmpty) {
+      // Has discount: discountedPrice is display, price is strikethrough
+      displayPrice = productDetail.discountedPrice!;
+      originalPrice = productDetail.price;
+    } else {
+      // No discount: price is display, no strikethrough
+      displayPrice = productDetail.price;
+      originalPrice = null;
+    }
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -213,6 +250,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             // Price and add to cart row
             PriceRow(
               price: displayPrice,
+              originalPrice: originalPrice,
               quantity: state.quantity,
               onAdd: () => controller.setQuantity(1),
               onIncrement: () => controller.setQuantity(state.quantity + 1),
@@ -269,9 +307,18 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     ProductDetailController controller,
     PriceUpdateEvent? socketPriceUpdate,
   ) {
-    // Use real-time price from Socket if available, otherwise use API price
-    final displayPrice =
-        socketPriceUpdate?.newPrice.toString() ?? productDetail.price;
+    // Calculate display price based on discounted_price logic
+    final String displayPrice;
+
+    if (socketPriceUpdate != null) {
+      displayPrice = socketPriceUpdate.newPrice.toString();
+    } else if (productDetail.discountedPrice != null &&
+        productDetail.discountedPrice!.isNotEmpty) {
+      displayPrice = productDetail.discountedPrice!;
+    } else {
+      displayPrice = productDetail.price;
+    }
+
     final unitPrice = extractNumericPrice(displayPrice);
 
     return CheckoutSection(

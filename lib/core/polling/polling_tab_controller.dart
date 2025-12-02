@@ -66,6 +66,14 @@ class PollingTabController {
   String? getFeatureForTab(int tabIndex) => _tabToFeature[tabIndex];
 
   /// Select a tab and manage polling activation/deactivation
+  ///
+  /// This sets the active feature, which:
+  /// 1. Pauses ALL pollers from the previous feature (e.g., all category_products pollers)
+  /// 2. Allows pollers from the new feature to run
+  ///
+  /// This ensures that when you switch from Category tab to Cart tab:
+  /// - All category product API checks STOP
+  /// - Cart API checks START
   void selectTab(int tabIndex) {
     if (_currentTabIndex == tabIndex) {
       // Already on this tab
@@ -82,19 +90,20 @@ class PollingTabController {
       return;
     }
 
+    final previousFeature = _currentTabIndex != null
+        ? _tabToFeature[_currentTabIndex]
+        : null;
     _currentTabIndex = tabIndex;
 
     developer.log(
-      'Tab selected: $tabIndex → Activating polling for $featureName',
+      'Tab changed: $previousFeature → $featureName (tab $tabIndex)',
       name: 'PollingTabController',
       level: 800,
     );
 
-    // Activate the new tab's polling
-    PollingManager.instance.activatePoller(
-      featureName: featureName,
-      resourceId: defaultResourceId,
-    );
+    // Set the active feature - this pauses ALL pollers from other features
+    // and allows pollers from this feature to run
+    PollingManager.instance.setActiveFeature(featureName);
   }
 
   /// Manual pause (for when using IndexedStack outside of tab context)

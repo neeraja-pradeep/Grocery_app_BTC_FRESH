@@ -45,13 +45,17 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
     // Step 2: No cache available, must fetch from API
     try {
-      final profileDto = await _remoteDs.fetchProfile();
+      final response = await _remoteDs.fetchProfile();
+
+      if (response.isNotModified || response.profile == null) {
+        throw const FormatException('No profile data available.');
+      }
 
       // Cache asynchronously (non-blocking)
-      _localDs.cacheProfileAsync(profileDto);
+      _localDs.cacheProfileAsync(response.profile!);
 
       return ProfileFetchResult(
-        profile: profileDto.toDomain(),
+        profile: response.profile!.toDomain(),
         isStale: false,
         fromCache: false,
       );
@@ -62,15 +66,20 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   /// Refreshes profile from API (background refresh)
-  /// Returns fresh data or null if fails
+  /// Returns fresh data or null if fails or data not modified
   Future<Profile?> refreshProfileFromApi() async {
     try {
-      final profileDto = await _remoteDs.fetchProfile();
+      final response = await _remoteDs.fetchProfile();
+
+      // 304 Not Modified or no data - nothing to update
+      if (response.isNotModified || response.profile == null) {
+        return null;
+      }
 
       // Cache asynchronously (non-blocking)
-      _localDs.cacheProfileAsync(profileDto);
+      _localDs.cacheProfileAsync(response.profile!);
 
-      return profileDto.toDomain();
+      return response.profile!.toDomain();
     } catch (error) {
       // Silently fail - cache remains unchanged
       return null;

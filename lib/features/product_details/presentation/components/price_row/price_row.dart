@@ -16,6 +16,7 @@ class PriceRow extends StatelessWidget {
   const PriceRow({
     super.key,
     required this.price,
+    this.originalPrice,
     required this.quantity,
     required this.onAdd,
     required this.onIncrement,
@@ -23,6 +24,7 @@ class PriceRow extends StatelessWidget {
   });
 
   final String price;
+  final String? originalPrice; // Shown with strikethrough when discounted
   final int quantity;
   final VoidCallback onAdd;
   final VoidCallback onIncrement;
@@ -30,6 +32,12 @@ class PriceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check if we should show strikethrough original price
+    final showOriginalPrice =
+        originalPrice != null &&
+        originalPrice!.isNotEmpty &&
+        originalPrice != price;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -45,14 +53,34 @@ class PriceRow extends StatelessWidget {
                   onDecrement: onDecrement,
                 ),
         ),
-        // Unit Price display
-        Text(
-          '$_rupeeSymbol$price',
-          style: TextStyle(
-            fontSize: 22.sp,
-            fontWeight: FontWeight.w800,
-            color: AppColors.black,
-          ),
+        // Price display with optional strikethrough original
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Current/discounted price
+            Text(
+              '$_rupeeSymbol$price',
+              style: TextStyle(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w800,
+                color: AppColors.black,
+              ),
+            ),
+            // Original price with strikethrough (if discounted)
+            if (showOriginalPrice) ...[
+              SizedBox(width: 8.w),
+              Text(
+                '$_rupeeSymbol$originalPrice',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.grey,
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: AppColors.grey,
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );

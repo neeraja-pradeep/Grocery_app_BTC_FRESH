@@ -47,7 +47,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final addressState = ref.watch(addressControllerProvider);
+    final addressState = ref.watch(profileAddressControllerProvider);
     // Profile state watched for reactivity, not directly used
     ref.watch(profileControllerProvider);
 
@@ -281,7 +281,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
     try {
       if (isEditing) {
         await ref
-            .read(addressControllerProvider.notifier)
+            .read(profileAddressControllerProvider.notifier)
             .updateAddress(
               id: widget.address!.id,
               firstName: firstName,
@@ -294,7 +294,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
             );
       } else {
         await ref
-            .read(addressControllerProvider.notifier)
+            .read(profileAddressControllerProvider.notifier)
             .createAddress(
               firstName: firstName,
               lastName: lastName,

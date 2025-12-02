@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_text.dart';
 import '../../application/providers/address_providers.dart';
 import '../../application/providers/applied_coupon_provider.dart';
 import '../../application/providers/checkout_line_provider.dart';
+import '../../application/providers/payment_provider.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../bottomnavbar/bottom_navbar.dart';
 import '../components/address_sheet.dart';
@@ -71,6 +72,7 @@ class CheckoutScreen extends ConsumerWidget {
                         originalPrice: product.price,
                         hasDiscount: product.hasDiscount,
                         discountPercentage: product.discountPercentage,
+                        isProcessing: checkoutState.isLineProcessing(line.id),
                         onIncrement: () =>
                             _handleIncrement(ref, line.id, line.quantity),
                         onDecrement: () =>
@@ -98,7 +100,7 @@ class CheckoutScreen extends ConsumerWidget {
           deliveryFee: deliveryFee,
           grandTotal: grandTotal,
           appliedCoupon: appliedCouponState.appliedCoupon,
-          onPlaceOrder: () => _handlePlaceOrder(context),
+          onPlaceOrder: () => _handlePlaceOrder(context, ref),
           deliveryAddressWidget: _buildDeliveryAddressSection(context, ref),
         ),
       ],
@@ -282,8 +284,71 @@ class CheckoutScreen extends ConsumerWidget {
     }
   }
 
-  void _handlePlaceOrder(BuildContext context) {
-    // Navigate to category tab and show review bottom sheet
-    BottomNavigation.globalKey.currentState?.navigateToCategoryAndShowReview();
+  void _handlePlaceOrder(BuildContext context, WidgetRef ref) {
+    final addressState = ref.read(addressControllerProvider);
+    final selectedAddress = addressState.selectedAddress;
+
+    // Validate address is selected
+    if (selectedAddress == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a delivery address'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validate cart is not empty
+    final checkoutState = ref.read(checkoutLineControllerProvider);
+    if (checkoutState.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your cart is empty'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Get checkout ID from first cart item
+    final checkoutId = checkoutState.items.first.checkout;
+
+    // Get applied coupon ID if any
+    final appliedCouponState = ref.read(appliedCouponProvider);
+    final couponId = appliedCouponState.appliedCoupon?.id;
+
+    // Initiate payment
+    ref
+        .read(paymentControllerProvider.notifier)
+        .initiatePayment(
+          addressId: selectedAddress.id,
+          checkoutId: checkoutId,
+          couponId: couponId,
+          customerName: selectedAddress.fullName,
+          onSuccess: () {
+            // Payment successful - show success and navigate
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Payment successful! Order placed.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Clear applied coupon after successful payment
+            ref.read(appliedCouponProvider.notifier).removeCoupon();
+            // Navigate to order confirmation
+            BottomNavigation.globalKey.currentState
+                ?.navigateToCategoryAndShowReview();
+          },
+          onFailure: (error) {
+            // Payment failed - show error
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Payment failed: $error'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          },
+        );
   }
 }

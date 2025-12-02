@@ -54,19 +54,40 @@ class CategoryProductDto {
     final variantName = variant?['name']?.toString() ?? rawName.toString();
     final variantSku = variant?['sku']?.toString();
 
-    final variantPrice =
+    // Get the base price from API (this is the original/MRP price)
+    final basePrice =
         variant?['price']?.toString() ?? product['price']?.toString();
 
-    final originalPriceValue =
-        variant?['compare_at_price'] ??
-        variant?['original_price'] ??
-        variant?['base_price'] ??
-        variant?['mrp'] ??
-        product['compare_at_price'] ??
-        product['original_price'] ??
-        product['base_price'] ??
-        product['mrp'];
-    final originalPrice = originalPriceValue?.toString();
+    // Get discounted price from API (sale price - if available)
+    final discountedPriceValue =
+        variant?['discounted_price'] ?? product['discounted_price'];
+
+    // Determine display price and original price based on discounted_price
+    // If discounted_price exists and is not null → show it as main price, basePrice as strikethrough
+    // If discounted_price is null → show basePrice as main price, no strikethrough
+    final String? variantPrice;
+    final String? originalPrice;
+
+    if (discountedPriceValue != null &&
+        discountedPriceValue.toString().isNotEmpty) {
+      // Has discount: discounted_price is the display price, price is original
+      variantPrice = discountedPriceValue.toString();
+      originalPrice = basePrice;
+    } else {
+      // No discount: price is the display price, no original price
+      variantPrice = basePrice;
+      // Check for other original price fields (compare_at_price, mrp, etc.)
+      final otherOriginalPrice =
+          variant?['compare_at_price'] ??
+          variant?['original_price'] ??
+          variant?['base_price'] ??
+          variant?['mrp'] ??
+          product['compare_at_price'] ??
+          product['original_price'] ??
+          product['base_price'] ??
+          product['mrp'];
+      originalPrice = otherOriginalPrice?.toString();
+    }
 
     final weightValue =
         variant?['weight'] ?? product['weight'] ?? variant?['weight_value'];
@@ -187,6 +208,27 @@ class CategoryProductDto {
       rating = double.tryParse(rawRating);
     }
 
+    // Handle discounted_price for price display logic
+    final basePrice = json['price']?.toString();
+    final discountedPrice = json['discounted_price']?.toString();
+
+    final String? displayPrice;
+    final String? originalPrice;
+
+    if (discountedPrice != null && discountedPrice.isNotEmpty) {
+      // Has discount
+      displayPrice = discountedPrice;
+      originalPrice = basePrice;
+    } else {
+      // No discount
+      displayPrice = basePrice;
+      originalPrice =
+          json['originalPrice']?.toString() ??
+          json['original_price']?.toString() ??
+          json['compare_at_price']?.toString() ??
+          json['mrp']?.toString();
+    }
+
     return CategoryProductDto(
       id: rawId.toString(),
       name: rawName.toString(),
@@ -196,12 +238,8 @@ class CategoryProductDto {
           json['variantSku']?.toString() ?? json['variant_sku']?.toString(),
       description: json['description']?.toString(),
       slug: json['slug']?.toString(),
-      price: json['price']?.toString(),
-      originalPrice:
-          json['originalPrice']?.toString() ??
-          json['original_price']?.toString() ??
-          json['compare_at_price']?.toString() ??
-          json['mrp']?.toString(),
+      price: displayPrice,
+      originalPrice: originalPrice,
       weight: json['weight']?.toString(),
       rating: rating,
       imageUrl: json['imageUrl']?.toString() ?? json['image_url']?.toString(),

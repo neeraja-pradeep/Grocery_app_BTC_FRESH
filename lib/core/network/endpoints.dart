@@ -180,6 +180,35 @@ class ApiEndpoints {
   //    - 200 OK → Data changed, use fresh data + extract new headers
   //
   // See CacheHeadersHelper for reusable utility functions.
+
+  // ============================================================================
+  // ORDER / PAYMENT ENDPOINTS
+  // ============================================================================
+
+  /// Apply coupon to checkout
+  ///
+  /// ❌ PATCH REQUEST (not applicable for conditional caching)
+  /// - Request body: {"coupon": coupon_id}
+  /// - Response: Updated checkout with coupon applied
+  ///
+  /// Parameters:
+  /// - [checkoutId]: The checkout ID to apply coupon to
+  static String applyCoupon(int checkoutId) =>
+      'api/order/checkouts/$checkoutId/';
+
+  /// Initiate payment and get Razorpay order details
+  ///
+  /// ❌ POST REQUEST (not applicable for conditional caching)
+  /// - Request body: Order details (address_id, items, etc.)
+  /// - Response: Order details with razorpay_order_id for payment
+  static const String paymentInitiate = 'api/order/payment/initiate/';
+
+  /// Verify Razorpay payment after successful payment
+  ///
+  /// ❌ POST REQUEST (not applicable for conditional caching)
+  /// - Request body: {razorpay_payment_id, razorpay_order_id, razorpay_signature}
+  /// - Response: Payment verification status
+  static const String paymentVerify = 'api/order/payment/verify/';
 }
 
 // Alias for backward compatibility

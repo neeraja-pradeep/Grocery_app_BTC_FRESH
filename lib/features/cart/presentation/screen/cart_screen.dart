@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_provider.dart';
 import '../../../../core/network/socket_service.dart';
-import '../../../../core/polling/polling_manager.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../application/providers/checkout_line_provider.dart';
 import '../../domain/entities/checkout_line.dart';
@@ -53,10 +52,12 @@ class _CartScreenState extends ConsumerState<CartScreen>
     socketService = ref.read(socketServiceProvider);
 
     // Join socket rooms for cart items after first frame
+    // NOTE: We do NOT call _activateCartPolling() here because:
+    // - With IndexedStack, CartScreen is mounted immediately even if user is on another tab
+    // - Polling activation is handled by PollingTabController when user switches to Cart tab
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _joinCartItemRooms();
-      _activateCartPolling();
     });
   }
 
@@ -72,9 +73,10 @@ class _CartScreenState extends ConsumerState<CartScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Re-join rooms and resume polling when app comes to foreground
+      // Re-join socket rooms when app comes to foreground
+      // NOTE: Polling is resumed by PollingManager.resumeActiveFeaturePolling()
+      // which is called from BottomNavigation, not here
       _joinCartItemRooms();
-      _activateCartPolling();
     } else if (state == AppLifecycleState.paused) {
       // Leave rooms when app goes to background
       _leaveAllRooms();
@@ -108,16 +110,6 @@ class _CartScreenState extends ConsumerState<CartScreen>
       socketService.leaveVariantRoom(variantId);
     }
     _joinedRooms.clear();
-  }
-
-  /// Activate polling when cart screen becomes visible
-  void _activateCartPolling() {
-    // The CheckoutLineController already registers with PollingManager
-    // We just need to activate it when the cart screen is visible
-    PollingManager.instance.activatePoller(
-      featureName: 'cart',
-      resourceId: 'lines',
-    );
   }
 
   @override
@@ -439,6 +431,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
                   originalPrice: product.price,
                   hasDiscount: product.hasDiscount,
                   discountPercentage: product.discountPercentage,
+                  isProcessing: checkoutState.isLineProcessing(line.id),
                   onIncrement: () => _handleIncrement(line.id, line.quantity),
                   onDecrement: () => _handleDecrement(line.id, line.quantity),
                   onRemove: () => _showDeleteDialog(line.id, product.name),

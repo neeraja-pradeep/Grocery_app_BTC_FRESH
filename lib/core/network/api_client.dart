@@ -10,8 +10,8 @@ class ApiClient {
 
   final Dio _dio;
 
-  static const _defaultConnectTimeout = Duration(seconds: 20);
-  static const _defaultReceiveTimeout = Duration(seconds: 20);
+  static const _defaultConnectTimeout = Duration(seconds: 30);
+  static const _defaultReceiveTimeout = Duration(seconds: 30);
 
   static Dio _createDefaultDio() {
     final baseOptions = BaseOptions(
@@ -22,7 +22,7 @@ class ApiClient {
       responseType: ResponseType.json,
       contentType: 'application/json',
       validateStatus: (status) => status != null && status < 400,
-      headers: const <String, dynamic>{'dev': '1'},
+      headers: const <String, dynamic>{'dev': '4'},
     );
 
     final dio = Dio(baseOptions);

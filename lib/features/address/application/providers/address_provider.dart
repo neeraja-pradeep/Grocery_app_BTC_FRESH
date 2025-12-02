@@ -10,28 +10,38 @@ import '../../infrastructure/data_sources/remote/address_api.dart';
 import '../../infrastructure/repositories/address_repository_impl.dart';
 import '../states/address_state.dart';
 
-final addressLocalDsProvider = Provider<AddressLocalDs>((ref) {
+/// Profile address local data source provider
+/// Named with "profile" prefix to distinguish from cart feature's address providers
+final profileAddressLocalDsProvider = Provider<AddressLocalDs>((ref) {
   final box = Hive.box<dynamic>(AppHiveBoxes.address);
   return AddressLocalDs(box: box);
 });
 
-final addressApiProvider = Provider<AddressApi>((ref) {
+/// Profile address API provider
+final profileAddressApiProvider = Provider<AddressApi>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return AddressApi(client: apiClient);
 });
 
-final addressRepositoryProvider = Provider<AddressRepository>((ref) {
-  final remoteDs = ref.watch(addressApiProvider);
-  final localDs = ref.watch(addressLocalDsProvider);
+/// Profile address repository provider
+final profileAddressRepositoryProvider = Provider<AddressRepository>((ref) {
+  final remoteDs = ref.watch(profileAddressApiProvider);
+  final localDs = ref.watch(profileAddressLocalDsProvider);
 
   return AddressRepositoryImpl(remoteDs: remoteDs, localDs: localDs);
 });
 
-final addressControllerProvider =
-    NotifierProvider<AddressController, AddressState>(AddressController.new);
+/// Profile address controller provider
+/// Manages addresses from Profile > My Addresses screen
+/// For cart/checkout addresses, use cart's addressControllerProvider instead
+final profileAddressControllerProvider =
+    NotifierProvider<ProfileAddressController, AddressState>(
+      ProfileAddressController.new,
+    );
 
-class AddressController extends Notifier<AddressState> {
-  AddressRepository get _repository => ref.read(addressRepositoryProvider);
+class ProfileAddressController extends Notifier<AddressState> {
+  AddressRepository get _repository =>
+      ref.read(profileAddressRepositoryProvider);
 
   @override
   AddressState build() {

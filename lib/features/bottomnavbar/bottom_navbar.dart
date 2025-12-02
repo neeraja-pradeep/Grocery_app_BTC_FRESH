@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../app/theme/colors.dart';
+import '../../core/polling/polling_manager.dart';
 import '../../core/polling/polling_tab_controller.dart';
 import '../category/presentation/screen/category_screen.dart';
 import '../cart/presentation/screen/cart_screen.dart';
@@ -20,7 +21,8 @@ class BottomNavigation extends StatefulWidget {
   State<BottomNavigation> createState() => BottomNavigationState();
 }
 
-class BottomNavigationState extends State<BottomNavigation> {
+class BottomNavigationState extends State<BottomNavigation>
+    with WidgetsBindingObserver {
   static const List<Widget> _pages = [
     CategoryScreen(),
     HomeScreen(),
@@ -36,7 +38,13 @@ class BottomNavigationState extends State<BottomNavigation> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
     // Initialize PollingTabController to manage polling based on tab selection
+    // Feature names must match the featureName used in registerPoller() calls:
+    // - 'category_products' for CategoryProductController
+    // - 'cart' for CheckoutLineController
+    // - 'product_detail' is used when navigating to product details (handled separately)
     _pollingController = PollingTabController(
       tabToFeature: {
         0: 'category',
@@ -52,8 +60,21 @@ class BottomNavigationState extends State<BottomNavigation> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollingController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Handle app lifecycle changes for polling
+    if (state == AppLifecycleState.resumed) {
+      // App came to foreground - resume polling for the active feature
+      PollingManager.instance.resumeActiveFeaturePolling();
+    } else if (state == AppLifecycleState.paused) {
+      // App went to background - pause all polling to save battery
+      PollingManager.instance.pauseAllPolling();
+    }
   }
 
   void _onTabSelected(int index) {

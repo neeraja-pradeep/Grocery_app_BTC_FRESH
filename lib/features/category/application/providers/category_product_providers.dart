@@ -107,6 +107,8 @@ class CategoryProductController
     final cached = await _repository.getCachedProducts(_categoryId);
 
     if (cached != null) {
+      // Don't set isRefreshing here - let _refreshInternal handle it
+      // Setting isRefreshing=true here would cause _refreshInternal to return early
       _safeSetState(
         state.copyWith(
           status: cached.hasData
@@ -115,7 +117,8 @@ class CategoryProductController
           products: cached.products,
           lastSyncedAt: cached.lastSyncedAt,
           lastModified: cached.lastModified,
-          isRefreshing: cached.isStale,
+          isRefreshing:
+              false, // Will be set to true by _refreshInternal if needed
           totalCount: cached.totalCount,
           next: cached.next,
           previous: cached.previous,
@@ -123,10 +126,11 @@ class CategoryProductController
         ),
       );
     } else {
+      // No cache - show loading state, _refreshInternal will set isRefreshing
       _safeSetState(
         state.copyWith(
           status: CategoryProductStatus.loading,
-          isRefreshing: true,
+          isRefreshing: false, // Will be set to true by _refreshInternal
           clearError: true,
         ),
       );
@@ -135,12 +139,10 @@ class CategoryProductController
     final shouldRefresh = cached == null || cached.isStale;
     if (shouldRefresh) {
       await _refreshInternal(forceRemote: cached == null);
-    } else {
-      _safeSetState(state.copyWith(isRefreshing: false));
     }
 
-    // Start polling after initial load
-    _startPolling();
+    // Register for polling - timer will start when feature becomes active
+    _registerForPolling();
   }
 
   Future<void> refresh({bool force = false}) async {
@@ -230,9 +232,44 @@ class CategoryProductController
     }
   }
 
-  /// Start automatic polling every 30 seconds
-  void _startPolling() {
-    _pollingTimer ??= Timer.periodic(_pollingInterval, (_) async {
+  /// Register for polling with PollingManager
+  ///
+  /// IMPORTANT: This does NOT start the polling timer immediately!
+  /// The timer only starts when PollingManager calls onResume,
+  /// which happens when the 'category_products' feature is active.
+  ///
+  /// PAGE-FOCUSED POLLING:
+  /// - Timer starts only when user is viewing category products
+  /// - Timer stops when user navigates to Cart, Profile, etc.
+  /// - This prevents unnecessary API calls for inactive pages
+  void _registerForPolling() {
+    // Register with PollingManager - timer will start when feature is active
+    PollingManager.instance.registerPoller(
+      featureName: 'category_products',
+      resourceId: _categoryId,
+      onResume: _startPollingTimer,
+      onPause: _stopPollingTimer,
+    );
+
+    developer.log(
+      'Registered polling for category: $_categoryId (waiting for activation)',
+      name: 'CategoryProductController',
+      level: 700,
+    );
+  }
+
+  /// Start the polling timer (called by PollingManager when feature becomes active)
+  void _startPollingTimer() {
+    if (_disposed) return;
+    if (_pollingTimer != null) return; // Already running
+
+    developer.log(
+      'Starting polling timer for category: $_categoryId (interval: ${_pollingInterval.inSeconds}s)',
+      name: 'CategoryProductController',
+      level: 700,
+    );
+
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) async {
       if (_disposed) return;
       if (state.isRefreshing) return;
 
@@ -244,39 +281,13 @@ class CategoryProductController
 
       await _refreshInternal(forceRemote: false);
     });
-
-    // Register with PollingManager for screen-aware polling
-    PollingManager.instance.registerPoller(
-      featureName: 'category_products',
-      resourceId: _categoryId,
-      onResume: _resumePolling,
-      onPause: _pausePolling,
-    );
-
-    developer.log(
-      'Started polling for category: $_categoryId (interval: ${_pollingInterval.inSeconds}s)',
-      name: 'CategoryProductController',
-      level: 700,
-    );
   }
 
-  /// Resume polling when user navigates back to category screen
-  void _resumePolling() {
-    if (_pollingTimer == null && !_disposed) {
-      developer.log(
-        'Resuming polling for category: $_categoryId',
-        name: 'CategoryProductController',
-        level: 700,
-      );
-      _startPolling();
-    }
-  }
-
-  /// Pause polling when user navigates away from category screen
-  void _pausePolling() {
+  /// Stop the polling timer (called by PollingManager when feature becomes inactive)
+  void _stopPollingTimer() {
     if (_pollingTimer != null) {
       developer.log(
-        'Pausing polling for category: $_categoryId',
+        'Stopping polling timer for category: $_categoryId',
         name: 'CategoryProductController',
         level: 700,
       );
