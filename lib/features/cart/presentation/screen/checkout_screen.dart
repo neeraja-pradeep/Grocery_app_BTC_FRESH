@@ -5,39 +5,41 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../application/providers/address_providers.dart';
+import '../../application/providers/applied_coupon_provider.dart';
+import '../../application/providers/checkout_line_provider.dart';
+import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../bottomnavbar/bottom_navbar.dart';
 import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
 
 /// Checkout screen - displays cart items and order summary with selected address
-class CheckoutScreen extends ConsumerStatefulWidget {
+/// Now uses checkoutLineControllerProvider directly for real-time sync
+class CheckoutScreen extends ConsumerWidget {
   const CheckoutScreen({super.key, this.cartItems = const []});
 
+  // Keep for backward compatibility but not used anymore
   final List<Map<String, dynamic>> cartItems;
 
   @override
-  ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch cart state directly from provider
+    final checkoutState = ref.watch(checkoutLineControllerProvider);
+    final cartItems = checkoutState.items;
 
-class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
-  late List<Map<String, dynamic>> _checkoutItems;
+    // Watch applied coupon
+    final appliedCouponState = ref.watch(appliedCouponProvider);
 
-  @override
-  void initState() {
-    super.initState();
-    // Create a copy of cart items for checkout
-    _checkoutItems = List<Map<String, dynamic>>.from(
-      widget.cartItems.map((item) => Map<String, dynamic>.from(item)),
-    );
-  }
+    // Calculate order totals from actual cart data
+    final itemTotal = checkoutState.totalAmount;
 
-  @override
-  Widget build(BuildContext context) {
-    // Calculate order totals (mock calculation)
-    final itemTotal = _calculateItemTotal();
-    final discount = itemTotal * 0.1; // 10% mock discount
-    final gst = (itemTotal - discount) * 0.18; // 18% GST
+    // Calculate discount from applied coupon (or 0 if no coupon)
+    final discount = appliedCouponState.hasCoupon
+        ? ref.read(appliedCouponProvider.notifier).calculateDiscount(itemTotal)
+        : 0.0;
+
+    // GST calculation (18% on amount after discount)
+    final gst = (itemTotal - discount) * 0.18;
     const deliveryFee = 0.0; // Free delivery
     final grandTotal = itemTotal - discount + gst + deliveryFee;
 
@@ -49,23 +51,32 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             child: Column(
               children: [
                 // Cart items list with quantity controls
-                if (_checkoutItems.isNotEmpty)
+                if (cartItems.isNotEmpty)
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _checkoutItems.length,
+                    itemCount: cartItems.length,
                     itemBuilder: (context, index) {
-                      final item = _checkoutItems[index];
+                      final line = cartItems[index];
+                      final product = line.productVariantDetails;
+
                       return CartItemCard(
-                        imageUrl: item['imageUrl'] as String?,
-                        name: item['name'] as String,
-                        weight: item['weight'] as String,
-                        pricePerKg: item['pricePerKg'] as String,
-                        quantity: item['quantity'] as int,
-                        stockBadge: item['stockBadge'] as String,
-                        onIncrement: () => _handleIncrement(index),
-                        onDecrement: () => _handleDecrement(index),
-                        onRemove: () => _handleRemove(index),
+                        imageUrl: product.media.isNotEmpty
+                            ? product.media.first
+                            : null,
+                        name: product.name,
+                        weight: product.weight,
+                        pricePerKg: product.effectivePrice.toStringAsFixed(2),
+                        quantity: line.quantity,
+                        originalPrice: product.price,
+                        hasDiscount: product.hasDiscount,
+                        discountPercentage: product.discountPercentage,
+                        onIncrement: () =>
+                            _handleIncrement(ref, line.id, line.quantity),
+                        onDecrement: () =>
+                            _handleDecrement(ref, line.id, line.quantity),
+                        onRemove: () =>
+                            _handleRemove(context, ref, line.id, product.name),
                       );
                     },
                   )
@@ -86,14 +97,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           gst: gst,
           deliveryFee: deliveryFee,
           grandTotal: grandTotal,
+          appliedCoupon: appliedCouponState.appliedCoupon,
           onPlaceOrder: () => _handlePlaceOrder(context),
-          deliveryAddressWidget: _buildDeliveryAddressSection(),
+          deliveryAddressWidget: _buildDeliveryAddressSection(context, ref),
         ),
       ],
     );
   }
 
-  Widget _buildDeliveryAddressSection() {
+  Widget _buildDeliveryAddressSection(BuildContext context, WidgetRef ref) {
     // Watch selected address from provider
     final addressState = ref.watch(addressControllerProvider);
     final selectedAddress = addressState.selectedAddress;
@@ -115,8 +127,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.green60, // Background color
-              // shape: BoxShape.circle,
+              color: AppColors.green60,
               borderRadius: BorderRadius.circular(10),
             ),
             child: SvgPicture.asset(
@@ -124,7 +135,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               width: 20,
               height: 20,
               colorFilter: const ColorFilter.mode(
-                AppColors.couponGreen, // icon color on green bg
+                AppColors.couponGreen,
                 BlendMode.srcIn,
               ),
             ),
@@ -203,40 +214,72 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
-  void _handleIncrement(int index) {
-    setState(() {
-      _checkoutItems[index]['quantity'] =
-          (_checkoutItems[index]['quantity'] as int) + 1;
-    });
-  }
-
-  void _handleDecrement(int index) {
-    setState(() {
-      final currentQuantity = _checkoutItems[index]['quantity'] as int;
-      if (currentQuantity > 1) {
-        _checkoutItems[index]['quantity'] = currentQuantity - 1;
-      }
-    });
-  }
-
-  void _handleRemove(int index) {
-    setState(() {
-      _checkoutItems.removeAt(index);
-    });
-  }
-
-  double _calculateItemTotal() {
-    double total = 0;
-    for (final item in _checkoutItems) {
-      final price =
-          double.tryParse(
-            (item['pricePerKg'] as String).replaceAll(',', '.'),
-          ) ??
-          0;
-      final quantity = item['quantity'] as int;
-      total += price * quantity * 10; // Mock multiplier
+  Future<void> _handleIncrement(
+    WidgetRef ref,
+    int lineId,
+    int currentQuantity,
+  ) async {
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: lineId, delta: 1);
+    } on InsufficientStockException {
+      // Stock error handled by provider
+    } catch (_) {
+      // Error handled by provider
     }
-    return total;
+  }
+
+  Future<void> _handleDecrement(
+    WidgetRef ref,
+    int lineId,
+    int currentQuantity,
+  ) async {
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: lineId, delta: -1);
+    } on InsufficientStockException {
+      // Stock error handled by provider
+    } catch (_) {
+      // Error handled by provider
+    }
+  }
+
+  Future<void> _handleRemove(
+    BuildContext context,
+    WidgetRef ref,
+    int lineId,
+    String productName,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Item'),
+        content: Text('Remove "$productName" from your cart?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref
+            .read(checkoutLineControllerProvider.notifier)
+            .deleteCheckoutLine(lineId);
+      } catch (_) {
+        // Error handled by provider
+      }
+    }
   }
 
   void _handlePlaceOrder(BuildContext context) {

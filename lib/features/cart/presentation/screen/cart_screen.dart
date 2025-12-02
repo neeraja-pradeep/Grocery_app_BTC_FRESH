@@ -436,9 +436,9 @@ class _CartScreenState extends ConsumerState<CartScreen>
                   weight: product.weight,
                   pricePerKg: product.effectivePrice.toStringAsFixed(2),
                   quantity: line.quantity,
-                  stockBadge: product.hasDiscount
-                      ? product.discountedPrice
-                      : product.price,
+                  originalPrice: product.price,
+                  hasDiscount: product.hasDiscount,
+                  discountPercentage: product.discountPercentage,
                   onIncrement: () => _handleIncrement(line.id, line.quantity),
                   onDecrement: () => _handleDecrement(line.id, line.quantity),
                   onRemove: () => _showDeleteDialog(line.id, product.name),
