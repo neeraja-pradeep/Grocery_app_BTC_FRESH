@@ -1,6 +1,6 @@
 {
-    "name": "grocery_app",
-    "short_name": "grocery_app",
+    "name": "new_app",
+    "short_name": "new_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

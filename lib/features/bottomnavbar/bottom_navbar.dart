@@ -5,6 +5,9 @@ import '../../core/polling/polling_tab_controller.dart';
 import '../category/presentation/screen/category_screen.dart';
 import '../cart/presentation/screen/cart_screen.dart';
 import '../category/presentation/components/widgets/review_bottom_sheet.dart';
+import '../home/presentation/screen/home_screen.dart';
+import '../wishlist/presentation/screen/wishlist_screen.dart';
+import '../profile/presentation/screen/profile_screen.dart';
 
 class BottomNavigation extends StatefulWidget {
   const BottomNavigation({super.key});
@@ -20,9 +23,10 @@ class BottomNavigation extends StatefulWidget {
 class BottomNavigationState extends State<BottomNavigation> {
   static const List<Widget> _pages = [
     CategoryScreen(),
-    _PlaceholderPage(title: 'Home'),
-    _PlaceholderPage(title: 'Wishlist'),
+    HomeScreen(),
+    WishlistScreen(),
     CartScreen(),
+    ProfileScreen(),
   ];
 
   int _currentIndex = 0;
@@ -34,7 +38,13 @@ class BottomNavigationState extends State<BottomNavigation> {
     super.initState();
     // Initialize PollingTabController to manage polling based on tab selection
     _pollingController = PollingTabController(
-      tabToFeature: {0: 'category', 1: 'home', 2: 'wishlist', 3: 'cart'},
+      tabToFeature: {
+        0: 'category',
+        1: 'home',
+        2: 'wishlist',
+        3: 'cart',
+        4: 'profile',
+      },
     );
     // Activate category tab initially
     _pollingController.selectTab(0);
@@ -154,18 +164,14 @@ class _BottomNavBar extends StatelessWidget {
           ),
           label: 'Cart',
         ),
+        BottomNavigationBarItem(
+          icon: Icon(
+            Icons.person_outline,
+            color: currentIndex == 4 ? AppColors.green100 : AppColors.black,
+          ),
+          label: 'Profile',
+        ),
       ],
     );
-  }
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text(title));
   }
 }
