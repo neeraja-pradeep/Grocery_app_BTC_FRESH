@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/polling/polling_manager.dart';
 import '../../application/providers/category_providers.dart';
 import '../components/header/_header.dart';
 import '../components/category_screenbody/category_screen_body.dart';
@@ -30,6 +32,23 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
     _selectionManager = CategorySelectionManager();
     _stateListener = CategoryStateListener(ref: ref, context: context);
     WidgetsBinding.instance.addObserver(this);
+
+    // Ensure category_products polling is activated when this screen mounts
+    // This handles the case where BottomNavbar's selectTab(0) runs before
+    // CategoryProductControllers are registered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      developer.log(
+        'CategoryScreen mounted - ensuring category_products polling is active',
+        name: 'CategoryScreen',
+        level: 700,
+      );
+      // Only activate if we're on the category tab (index 0)
+      // Check current active feature to avoid overriding if on another tab
+      final currentFeature = PollingManager.instance.activeFeature;
+      if (currentFeature == null || currentFeature == 'category_products') {
+        PollingManager.instance.setActiveFeature('category_products');
+      }
+    });
   }
 
   @override

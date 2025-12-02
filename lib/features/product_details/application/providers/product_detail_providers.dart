@@ -120,7 +120,8 @@ class ProductDetailController
     _initialized = true;
 
     await _loadInitial();
-    _startPolling();
+    // Register for polling - timer will start when 'product_detail' feature becomes active
+    _registerForPolling();
   }
 
   /// Load initial data from repository (cache or remote)
@@ -338,76 +339,61 @@ class ProductDetailController
     );
   }
 
-  /// Start automatic polling every 30 seconds for this product.
+  /// Register for polling with PollingManager
   ///
-  /// How it works:
-  /// 1. Timer fires every 30 seconds unconditionally
-  /// 2. Calls refresh() to check for updates
-  /// 3. Sends conditional GET with If-Modified-Since header
-  /// 4. Server returns 304 Not Modified: Keep cached data, no UI update
-  /// 5. Server returns 200 OK: New data, update cache + state, UI rebuilds
+  /// IMPORTANT: This does NOT start the polling timer immediately!
+  /// The timer only starts when PollingManager calls onResume,
+  /// which happens when the 'product_detail' feature is active.
   ///
-  /// Safeguards:
-  /// - Skips if already refreshing (prevents overlapping requests)
-  /// - Skips if loading initial data (prevents request overload)
+  /// PAGE-FOCUSED POLLING:
+  /// - Timer starts only when user is viewing the product detail screen
+  /// - Timer stops when user navigates to Cart, Categories, etc.
+  /// - This prevents unnecessary API calls for inactive pages
   ///
   /// Efficiency:
   /// - Per-product polling: Each product has its own timer
   /// - Disposed when screen closes: No background polling
   /// - Conditional requests: Tiny 304 responses save bandwidth
-  /// - Unconditional timing: Guarantees responsive UI updates
-  ///
-  /// SCREEN-AWARE POLLING (PollingManager):
-  /// - Polling only starts when user views this screen
-  /// - Polling pauses when user navigates away
-  /// - Polling resumes when user returns to this screen
-  void _startPolling() {
-    _pollingTimer ??= Timer.periodic(_pollingInterval, (_) async {
+  void _registerForPolling() {
+    // Register with PollingManager - timer will start when feature is active
+    PollingManager.instance.registerPoller(
+      featureName: 'product_detail',
+      resourceId: _variantId,
+      onResume: _startPollingTimer,
+      onPause: _stopPollingTimer,
+    );
+
+    developer.log(
+      'Registered polling for variant $_variantId (waiting for activation)',
+      name: 'ProductDetail',
+      level: 700,
+    );
+  }
+
+  /// Start the polling timer (called by PollingManager when 'product_detail' feature becomes active)
+  void _startPollingTimer() {
+    if (_pollingTimer != null) return; // Already running
+
+    developer.log(
+      'Starting polling timer for variant $_variantId (interval: ${_pollingInterval.inSeconds}s)',
+      name: 'ProductDetail',
+      level: 700,
+    );
+
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) async {
       if (state.isRefreshing) return;
       if (!state.hasData && state.status == ProductDetailStatus.loading) {
         return;
       }
       await refresh();
     });
-
-    // Register with PollingManager for screen-aware lifecycle
-    PollingManager.instance.registerPoller(
-      featureName: 'product_detail',
-      resourceId: _variantId,
-      onResume: _resumePolling,
-      onPause: _pausePolling,
-    );
-
-    developer.log(
-      'Polling registered with PollingManager for variant $_variantId',
-      name: 'ProductDetail',
-      level: 700,
-    );
   }
 
-  /// Resume polling when user navigates back to this screen
-  void _resumePolling() {
-    if (_pollingTimer == null) {
-      developer.log(
-        'Resuming polling for variant $_variantId',
-        name: 'ProductDetail',
-        level: 700,
-      );
-      _startPolling();
-    } else {
-      developer.log(
-        'Polling already active for variant $_variantId',
-        name: 'ProductDetail',
-        level: 500,
-      );
-    }
-  }
-
-  /// Pause polling when user navigates away from this screen
-  void _pausePolling() {
+  /// Stop the polling timer (called by PollingManager when 'product_detail' feature becomes inactive)
+  void _stopPollingTimer() {
     if (_pollingTimer != null) {
       developer.log(
-        'Pausing polling for variant $_variantId',
+        'Stopping polling timer for variant $_variantId',
         name: 'ProductDetail',
         level: 700,
       );

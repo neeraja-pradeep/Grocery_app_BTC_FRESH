@@ -15,8 +15,11 @@ class PollingNavigationObserver extends NavigatorObserver {
   /// Map route names to feature names for polling activation
   /// Example: '/product-details' → 'product_detail'
   static final Map<String, String> _routeToFeature = {
+    '/':
+        'category_products', // Home route (BottomNavbar with CategoryScreen as default)
+    '/auth/login/bottomNavBar': 'category_products', // Alternate home route
     '/product-details': 'product_detail',
-    '/category': 'category',
+    '/category': 'category_products',
     '/search': 'search',
     '/cart': 'cart',
   };
@@ -24,12 +27,22 @@ class PollingNavigationObserver extends NavigatorObserver {
   /// Extract resource ID from route settings if available
   /// Can be overridden in subclasses for custom logic
   static String? extractResourceId(Route<dynamic> route) {
-    if (route.settings.arguments is String) {
-      return route.settings.arguments as String;
+    final arguments = route.settings.arguments;
+
+    // Handle String type
+    if (arguments is String) {
+      return arguments;
     }
-    if (route.settings.arguments is Map) {
-      final args = route.settings.arguments as Map;
-      return args['id'] ?? args['resourceId'];
+    // Handle int type (e.g., variantId passed as int)
+    if (arguments is int) {
+      return arguments.toString();
+    }
+    // Handle Map type with id or resourceId keys
+    if (arguments is Map) {
+      final id =
+          arguments['id'] ?? arguments['resourceId'] ?? arguments['variantId'];
+      if (id is String) return id;
+      if (id is int) return id.toString();
     }
     return null;
   }

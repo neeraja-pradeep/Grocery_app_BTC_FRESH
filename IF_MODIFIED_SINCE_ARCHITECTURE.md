@@ -797,14 +797,155 @@ Future<ProductVariant?> getProductDetail(
 
 ---
 
-## Polling Implementation
+## Page-Focused Polling (NEW)
+
+**Problem Solved:** Previously, ALL API polling timers ran continuously regardless of which page the user was viewing. This caused unnecessary API calls and performance issues.
+
+**Solution:** The If-Modified check now runs only for APIs related to the page the user is currently using.
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    PollingManager (Singleton)                       │
+│  - Tracks currently active feature (e.g., 'category_products')      │
+│  - Only ONE feature's pollers can run at a time                     │
+│  - Pauses all pollers from inactive features                        │
+└──────────────────────────────────┬──────────────────────────────────┘
+                                   │
+           ┌───────────────────────┼───────────────────────┐
+           │                       │                       │
+           ▼                       ▼                       ▼
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│ category_products│    │      cart        │    │  product_detail  │
+│     Pollers      │    │     Pollers      │    │     Pollers      │
+│  (per category)  │    │   (cart lines)   │    │  (per product)   │
+└──────────────────┘    └──────────────────┘    └──────────────────┘
+```
+
+### Feature Names (Must Match Across Components)
+
+| Tab/Screen | Feature Name | Controller |
+|------------|--------------|------------|
+| Categories Tab | `category_products` | CategoryProductController |
+| Cart Tab | `cart` | CheckoutLineController |
+| Product Detail Screen | `product_detail` | ProductDetailController |
+
+### Example Flow
+
+```
+1. User opens app (starts on Categories tab)
+   → PollingTabController.selectTab(0)
+   → PollingManager.setActiveFeature('category_products')
+   → Category product pollers START
+   → Cart pollers PAUSED (not running)
+
+2. User taps on Cart tab
+   → PollingTabController.selectTab(3)
+   → PollingManager.setActiveFeature('cart')
+   → Category product pollers STOP (timer cancelled)
+   → Cart pollers START (timer created)
+
+3. User taps back to Categories tab
+   → PollingTabController.selectTab(0)
+   → PollingManager.setActiveFeature('category_products')
+   → Cart pollers STOP
+   → Category product pollers RESTART
+```
+
+### Key Components
+
+#### 1. PollingManager (`lib/core/polling/polling_manager.dart`)
+
+```dart
+// Set the active feature (pauses all other features)
+void setActiveFeature(String featureName);
+
+// Activate a specific poller (also sets active feature)
+void activatePoller({required String featureName, required String resourceId});
+
+// Pause all polling (for app background)
+void pauseAllPolling();
+
+// Resume polling for active feature (for app foreground)
+void resumeActiveFeaturePolling();
+```
+
+#### 2. PollingTabController (`lib/core/polling/polling_tab_controller.dart`)
+
+Used by BottomNavigation to manage polling based on tab selection:
+
+```dart
+_pollingController = PollingTabController(
+  tabToFeature: {
+    0: 'category_products',  // Categories tab
+    1: 'home',               // Home tab (no polling)
+    2: 'wishlist',           // Wishlist tab (no polling)
+    3: 'cart',               // Cart tab
+  },
+);
+
+// When user switches tabs:
+_pollingController.selectTab(3);  // Activates 'cart' feature
+```
+
+#### 3. Controller Registration Pattern
+
+Controllers do NOT start their timers immediately. Instead:
+
+```dart
+// In controller's _initialize():
+void _registerForPolling() {
+  // Only registers, does NOT start timer
+  PollingManager.instance.registerPoller(
+    featureName: 'category_products',
+    resourceId: categoryId,
+    onResume: _startPollingTimer,  // Called when feature becomes active
+    onPause: _stopPollingTimer,    // Called when feature becomes inactive
+  );
+}
+
+// Timer starts ONLY when PollingManager calls onResume
+void _startPollingTimer() {
+  _pollingTimer = Timer.periodic(_pollingInterval, (_) async {
+    await _refreshInternal(forceRemote: false);
+  });
+}
+
+// Timer stops when PollingManager calls onPause
+void _stopPollingTimer() {
+  _pollingTimer?.cancel();
+  _pollingTimer = null;
+}
+```
+
+### App Lifecycle Handling
+
+When app goes to background/foreground, BottomNavigation handles it:
+
+```dart
+@override
+void didChangeAppLifecycleState(AppLifecycleState state) {
+  if (state == AppLifecycleState.resumed) {
+    // App came to foreground - resume polling for active feature
+    PollingManager.instance.resumeActiveFeaturePolling();
+  } else if (state == AppLifecycleState.paused) {
+    // App went to background - pause ALL polling
+    PollingManager.instance.pauseAllPolling();
+  }
+}
+```
+
+---
+
+## Polling Implementation (Legacy Reference)
 
 **File:** `lib/features/product_details/application/providers/product_detail_providers.dart`
 
 ### Starting the Polling Timer
 
 ```dart
-void _startPolling() {
+void _startPollingTimer() {
   if (_pollingTimer != null) return;  // Already polling
 
   _pollingTimer = Timer.periodic(
@@ -824,7 +965,7 @@ void _startPolling() {
 ### Stopping the Polling Timer
 
 ```dart
-void _stopPolling() {
+void _stopPollingTimer() {
   _pollingTimer?.cancel();
   _pollingTimer = null;
   developer.log('Stopped polling');

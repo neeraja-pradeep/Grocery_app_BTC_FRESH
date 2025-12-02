@@ -10,8 +10,8 @@ class ApiClient {
 
   final Dio _dio;
 
-  static const _defaultConnectTimeout = Duration(seconds: 20);
-  static const _defaultReceiveTimeout = Duration(seconds: 20);
+  static const _defaultConnectTimeout = Duration(seconds: 30);
+  static const _defaultReceiveTimeout = Duration(seconds: 30);
 
   static Dio _createDefaultDio() {
     final baseOptions = BaseOptions(

@@ -72,6 +72,7 @@ class CheckoutScreen extends ConsumerWidget {
                         originalPrice: product.price,
                         hasDiscount: product.hasDiscount,
                         discountPercentage: product.discountPercentage,
+                        isProcessing: checkoutState.isLineProcessing(line.id),
                         onIncrement: () =>
                             _handleIncrement(ref, line.id, line.quantity),
                         onDecrement: () =>

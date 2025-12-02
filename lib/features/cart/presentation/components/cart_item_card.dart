@@ -19,6 +19,7 @@ class CartItemCard extends StatelessWidget {
     this.originalPrice,
     this.hasDiscount = false,
     this.discountPercentage = 0,
+    this.isProcessing = false,
   });
 
   final String? imageUrl;
@@ -35,6 +36,9 @@ class CartItemCard extends StatelessWidget {
   final String? originalPrice; // Original price before discount
   final bool hasDiscount;
   final double discountPercentage;
+
+  // Processing state - disables buttons while API call is in progress
+  final bool isProcessing;
 
   @override
   Widget build(BuildContext context) {
@@ -161,6 +165,48 @@ class CartItemCard extends StatelessWidget {
   }
 
   Widget _buildQuantityControls() {
+    // Show loading spinner when processing
+    if (isProcessing) {
+      return Row(
+        children: [
+          // Disabled decrement button
+          _QuantityControlButton(
+            icon: Icons.remove,
+            onTap: () {},
+            isDisabled: true,
+          ),
+          SizedBox(width: 4.w),
+
+          // Quantity display with loading indicator
+          Container(
+            width: 32.w,
+            height: 26.h,
+            decoration: BoxDecoration(
+              color: const Color(0xFF8BC34A).withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            alignment: Alignment.center,
+            child: SizedBox(
+              width: 14.w,
+              height: 14.w,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+              ),
+            ),
+          ),
+          SizedBox(width: 4.w),
+
+          // Disabled increment button
+          _QuantityControlButton(
+            icon: Icons.add,
+            onTap: () {},
+            isDisabled: true,
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
         // Decrement button
@@ -194,10 +240,15 @@ class CartItemCard extends StatelessWidget {
 
 /// Animated quantity control button with border highlight effect
 class _QuantityControlButton extends StatefulWidget {
-  const _QuantityControlButton({required this.icon, required this.onTap});
+  const _QuantityControlButton({
+    required this.icon,
+    required this.onTap,
+    this.isDisabled = false,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final bool isDisabled;
 
   @override
   State<_QuantityControlButton> createState() => _QuantityControlButtonState();
@@ -241,6 +292,7 @@ class _QuantityControlButtonState extends State<_QuantityControlButton>
   }
 
   void _handleTap() {
+    if (widget.isDisabled) return;
     _controller.forward().then((_) {
       _controller.reverse();
     });
@@ -249,6 +301,28 @@ class _QuantityControlButtonState extends State<_QuantityControlButton>
 
   @override
   Widget build(BuildContext context) {
+    // Show disabled state
+    if (widget.isDisabled) {
+      return Container(
+        width: 32.w,
+        height: 26.h,
+        decoration: BoxDecoration(
+          color: AppColors.grey.withValues(alpha: 0.1),
+          border: Border.all(
+            color: AppColors.grey.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          widget.icon,
+          size: 16.sp,
+          color: AppColors.grey.withValues(alpha: 0.4),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: _handleTap,
       child: AnimatedBuilder(

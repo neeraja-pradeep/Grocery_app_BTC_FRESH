@@ -14,6 +14,7 @@ class CheckoutLineState extends Equatable {
     this.isRefreshing = false,
     this.refreshStartedAt,
     this.refreshEndedAt,
+    this.processingLineIds = const {},
   });
 
   final CheckoutLineStatus status;
@@ -23,6 +24,9 @@ class CheckoutLineState extends Equatable {
   final bool isRefreshing;
   final DateTime? refreshStartedAt;
   final DateTime? refreshEndedAt;
+
+  /// Line IDs currently being updated (buttons should be disabled)
+  final Set<int> processingLineIds;
 
   /// Convenience getters
   bool get isLoading => status == CheckoutLineStatus.loading;
@@ -46,6 +50,9 @@ class CheckoutLineState extends Equatable {
   /// Get total items (sum of quantities)
   int get totalItems => checkoutLines?.totalItems ?? 0;
 
+  /// Check if a specific line is being processed
+  bool isLineProcessing(int lineId) => processingLineIds.contains(lineId);
+
   @override
   List<Object?> get props => [
     status,
@@ -55,6 +62,7 @@ class CheckoutLineState extends Equatable {
     isRefreshing,
     refreshStartedAt,
     refreshEndedAt,
+    processingLineIds,
   ];
 
   CheckoutLineState copyWith({
@@ -67,6 +75,7 @@ class CheckoutLineState extends Equatable {
     DateTime? refreshEndedAt,
     bool resetRefreshStartedAt = false,
     bool resetRefreshEndedAt = false,
+    Set<int>? processingLineIds,
   }) {
     return CheckoutLineState(
       status: status ?? this.status,
@@ -80,6 +89,7 @@ class CheckoutLineState extends Equatable {
       refreshEndedAt: resetRefreshEndedAt
           ? null
           : (refreshEndedAt ?? this.refreshEndedAt),
+      processingLineIds: processingLineIds ?? this.processingLineIds,
     );
   }
 }
