@@ -44,7 +44,7 @@ class CategoryDiscountSection extends StatelessWidget {
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               // Adjusted aspect ratio to fit the vertical layout of the card
-              childAspectRatio: 0.62,
+              childAspectRatio: 0.55,
               crossAxisSpacing: 12,
               mainAxisSpacing: 16,
             ),
@@ -248,7 +248,7 @@ class MegaOfferProductCard extends StatelessWidget {
                     // 2. Product Name
                     Text(
                       product.name,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,
