@@ -1,0 +1,190 @@
+Integration Document - BTC Grocery
+
+The Figma design for this assignment can be found here:
+https://www.figma.com/design/mrrqGcoTKQEgGMVOKWxAIR/btc-grocery?node-id=106-1388&p=f&t=MwbKebTHE31q50RF-0
+The screens provided in the Figma file show:
+API Endpoints
+All endpoints are non-authenticated and return JSON responses. Use REST GET calls to fetch and render the UI data. The base URL: http://156.67.104.149:8080 and use the extension given below, test these endpoints in postman to get an idea on the response of each endpoints.
+
+User IDs
+Superadmin - 1
+Customer - 2
+
+Headers -
+ dev - {user_id}
+If-Modified-Since - Sun, 26 Oct 2025 09:51:00 GMT
+
+Note:- The timestamp mentioned here must be the timestamp fetched from the header of the responses.  
+
+
+Customer Application 
+
+Screen : Login User
+a) Login
+
+Endpoint:
+http://156.67.104.149:8080/api/docs/swagger/#/auth/auth_signin_create
+
+b) Login with OTP
+Endpoint:
+
+Send OTP
+http://156.67.104.149:8080/api/docs/swagger/#/auth/auth_send_otp_create
+
+Verify OTP
+http://156.67.104.149:8080/api/docs/swagger/#/auth/auth_verify_otp_create
+
+c) Signup
+
+Endpoint:
+http://156.67.104.149:8080/api/docs/swagger/#/auth/auth_signup_create
+
+d) Address
+
+Endpoint;
+http://156.67.104.149:8080/api/docs/swagger/#/auth/auth_address_create
+
+Required Fields: first_name, last_name, street_address1, street_address2 and address_type[home, work and other]
+
+Screen : Home
+Shop by category
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/products/products_category_list
+
+Mega Fresh Offers
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/products/products_variants_discounts_retrieve
+
+Advertisement 
+Endpoint 
+
+http://156.67.104.149:8080/api/docs/swagger/#/products/products_banners_list
+
+Search products
+Endpoints
+
+http://156.67.104.149:8080/api/docs/swagger/#/products/products_variants_list
+
+Note:- Use only search params to filter the desired product
+
+Address
+Endpoint 
+
+GET /api/auth/address/?selected=true
+
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 10,
+            "first_name": "string",
+            "last_name": "string",
+            "street_address1": "string",
+            "street_address2": "string",
+            "city": "string",
+            "state": "string",
+            "postal_code": "string",
+            "country": "string",
+            "latitude": "-157.950000",
+            "longitude": "0.260000",
+            "address_type": "home",
+            "selected": true,
+            "created_at": "2025-11-11T15:32:28.239927Z",
+            "updated_at": "2025-11-11T15:32:28.239952Z"
+        }
+    ]
+}
+
+
+
+Screen : Category
+Category Listing
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/products/products_category_list
+
+Category wise product listing 
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/products/products_list
+
+
+
+Screen : Wishlist
+My whishlist
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/order/order_wishlist_list
+
+Add to wishlist 
+Endpoints:
+
+http://156.67.104.149:8080/api/docs/swagger/#/order/order_wishlist_create
+
+Screen : Profile
+My profile
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/auth/auth_profile_retrieve
+
+Screen : Active orders
+Active orders
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/order/order_orders_list
+
+Status:- active
+
+Pending orders 
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/order/order_orders_list
+Status:- Pending 
+
+Screen : Item Page
+Product detail
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/products/products_variants_retrieve
+
+Fields necessary:- media.image, name, price, prod_description, product_rating
+
+Screen : Cart
+Add to cart
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/order/order_checkout_lines_create
+
+
+Display cart
+
+Endpoint:
+
+http://156.67.104.149:8080/api/docs/swagger/#/order/order_checkout_lines_list
+
+Update cart
+Endpoint
+
+http://156.67.104.149:8080/api/docs/swagger/#/order/order_checkout_lines_partial_update
+
+Place order
+Endpoint
+
+http://156.67.104.149:8080/api/docs/swagger/#/order/order_checkout_create
+
+
+
+
+
