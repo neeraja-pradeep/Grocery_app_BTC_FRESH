@@ -73,10 +73,10 @@ class OrderDataSource {
     );
   }
 
-  /// Create order checkout and get Razorpay order details
-  Future<CheckoutResponse> createOrderCheckout({required int addressId}) async {
+  /// Initiate payment and get Razorpay order details
+  Future<CheckoutResponse> initiatePayment({required int addressId}) async {
     final response = await _apiClient.post(
-      ApiEndpoints.orderCheckout,
+      ApiEndpoints.paymentInitiate,
       data: {'address_id': addressId},
     );
 

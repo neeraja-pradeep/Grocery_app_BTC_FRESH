@@ -73,7 +73,7 @@ class PaymentController extends StateNotifier<PaymentState> {
   /// Initiate payment flow
   ///
   /// 1. If coupon applied, PATCH /api/order/checkouts/{checkout_id}/ with coupon
-  /// 2. Call /api/order/checkout/ to create order
+  /// 2. Call /api/order/payment/initiate/ to create order
   /// 3. Open Razorpay with returned order_id
   /// 4. On success, call /api/order/payment/verify/
   Future<void> initiatePayment({
@@ -100,10 +100,10 @@ class PaymentController extends StateNotifier<PaymentState> {
         developer.log('Coupon applied successfully');
       }
 
-      // Step 2: Create order via checkout API
+      // Step 2: Initiate payment via API
       state = state.copyWith(status: PaymentStatus.creatingOrder);
 
-      final checkoutResponse = await _orderDataSource.createOrderCheckout(
+      final checkoutResponse = await _orderDataSource.initiatePayment(
         addressId: addressId,
       );
 

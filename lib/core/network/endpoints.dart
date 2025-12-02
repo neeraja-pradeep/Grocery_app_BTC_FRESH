@@ -196,12 +196,12 @@ class ApiEndpoints {
   static String applyCoupon(int checkoutId) =>
       'api/order/checkouts/$checkoutId/';
 
-  /// Create order and get Razorpay order details for payment
+  /// Initiate payment and get Razorpay order details
   ///
   /// ❌ POST REQUEST (not applicable for conditional caching)
   /// - Request body: Order details (address_id, items, etc.)
   /// - Response: Order details with razorpay_order_id for payment
-  static const String orderCheckout = 'api/order/checkout/';
+  static const String paymentInitiate = 'api/order/payment/initiate/';
 
   /// Verify Razorpay payment after successful payment
   ///
