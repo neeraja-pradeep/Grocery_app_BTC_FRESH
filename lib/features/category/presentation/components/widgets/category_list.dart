@@ -23,7 +23,8 @@ class CategoryItem {
 /// - Shows all categories
 /// - Selected item has green highlight + image preview
 /// - Notifies parent when category is tapped
-class CategoryList extends StatelessWidget {
+/// - Auto-scrolls to keep selected category visible
+class CategoryList extends StatefulWidget {
   const CategoryList({
     super.key,
     required this.categories,
@@ -36,13 +37,75 @@ class CategoryList extends StatelessWidget {
   final ValueChanged<int> onCategorySelected;
 
   @override
+  State<CategoryList> createState() => _CategoryListState();
+}
+
+class _CategoryListState extends State<CategoryList> {
+  final ScrollController _scrollController = ScrollController();
+  final double _itemHeight = 75.0; // Approximate height of unselected item
+  final double _selectedItemHeight =
+      155.0; // Approximate height when selected (with image)
+
+  @override
+  void didUpdateWidget(CategoryList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Auto-scroll when selected index changes (from product scrolling)
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _scrollToSelectedCategory();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Scrolls the category list to keep the selected category visible
+  void _scrollToSelectedCategory() {
+    if (!_scrollController.hasClients) return;
+
+    // Calculate approximate position of the selected item
+    double targetOffset = 0;
+    for (int i = 0; i < widget.selectedIndex; i++) {
+      targetOffset += _itemHeight;
+    }
+
+    // Get viewport info
+    final viewportHeight = _scrollController.position.viewportDimension;
+    final currentOffset = _scrollController.offset;
+    final maxOffset = _scrollController.position.maxScrollExtent;
+
+    // Check if item is already visible
+    final itemTop = targetOffset;
+    final itemBottom = targetOffset + _selectedItemHeight;
+    final viewportTop = currentOffset;
+    final viewportBottom = currentOffset + viewportHeight;
+
+    // Only scroll if item is not fully visible
+    if (itemTop < viewportTop || itemBottom > viewportBottom) {
+      // Center the selected item in viewport
+      final centeredOffset =
+          targetOffset - (viewportHeight / 2) + (_selectedItemHeight / 2);
+      final clampedOffset = centeredOffset.clamp(0.0, maxOffset);
+
+      _scrollController.animateTo(
+        clampedOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Expanded(
       child: ListView.separated(
+        controller: _scrollController,
         padding: EdgeInsets.zero,
-        itemCount: categories.length,
+        itemCount: widget.categories.length,
         separatorBuilder: (_, index) {
-          if (index == selectedIndex) {
+          if (index == widget.selectedIndex) {
             return const SizedBox.shrink();
           }
           // Divider between unselected categories
@@ -53,9 +116,9 @@ class CategoryList extends StatelessWidget {
           );
         },
         itemBuilder: (context, index) {
-          final item = categories[index];
-          final isSelected = index == selectedIndex;
-          final isAfterSelected = index == selectedIndex + 1;
+          final item = widget.categories[index];
+          final isSelected = index == widget.selectedIndex;
+          final isAfterSelected = index == widget.selectedIndex + 1;
           final BorderRadius? borderRadius = isSelected
               ? const BorderRadius.only(bottomRight: Radius.circular(10))
               : isAfterSelected
@@ -63,7 +126,7 @@ class CategoryList extends StatelessWidget {
               : null;
 
           return GestureDetector(
-            onTap: () => onCategorySelected(index),
+            onTap: () => widget.onCategorySelected(index),
             child: Padding(
               padding: EdgeInsets.only(right: 3.w),
               child: AnimatedScale(

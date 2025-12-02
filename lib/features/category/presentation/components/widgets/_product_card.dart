@@ -126,22 +126,9 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                   Positioned(
                     top: 8.h,
                     right: 5.w,
-                    child: GestureDetector(
+                    child: _AnimatedAddButton(
                       onTap: widget.onAddToCart,
-                      child: Container(
-                        width: 29.w,
-                        height: 29.w,
-                        decoration: BoxDecoration(
-                          color: widget.colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.add,
-                          color: AppColors.white,
-                          size: 20,
-                        ),
-                      ),
+                      primaryColor: widget.colorScheme.primary,
                     ),
                   ),
                   // Real-time update indicator
@@ -340,4 +327,94 @@ String? _formatPriceValue(String? price) {
 
 String _trimTrailingZeros(String value) {
   return value.replaceFirst(RegExp(r'\.?0+$'), '');
+}
+
+/// Animated add-to-cart button with highlight effect
+class _AnimatedAddButton extends StatefulWidget {
+  const _AnimatedAddButton({required this.onTap, required this.primaryColor});
+
+  final VoidCallback onTap;
+  final Color primaryColor;
+
+  @override
+  State<_AnimatedAddButton> createState() => _AnimatedAddButtonState();
+}
+
+class _AnimatedAddButtonState extends State<_AnimatedAddButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _glowAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward().then((_) {
+      _controller.reverse();
+    });
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              width: 29.w,
+              height: 29.w,
+              decoration: BoxDecoration(
+                color: widget.primaryColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.white.withValues(
+                    alpha: _glowAnimation.value * 0.8,
+                  ),
+                  width: 2.5 * _glowAnimation.value,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.primaryColor.withValues(
+                      alpha: 0.3 + (_glowAnimation.value * 0.4),
+                    ),
+                    blurRadius: 4 + (_glowAnimation.value * 8),
+                    spreadRadius: _glowAnimation.value * 2,
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: const Icon(Icons.add, color: AppColors.white, size: 20),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
