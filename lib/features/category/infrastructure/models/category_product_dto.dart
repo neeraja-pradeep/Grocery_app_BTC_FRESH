@@ -276,6 +276,13 @@ class CategoryProductDto {
       Map<String, dynamic> product,
     ) sync* {
       final variants = product['variants'];
+
+      // If variants field exists and is an empty list, skip this product entirely
+      // Products without variants cannot be purchased
+      if (variants is List && variants.isEmpty) {
+        return;
+      }
+
       if (variants is List && variants.isNotEmpty) {
         for (final dynamic variant in variants) {
           Map<String, dynamic>? variantMap;
