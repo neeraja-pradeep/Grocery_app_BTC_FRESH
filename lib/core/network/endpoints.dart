@@ -71,6 +71,9 @@ class ApiEndpoints {
   static String categoryProducts(String categoryId) =>
       'api/products/?category_id=$categoryId';
 
+  /// Profile endpoint
+  static const String profile = 'api/auth/profile/';
+
   // ============================================================================
   // PRODUCT DETAIL ENDPOINTS
   // ============================================================================

@@ -12,6 +12,8 @@ class HiveInit {
 
     await Hive.initFlutter();
     await Hive.openBox<dynamic>(AppHiveBoxes.cache);
+    await Hive.openBox<dynamic>(AppHiveBoxes.profile);
+    await Hive.openBox<dynamic>(AppHiveBoxes.address);
 
     _initialized = true;
   }
