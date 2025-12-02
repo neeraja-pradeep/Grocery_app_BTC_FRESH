@@ -19,13 +19,13 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
   void initState() {
     super.initState();
     Future<void>.microtask(() {
-      ref.read(addressControllerProvider.notifier).fetchAddresses();
+      ref.read(profileAddressControllerProvider.notifier).fetchAddresses();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final addressState = ref.watch(addressControllerProvider);
+    final addressState = ref.watch(profileAddressControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -63,7 +63,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
                   ElevatedButton(
                     onPressed: () {
                       ref
-                          .read(addressControllerProvider.notifier)
+                          .read(profileAddressControllerProvider.notifier)
                           .fetchAddresses();
                     },
                     style: ElevatedButton.styleFrom(
@@ -81,7 +81,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
               color: AppColors.green,
               onRefresh: () async {
                 await ref
-                    .read(addressControllerProvider.notifier)
+                    .read(profileAddressControllerProvider.notifier)
                     .refreshAddresses();
               },
               child: Column(
@@ -229,7 +229,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
                                         if (result == true && mounted) {
                                           await ref
                                               .read(
-                                                addressControllerProvider
+                                                profileAddressControllerProvider
                                                     .notifier,
                                               )
                                               .fetchAddresses();
@@ -298,7 +298,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
                         );
                         if (result == true && mounted) {
                           await ref
-                              .read(addressControllerProvider.notifier)
+                              .read(profileAddressControllerProvider.notifier)
                               .fetchAddresses();
                         }
                       },
@@ -366,7 +366,9 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await ref.read(addressControllerProvider.notifier).deleteAddress(id);
+        await ref
+            .read(profileAddressControllerProvider.notifier)
+            .deleteAddress(id);
         if (mounted) {
           messenger.showSnackBar(
             const SnackBar(
