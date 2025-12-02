@@ -22,7 +22,7 @@ class ApiClient {
       responseType: ResponseType.json,
       contentType: 'application/json',
       validateStatus: (status) => status != null && status < 400,
-      headers: const <String, dynamic>{'dev': '1'},
+      headers: const <String, dynamic>{'dev': '4'},
     );
 
     final dio = Dio(baseOptions);

@@ -29,7 +29,7 @@ class ProfileApi {
   /// Optionally supports conditional requests with [ifModifiedSince] header.
   /// Returns the Last-Modified header from response for caching.
   Future<ProfileFetchResponse> fetchProfile({String? ifModifiedSince}) async {
-    final headers = <String, String>{'dev': '2'};
+    final headers = <String, String>{'dev': '4'};
 
     // Add conditional header if provided (for cache validation)
     if (ifModifiedSince != null) {
@@ -77,7 +77,7 @@ class ProfileApi {
         'last_name': nameParts['last_name'],
         'phone_number': phoneNumber,
       },
-      headers: {'dev': '2'},
+      headers: {'dev': '4'},
     );
 
     final data = response.data;
@@ -90,6 +90,6 @@ class ProfileApi {
 
   /// Deletes the user's account.
   Future<void> deleteAccount() async {
-    await _client.post<void>('api/auth/delete-account/', headers: {'dev': '2'});
+    await _client.post<void>('api/auth/delete-account/', headers: {'dev': '4'});
   }
 }
