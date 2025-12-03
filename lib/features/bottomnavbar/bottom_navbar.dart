@@ -8,7 +8,6 @@ import '../cart/presentation/screen/cart_screen.dart';
 import '../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../home/presentation/screen/home_screen.dart';
 import '../wishlist/presentation/screen/wishlist_screen.dart';
-import '../profile/presentation/screen/profile_screen.dart';
 
 class BottomNavigation extends StatefulWidget {
   const BottomNavigation({super.key});
@@ -28,7 +27,6 @@ class BottomNavigationState extends State<BottomNavigation>
     HomeScreen(),
     WishlistScreen(),
     CartScreen(),
-    ProfileScreen(),
   ];
 
   int _currentIndex = 0;
@@ -40,21 +38,15 @@ class BottomNavigationState extends State<BottomNavigation>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // Initialize PollingTabController to manage polling based on tab selection
-    // Feature names must match the featureName used in registerPoller() calls:
-    // - 'category_products' for CategoryProductController
-    // - 'cart' for CheckoutLineController
-    // - 'product_detail' is used when navigating to product details (handled separately)
     _pollingController = PollingTabController(
       tabToFeature: {
-        0: 'category',
+        0: 'category_products', // Matches CategoryProductController registration
         1: 'home',
         2: 'wishlist',
         3: 'cart',
-        4: 'profile',
       },
     );
-    // Activate category tab initially
+
     _pollingController.selectTab(0);
   }
 
@@ -67,23 +59,18 @@ class BottomNavigationState extends State<BottomNavigation>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Handle app lifecycle changes for polling
     if (state == AppLifecycleState.resumed) {
-      // App came to foreground - resume polling for the active feature
       PollingManager.instance.resumeActiveFeaturePolling();
     } else if (state == AppLifecycleState.paused) {
-      // App went to background - pause all polling to save battery
       PollingManager.instance.pauseAllPolling();
     }
   }
 
   void _onTabSelected(int index) {
     setState(() => _currentIndex = index);
-    // Notify polling controller about tab change
     _pollingController.selectTab(index);
   }
 
-  /// Navigate to category tab and show review bottom sheet
   void navigateToCategoryAndShowReview() {
     setState(() {
       _currentIndex = 0;
@@ -91,7 +78,6 @@ class BottomNavigationState extends State<BottomNavigation>
     });
     _pollingController.selectTab(0);
 
-    // Show the review bottom sheet after navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_showReviewSheetOnCategoryLoad && mounted) {
         _showReviewSheetOnCategoryLoad = false;
@@ -142,10 +128,15 @@ class _BottomNavBar extends StatelessWidget {
             'assets/svgs/nav_bar/categories.svg',
             height: 24,
             width: 24,
-            colorFilter: ColorFilter.mode(
-              currentIndex == 0 ? AppColors.green100 : AppColors.black,
+            colorFilter: const ColorFilter.mode(
+              AppColors.black,
               BlendMode.srcIn,
             ),
+          ),
+          activeIcon: Image.asset(
+            'assets/svgs/nav_bar/category_active.png',
+            height: 24,
+            width: 24,
           ),
           label: 'Categories',
         ),
@@ -154,10 +145,15 @@ class _BottomNavBar extends StatelessWidget {
             'assets/svgs/nav_bar/home.svg',
             height: 24,
             width: 24,
-            colorFilter: ColorFilter.mode(
-              currentIndex == 1 ? AppColors.green100 : AppColors.black,
+            colorFilter: const ColorFilter.mode(
+              AppColors.black,
               BlendMode.srcIn,
             ),
+          ),
+          activeIcon: Image.asset(
+            'assets/svgs/nav_bar/home_active.png',
+            height: 24,
+            width: 24,
           ),
           label: 'Home',
         ),
@@ -166,10 +162,15 @@ class _BottomNavBar extends StatelessWidget {
             'assets/svgs/nav_bar/wishlist.svg',
             height: 24,
             width: 24,
-            colorFilter: ColorFilter.mode(
-              currentIndex == 2 ? AppColors.green100 : AppColors.black,
+            colorFilter: const ColorFilter.mode(
+              AppColors.black,
               BlendMode.srcIn,
             ),
+          ),
+          activeIcon: Image.asset(
+            'assets/svgs/nav_bar/wishlist_active.png',
+            height: 24,
+            width: 24,
           ),
           label: 'Wishlist',
         ),
@@ -178,19 +179,17 @@ class _BottomNavBar extends StatelessWidget {
             'assets/svgs/nav_bar/cart.svg',
             height: 24,
             width: 24,
-            colorFilter: ColorFilter.mode(
-              currentIndex == 3 ? AppColors.green100 : AppColors.black,
+            colorFilter: const ColorFilter.mode(
+              AppColors.black,
               BlendMode.srcIn,
             ),
           ),
-          label: 'Cart',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(
-            Icons.person_outline,
-            color: currentIndex == 4 ? AppColors.green100 : AppColors.black,
+          activeIcon: Image.asset(
+            'assets/svgs/nav_bar/cart_active.png',
+            height: 24,
+            width: 24,
           ),
-          label: 'Profile',
+          label: 'Cart',
         ),
       ],
     );

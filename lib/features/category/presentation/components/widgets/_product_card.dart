@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -5,6 +7,7 @@ import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/network/socket_provider.dart';
 import '../../../../../core/widgets/app_text.dart';
+import '../../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../application/providers/inventory_update_notifier.dart';
 import '../../../application/providers/price_update_notifier.dart';
 import '../../../domain/entities/category_product.dart';
@@ -42,6 +45,12 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     super.initState();
     // Parse variant ID and join Socket.IO room
     variantId = int.tryParse(widget.product.variantId) ?? 0;
+
+    developer.log(
+      'ProductCard: name=${widget.product.variantName}, '
+      'variantId string="${widget.product.variantId}", parsed=$variantId',
+      name: 'ProductCard',
+    );
 
     if (variantId > 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -126,8 +135,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                   Positioned(
                     top: 8.h,
                     right: 5.w,
-                    child: _AnimatedAddButton(
-                      onTap: widget.onAddToCart,
+                    child: _CartActionButton(
+                      variantId: variantId,
                       primaryColor: widget.colorScheme.primary,
                     ),
                   ),
@@ -211,9 +220,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                         vertical: 2.h,
                       ),
                       decoration: BoxDecoration(
-                        color: inStock
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4.r),
                       ),
                       child: AppText(
@@ -329,18 +336,22 @@ String _trimTrailingZeros(String value) {
   return value.replaceFirst(RegExp(r'\.?0+$'), '');
 }
 
-/// Animated add-to-cart button with highlight effect
-class _AnimatedAddButton extends StatefulWidget {
-  const _AnimatedAddButton({required this.onTap, required this.primaryColor});
+/// Cart action button that shows + when not in cart, - when in cart
+/// Watches cart state and updates in real-time
+class _CartActionButton extends ConsumerStatefulWidget {
+  const _CartActionButton({
+    required this.variantId,
+    required this.primaryColor,
+  });
 
-  final VoidCallback onTap;
+  final int variantId;
   final Color primaryColor;
 
   @override
-  State<_AnimatedAddButton> createState() => _AnimatedAddButtonState();
+  ConsumerState<_CartActionButton> createState() => _CartActionButtonState();
 }
 
-class _AnimatedAddButtonState extends State<_AnimatedAddButton>
+class _CartActionButtonState extends ConsumerState<_CartActionButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -371,17 +382,59 @@ class _AnimatedAddButtonState extends State<_AnimatedAddButton>
     super.dispose();
   }
 
-  void _handleTap() {
+  void _animate() {
     _controller.forward().then((_) {
       _controller.reverse();
     });
-    widget.onTap();
+  }
+
+  Future<void> _handleAddToCart() async {
+    _animate();
+    if (widget.variantId <= 0) return;
+
+    final controller = ref.read(checkoutLineControllerProvider.notifier);
+    await controller.addToCart(productVariantId: widget.variantId, quantity: 1);
+  }
+
+  Future<void> _handleRemoveFromCart(int lineId) async {
+    _animate();
+    final controller = ref.read(checkoutLineControllerProvider.notifier);
+    await controller.updateQuantity(lineId: lineId, delta: -1);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch cart state to check if product is in cart
+    final cartState = ref.watch(checkoutLineControllerProvider);
+
+    // Find if this variant is in the cart
+    int? cartLineId;
+    int cartQuantity = 0;
+
+    if (cartState.checkoutLines != null && widget.variantId > 0) {
+      for (final item in cartState.checkoutLines!.results) {
+        if (item.productVariantId == widget.variantId) {
+          cartLineId = item.id;
+          cartQuantity = item.quantity;
+          break;
+        }
+      }
+    }
+
+    final isInCart = cartLineId != null && cartQuantity > 0;
+    final isProcessing =
+        cartLineId != null && cartState.processingLineIds.contains(cartLineId);
+
     return GestureDetector(
-      onTap: _handleTap,
+      onTap: isProcessing
+          ? null
+          : () {
+              if (isInCart) {
+                _handleRemoveFromCart(cartLineId!);
+              } else {
+                _handleAddToCart();
+              }
+            },
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
@@ -391,7 +444,7 @@ class _AnimatedAddButtonState extends State<_AnimatedAddButton>
               width: 29.w,
               height: 29.w,
               decoration: BoxDecoration(
-                color: widget.primaryColor,
+                color: isInCart ? AppColors.loaderGreen : widget.primaryColor,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: AppColors.white.withValues(
@@ -401,16 +454,31 @@ class _AnimatedAddButtonState extends State<_AnimatedAddButton>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.primaryColor.withValues(
-                      alpha: 0.3 + (_glowAnimation.value * 0.4),
-                    ),
+                    color:
+                        (isInCart ? AppColors.loaderGreen : widget.primaryColor)
+                            .withValues(
+                              alpha: 0.3 + (_glowAnimation.value * 0.4),
+                            ),
                     blurRadius: 4 + (_glowAnimation.value * 8),
                     spreadRadius: _glowAnimation.value * 2,
                   ),
                 ],
               ),
               alignment: Alignment.center,
-              child: const Icon(Icons.add, color: AppColors.white, size: 20),
+              child: isProcessing
+                  ? SizedBox(
+                      width: 14.w,
+                      height: 14.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.white,
+                      ),
+                    )
+                  : Icon(
+                      isInCart ? Icons.remove : Icons.add,
+                      color: AppColors.white,
+                      size: 20,
+                    ),
             ),
           );
         },

@@ -30,8 +30,11 @@ class CategoryLocalDataSource {
       final cached = _box.get(_cacheKey);
       if (cached == null) return null;
 
-      if (cached is Map<String, dynamic>) {
-        return CategoryCacheDto.fromJson(cached);
+      // Hive stores Maps as Map<dynamic, dynamic>, not Map<String, dynamic>
+      // We need to convert it properly before deserializing
+      if (cached is Map) {
+        final jsonMap = Map<String, dynamic>.from(cached);
+        return CategoryCacheDto.fromJson(jsonMap);
       }
       return null;
     } catch (e) {

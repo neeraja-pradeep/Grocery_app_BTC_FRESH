@@ -87,6 +87,10 @@ class CategoryProductController
     _categoryId = categoryId;
     _disposed = false;
 
+    // Keep provider alive to prevent disposal when scrolled off-screen
+    // This prevents re-fetching and showing loading indicator when scrolling back
+    ref.keepAlive();
+
     if (!_initialized) {
       _initialized = true;
       Future<void>.microtask(_loadInitial);
@@ -94,6 +98,42 @@ class CategoryProductController
 
     ref.onDispose(_handleDispose);
 
+    // Read cache synchronously to avoid showing loading indicator on rebuild
+    // This prevents circular progress when scrolling or when provider rebuilds
+    final localDataSource = ref.read(categoryProductLocalDataSourceProvider);
+    final cached = localDataSource.read(categoryId);
+
+    developer.log(
+      '🔧 BUILD called for category=$categoryId, '
+      'initialized=$_initialized, '
+      'cacheExists=${cached != null}, '
+      'cacheProductCount=${cached?.products.length ?? 0}',
+      name: 'CategoryProductController',
+      level: 800,
+    );
+
+    if (cached != null && cached.products.isNotEmpty) {
+      developer.log(
+        '✅ Returning CACHED state for category=$categoryId',
+        name: 'CategoryProductController',
+      );
+      return CategoryProductState(
+        status: CategoryProductStatus.data,
+        products: cached.products.map((dto) => dto.toDomain()).toList(),
+        isRefreshing: false,
+        lastSyncedAt: cached.lastSyncedAt,
+        lastModified: cached.lastModified,
+        totalCount: cached.count,
+        next: cached.next,
+        previous: cached.previous,
+      );
+    }
+
+    developer.log(
+      '⚠️ Returning INITIAL (loading) state for category=$categoryId - NO CACHE',
+      name: 'CategoryProductController',
+      level: 900,
+    );
     return CategoryProductState.initial();
   }
 
