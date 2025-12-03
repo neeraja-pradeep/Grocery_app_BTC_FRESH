@@ -3,13 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/network/socket_models.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../application/providers/address_providers.dart';
 import '../../application/providers/applied_coupon_provider.dart';
 import '../../application/providers/checkout_line_provider.dart';
 import '../../application/providers/payment_provider.dart';
+import '../../domain/entities/checkout_line.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../bottomnavbar/bottom_navbar.dart';
+import '../../../category/application/providers/price_update_notifier.dart';
 import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
@@ -28,11 +31,14 @@ class CheckoutScreen extends ConsumerWidget {
     final checkoutState = ref.watch(checkoutLineControllerProvider);
     final cartItems = checkoutState.items;
 
+    // Watch socket price updates for real-time price changes
+    final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+
     // Watch applied coupon
     final appliedCouponState = ref.watch(appliedCouponProvider);
 
-    // Calculate order totals from actual cart data
-    final itemTotal = checkoutState.totalAmount;
+    // Calculate order totals with socket prices
+    final itemTotal = _calculateTotalWithSocketPrices(cartItems, priceUpdates);
 
     // Calculate discount from applied coupon (or 0 if no coupon)
     final discount = appliedCouponState.hasCoupon
@@ -61,16 +67,34 @@ class CheckoutScreen extends ConsumerWidget {
                       final line = cartItems[index];
                       final product = line.productVariantDetails;
 
+                      // Get socket price update if available for this variant
+                      final socketPriceUpdate = priceUpdates.getUpdate(
+                        line.productVariantId,
+                      );
+                      final effectivePrice = _getEffectivePriceForItem(
+                        product.effectivePrice,
+                        socketPriceUpdate,
+                      );
+                      // Use socket original price if available, otherwise use API price
+                      final originalPrice =
+                          socketPriceUpdate?.oldPrice?.toStringAsFixed(2) ??
+                          product.price;
+                      // Check if has discount from socket or API
+                      final hasDiscount = socketPriceUpdate != null
+                          ? (socketPriceUpdate.discountedPrice != null &&
+                                socketPriceUpdate.discountedPrice! > 0)
+                          : product.hasDiscount;
+
                       return CartItemCard(
                         imageUrl: product.media.isNotEmpty
                             ? product.media.first
                             : null,
                         name: product.name,
                         weight: product.weight,
-                        pricePerKg: product.effectivePrice.toStringAsFixed(2),
+                        pricePerKg: effectivePrice.toStringAsFixed(2),
                         quantity: line.quantity,
-                        originalPrice: product.price,
-                        hasDiscount: product.hasDiscount,
+                        originalPrice: originalPrice,
+                        hasDiscount: hasDiscount,
                         discountPercentage: product.discountPercentage,
                         isProcessing: checkoutState.isLineProcessing(line.id),
                         onIncrement: () =>
@@ -214,6 +238,40 @@ class CheckoutScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Calculate cart total using real-time socket prices when available
+  double _calculateTotalWithSocketPrices(
+    List<CheckoutLine> items,
+    PriceUpdateState priceUpdates,
+  ) {
+    double total = 0.0;
+    for (final item in items) {
+      final variantId = item.productVariantId;
+      final socketPriceUpdate = priceUpdates.getUpdate(variantId);
+      final effectivePrice = _getEffectivePriceForItem(
+        item.productVariantDetails.effectivePrice,
+        socketPriceUpdate,
+      );
+      total += item.quantity * effectivePrice;
+    }
+    return total;
+  }
+
+  /// Get effective price for an item, using socket price if available
+  double _getEffectivePriceForItem(
+    double apiPrice,
+    PriceUpdateEvent? socketPriceUpdate,
+  ) {
+    if (socketPriceUpdate != null) {
+      // Prefer discounted price if available, otherwise use newPrice
+      if (socketPriceUpdate.discountedPrice != null &&
+          socketPriceUpdate.discountedPrice! > 0) {
+        return socketPriceUpdate.discountedPrice!;
+      }
+      return socketPriceUpdate.newPrice;
+    }
+    return apiPrice;
   }
 
   Future<void> _handleIncrement(

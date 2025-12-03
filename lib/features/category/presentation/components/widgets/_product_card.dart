@@ -5,6 +5,7 @@ import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/network/socket_provider.dart';
 import '../../../../../core/widgets/app_text.dart';
+import '../../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../application/providers/inventory_update_notifier.dart';
 import '../../../application/providers/price_update_notifier.dart';
 import '../../../domain/entities/category_product.dart';
@@ -51,6 +52,40 @@ class _ProductCardState extends ConsumerState<ProductCard> {
           ref.read(socketServiceProvider).joinVariantRoom(variantId);
         }
       });
+    }
+  }
+
+  /// Handle add to cart with backend integration
+  Future<void> _handleAddToCart(BuildContext context) async {
+    // Also call the parent callback for any additional behavior
+    widget.onAddToCart();
+
+    // Add to cart via API
+    if (variantId > 0) {
+      try {
+        await ref
+            .read(checkoutLineControllerProvider.notifier)
+            .addToCart(productVariantId: variantId, quantity: 1);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.product.variantName} added to cart'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to add to cart: $e'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -127,7 +162,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                     top: 8.h,
                     right: 5.w,
                     child: _AnimatedAddButton(
-                      onTap: widget.onAddToCart,
+                      onTap: () => _handleAddToCart(context),
                       primaryColor: widget.colorScheme.primary,
                     ),
                   ),

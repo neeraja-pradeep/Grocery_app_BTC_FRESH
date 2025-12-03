@@ -210,3 +210,26 @@ class ApiEndpoints {
   /// - Response: Payment verification status
   static const String paymentVerify = 'api/order/payment/verify/';
 }
+
+// Alias for backward compatibility
+typedef Endpoints = ApiEndpoints;
+
+/// Endpoints specific to the Home feature and initial data loading.
+class HomeEndpoints {
+  const HomeEndpoints._();
+
+  // Path for fetching the list of product categories
+  static const String categories = '/api/products/category/';
+
+  // Path for fetching discounted product variants (used for Best Deals and Mega Offers)
+  static const String discountedVariants = '/api/products/variants/discounts/';
+
+  // Path for searching products (query parameter will be appended by the repository)
+  static const String search = '/api/v1/products/search';
+
+  // Path for searching products using the new API
+  static const String products = '/api/products/';
+
+  // Path for fetching the minimal profile summary needed for the header
+  static const String profileHeader = '/api/v1/users/profile/summary';
+}

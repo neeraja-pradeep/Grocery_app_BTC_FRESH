@@ -107,3 +107,16 @@ class NetworkException implements Exception {
   String toString() =>
       'NetworkException(type: $errorType, statusCode: $statusCode, message: $message)';
 }
+
+class TimeoutException extends NetworkException {
+  const TimeoutException() : super(message: 'Request timeout');
+}
+
+class NoInternetException extends NetworkException {
+  const NoInternetException() : super(message: 'No internet connection');
+}
+
+class ServerException extends NetworkException {
+  const ServerException(int statusCode, String message)
+    : super(message: message, statusCode: statusCode);
+}
