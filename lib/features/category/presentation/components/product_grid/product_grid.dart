@@ -250,8 +250,26 @@ class _CategoryProductsSliver extends ConsumerWidget {
       category_products.categoryProductControllerProvider(categoryId),
     );
 
+    // Debug: Log when products are rebuilt
+    if (productState.hasData && productState.products.isNotEmpty) {
+      final firstProduct = productState.products.first;
+      developer.log(
+        'ProductGrid REBUILD: category=$categoryId, '
+        'count=${productState.products.length}, '
+        'first product weight=${firstProduct.weight}',
+        name: 'ProductGrid',
+      );
+    }
+
     // Loading state
     if (productState.isLoading && !productState.hasData) {
+      developer.log(
+        '⏳ SHOWING LOADING for category=$categoryId, '
+        'status=${productState.status}, hasData=${productState.hasData}, '
+        'productCount=${productState.products.length}',
+        name: 'ProductGrid',
+        level: 1000,
+      );
       return const SliverToBoxAdapter(
         child: SizedBox(
           height: 200,
@@ -292,7 +310,11 @@ class _CategoryProductsSliver extends ConsumerWidget {
       ),
       delegate: SliverChildBuilderDelegate((context, index) {
         final product = products[index];
+        // Use ValueKey with data fields to force rebuild when product changes
         return ProductCard(
+          key: ValueKey(
+            '${product.variantId}_${product.weight}_${product.price}',
+          ),
           product: product,
           colorScheme: colorScheme,
           onAddToCart: () => onAddToCart(product),

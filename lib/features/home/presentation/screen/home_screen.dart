@@ -64,7 +64,7 @@ import '../components/category_discount_section.dart';
 import '../components/error_view.dart';
 
 // Other Screens (For navigation)
-// import 'package:grocery_app/features/home/presentation/screen/search_results_screen.dart';
+import '../../../profile/presentation/screen/profile_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -556,6 +556,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _navigateToProfile() {
-    // Navigator.pushNamed(context, '/profile');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    );
   }
 }

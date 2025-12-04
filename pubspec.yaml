@@ -16,7 +16,7 @@ dependencies:
   riverpod_annotation: ^2.3.5
 
   # Functional Programming
-  fpdart: ^1.1.0
+  fpdart: ^1.2.0
 
   # UI/UX
   cupertino_icons: ^1.0.8
