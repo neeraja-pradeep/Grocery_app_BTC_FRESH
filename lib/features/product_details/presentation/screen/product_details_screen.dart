@@ -325,6 +325,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
       unitPrice: unitPrice,
       quantity: state.quantity,
       onViewCart: () => _handleViewCart(controller),
+      onCheckout: () => _handleCheckout(controller),
     );
   }
 
@@ -332,18 +333,41 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   /// Adds item to cart and navigates to cart screen
   Future<void> _handleViewCart(ProductDetailController controller) async {
     try {
-      // Add to cart first
       await controller.addToCart();
 
-      // Navigate to cart screen
       if (mounted) {
         Navigator.pushNamed(context, '/cart');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to add to cart: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add to cart: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Handle Checkout button tap
+  /// Adds item to cart and navigates directly to checkout
+  Future<void> _handleCheckout(ProductDetailController controller) async {
+    try {
+      await controller.addToCart();
+
+      if (mounted) {
+        // Navigate to cart with checkout tab selected
+        Navigator.pushNamed(context, '/cart', arguments: {'tab': 1});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add to cart: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
