@@ -2,6 +2,7 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../domain/entities/category.dart';
 
@@ -23,7 +24,7 @@ class CategoryTile extends StatelessWidget {
             height: 80,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10.r),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -32,16 +33,16 @@ class CategoryTile extends StatelessWidget {
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8.h),
             child: category.backgroundImageUrl != null
                 ? CachedNetworkImage(
                     imageUrl: category.backgroundImageUrl!,
                     fit: BoxFit.contain,
                     errorWidget: (context, url, error) =>
                         const Icon(Icons.category_outlined, color: Colors.grey),
-                    placeholder: (context, url) => const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    placeholder: (context, url) => Padding(
+                      padding: EdgeInsets.all(4.h),
+                      child: const CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
                 : const Icon(
@@ -50,19 +51,20 @@ class CategoryTile extends StatelessWidget {
                     color: Colors.green,
                   ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           SizedBox(
-            width: 80,
+            width: 80.w,
+            height: 36.h,
             child: Text(
               category.name,
               textAlign: TextAlign.center,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
+              style: TextStyle(
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
-                height: 1.1,
+                height: 1.2,
               ),
             ),
           ),

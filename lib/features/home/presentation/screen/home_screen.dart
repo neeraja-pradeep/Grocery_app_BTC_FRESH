@@ -154,7 +154,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       child: Scaffold(
         key: const Key('home_screen_scaffold'), // Widget key for testing
-        backgroundColor: Colors.grey[50], // Light background
+        backgroundColor: const Color(
+          0xFFcaf5ac,
+        ), // Green header color for rounded corner effect
         body: SafeArea(
           child: SmartRefresher(
             key: const Key('home_screen_refresher'), // Widget key for testing
@@ -299,36 +301,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
 
-        // 3. Shop by Category Section
+        // 3. Shop by Category Section - with rounded top corners
         SliverToBoxAdapter(
-          child: SectionHeader(
-            title: 'Shop by Category',
-            onSeeAllClick: () => _navigateToCategoryList(),
-          ),
-        ),
-
-        SliverToBoxAdapter(
-          child: CategoryGrid(
-            categories: categories.take(8).toList(), // Show 8 on home
-            onCategoryClick: (category) =>
-                _navigateToCategoryProducts(category),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24.h),
+                topRight: Radius.circular(24.h),
+              ),
+            ),
+            child: Column(
+              children: [
+                SectionHeader(
+                  title: 'Shop by Category',
+                  onSeeAllClick: () => _navigateToCategoryList(),
+                ),
+                CategoryGrid(
+                  categories: categories.take(8).toList(), // Show 8 on home
+                  onCategoryClick: (category) =>
+                      _navigateToCategoryProducts(category),
+                ),
+              ],
+            ),
           ),
         ),
 
         // 4. Best Deals Section
         if (bestDeals.isNotEmpty) ...[
           SliverToBoxAdapter(
-            child: SectionHeader(
-              title: 'Best Deals',
-
-              onSeeAllClick: () => _navigateToBestDeals(),
+            child: Container(
+              color: Colors.white,
+              child: SectionHeader(
+                title: 'Best Deals',
+                onSeeAllClick: () => _navigateToBestDeals(),
+              ),
             ),
           ),
 
           SliverToBoxAdapter(
-            child: ProductHorizontalList(
-              products: bestDeals,
-              onProductClick: (product) => _navigateToProductDetails(product),
+            child: Container(
+              color: Colors.white,
+              child: ProductHorizontalList(
+                products: bestDeals,
+                onProductClick: (product) => _navigateToProductDetails(product),
+              ),
             ),
           ),
         ],
@@ -336,7 +353,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // 5. Advertisement Card
         if (activeAd != null)
           SliverToBoxAdapter(
-            child: Padding(
+            child: Container(
+              color: Colors.white,
               padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
               child: AdvertisementCard(
                 banner: activeAd, // Updated param name to match entity
@@ -348,13 +366,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // 6. Mega Fresh Offers Section Title
         if (discountGroups.isNotEmpty)
           SliverToBoxAdapter(
-            child: Center(
-              child: Text(
-                'Mega Fresh Offers',
-                style: TextStyle(
-                  fontSize: 32.sp,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xff016064),
+            child: Container(
+              color: Colors.white,
+              child: Center(
+                child: Text(
+                  'MEGA FRESH OFFERS',
+                  style: TextStyle(
+                    fontSize: 26.sp,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xff016064),
+                  ),
                 ),
               ),
             ),
@@ -363,16 +384,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // 7. Discounted products grouped by category
         ...discountGroups.map((group) {
           return SliverToBoxAdapter(
-            child: CategoryDiscountSection(
-              group: group,
-              onProductClick: (product) => _navigateToProductDetails(product),
+            child: Container(
+              color: Colors.white,
+              child: CategoryDiscountSection(
+                group: group,
+                onProductClick: (product) => _navigateToProductDetails(product),
+              ),
             ),
           );
         }),
 
         // 8. Bottom spacing
         SliverToBoxAdapter(
-          child: SizedBox(height: 80.h), // Space for bottom navigation
+          child: Container(
+            color: Colors.white,
+            height: 80.h, // Space for bottom navigation
+          ),
         ),
       ],
     );

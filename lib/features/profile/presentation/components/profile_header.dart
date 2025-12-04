@@ -23,7 +23,7 @@ class ProfileHeader extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppColors.green10,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Row(
@@ -46,8 +46,8 @@ class ProfileHeader extends StatelessWidget {
                 Text(
                   fullName,
                   style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.black,
                   ),
                 ),
@@ -55,7 +55,7 @@ class ProfileHeader extends StatelessWidget {
                 Text(
                   mobileNumber,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.w500,
                     color: AppColors.green,
                   ),

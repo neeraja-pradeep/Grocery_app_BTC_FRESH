@@ -49,7 +49,7 @@ class ProductCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Padding(
-              padding: EdgeInsets.all(10.w),
+              padding: EdgeInsets.all(4.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
