@@ -199,6 +199,7 @@ class CategoryProductController
     }
   }
 
+  /// Refresh with loading indicator (for initial load, pull-to-refresh)
   Future<void> _refreshInternal({required bool forceRemote}) async {
     if (_disposed) return;
     if (state.isRefreshing && !forceRemote) return;
@@ -272,6 +273,73 @@ class CategoryProductController
     }
   }
 
+  /// Silent background refresh for 30-second polling
+  ///
+  /// KEY DIFFERENCES FROM _refreshInternal:
+  /// - Does NOT show loading indicator (no isRefreshing: true)
+  /// - For 304 Not Modified: Does NOT update UI at all (prevents list jumping)
+  /// - For 200 OK: Silently updates data without visual feedback
+  /// - Errors are logged but don't show to user (keeps existing data)
+  ///
+  /// This provides smooth UX where users don't see spinners every 30 seconds
+  Future<void> _silentRefresh() async {
+    if (_disposed) return;
+    if (state.isRefreshing) return; // Don't interrupt user-initiated refresh
+
+    try {
+      final result = await _repository.syncProducts(
+        _categoryId,
+        forceRemote: false,
+      );
+
+      if (_disposed) return;
+
+      // Check if data came from remote (200 OK) or cache (304 Not Modified)
+      final isFromRemote = result.source == CategoryProductDataSource.remote;
+
+      if (isFromRemote) {
+        // 200 OK - Server has new data, update UI silently
+        developer.log(
+          'Category $_categoryId: HTTP 200 OK - Updating UI silently (${result.products.length} products)',
+          name: 'CategoryProductController',
+          level: 800,
+        );
+
+        _safeSetState(
+          state.copyWith(
+            status: result.hasData
+                ? CategoryProductStatus.data
+                : CategoryProductStatus.empty,
+            products: result.products,
+            lastSyncedAt: result.lastSyncedAt,
+            lastModified: result.lastModified,
+            totalCount: result.totalCount,
+            next: result.next,
+            previous: result.previous,
+            clearError: true,
+          ),
+        );
+      } else {
+        // 304 Not Modified - Data unchanged, DO NOT touch UI
+        // This prevents list jumping/flickering
+        developer.log(
+          'Category $_categoryId: HTTP 304 Not Modified - UI unchanged',
+          name: 'CategoryProductController',
+          level: 500,
+        );
+        // ✅ Intentionally do nothing - keep existing UI state
+      }
+    } catch (error) {
+      // Silent fail for background polling - don't disturb user
+      developer.log(
+        'Category $_categoryId: Silent refresh error (ignored) - $error',
+        name: 'CategoryProductController',
+        level: 900,
+      );
+      // ✅ Keep existing data on error during background sync
+    }
+  }
+
   /// Register for polling with PollingManager
   ///
   /// IMPORTANT: This does NOT start the polling timer immediately!
@@ -319,7 +387,8 @@ class CategoryProductController
         level: 500,
       );
 
-      await _refreshInternal(forceRemote: false);
+      // Use silent refresh for background polling - no loader, no UI flicker
+      await _silentRefresh();
     });
   }
 
