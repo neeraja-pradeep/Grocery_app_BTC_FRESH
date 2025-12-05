@@ -6,7 +6,10 @@ import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_models.dart';
 import '../../../../core/network/socket_provider.dart';
 import '../../../../core/polling/polling_manager.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
+import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
 import '../components/checkout_section/checkout_section.dart';
@@ -105,9 +108,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   Widget build(BuildContext context) {
     // Watch business logic state from Riverpod
     final state = ref.watch(productDetailControllerProvider(widget.variantId));
-    final controller = ref.read(
-      productDetailControllerProvider(widget.variantId).notifier,
-    );
 
     // Watch real-time Socket.IO updates
     final priceUpdates = ref.watch(priceUpdateNotifierProvider);
@@ -115,6 +115,15 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
     // Extract variant ID for Socket updates lookup
     final variantId = int.tryParse(widget.variantId) ?? 0;
+
+    // Watch cart state to get current quantity in cart
+    final cartState = ref.watch(checkoutLineControllerProvider);
+    final cartItem = cartState.items.where(
+      (item) => item.productVariantId == variantId,
+    );
+    final isInCart = cartItem.isNotEmpty;
+    final cartQuantity = isInCart ? cartItem.first.quantity : 0;
+    final cartLineId = isInCart ? cartItem.first.id : 0;
 
     // Get real-time price from Socket if available, otherwise use API price
     final socketPriceUpdate = variantId > 0
@@ -152,17 +161,18 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
       backgroundColor: AppColors.white,
       appBar: _buildAppBar(context),
       body: _buildBody(
-        productDetail,
-        state,
-        controller,
-        socketPriceUpdate,
-        socketInventoryUpdate,
+        productDetail: productDetail,
+        state: state,
+        socketPriceUpdate: socketPriceUpdate,
+        socketInventoryUpdate: socketInventoryUpdate,
+        variantId: variantId,
+        cartQuantity: cartQuantity,
+        cartLineId: cartLineId,
       ),
       bottomSheet: _buildBottomSheet(
-        productDetail,
-        state,
-        controller,
-        socketPriceUpdate,
+        productDetail: productDetail,
+        socketPriceUpdate: socketPriceUpdate,
+        cartQuantity: cartQuantity,
       ),
     );
   }
@@ -199,13 +209,20 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   }
 
   /// Builds main scrollable body - delegates to component widgets
-  Widget _buildBody(
-    product_variant.ProductVariant productDetail,
-    ProductDetailState state,
-    ProductDetailController controller,
-    PriceUpdateEvent? socketPriceUpdate,
-    InventoryUpdateEvent? socketInventoryUpdate,
-  ) {
+  Widget _buildBody({
+    required product_variant.ProductVariant productDetail,
+    required ProductDetailState state,
+    required PriceUpdateEvent? socketPriceUpdate,
+    required InventoryUpdateEvent? socketInventoryUpdate,
+    required int variantId,
+    required int cartQuantity,
+    required int cartLineId,
+  }) {
+    // Get controller for wishlist toggle
+    final controller = ref.read(
+      productDetailControllerProvider(widget.variantId).notifier,
+    );
+
     // Calculate display price and original price based on discounted_price
     // If discountedPrice exists → it's the display price, price is strikethrough
     // If discountedPrice is null → price is the display price, no strikethrough
@@ -247,16 +264,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             ),
             AppSpacing.h16,
 
-            // Price and add to cart row
+            // Price and add to cart row - directly updates cart
             PriceRow(
               price: displayPrice,
               originalPrice: originalPrice,
-              quantity: state.quantity,
-              onAdd: () => controller.setQuantity(1),
-              onIncrement: () => controller.setQuantity(state.quantity + 1),
-              onDecrement: () => controller.setQuantity(
-                state.quantity > 0 ? state.quantity - 1 : 0,
-              ),
+              quantity: cartQuantity,
+              onAdd: () => _handleAddToCart(variantId),
+              onIncrement: () => _handleIncrement(cartLineId),
+              onDecrement: () => _handleDecrement(cartLineId),
             ),
             AppSpacing.h16,
 
@@ -301,12 +316,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   /// Build bottom sheet (sticky checkout section)
   /// Delegates to CheckoutSection component for display
   /// Price calculation handled by CheckoutSection component
-  Widget _buildBottomSheet(
-    product_variant.ProductVariant productDetail,
-    ProductDetailState state,
-    ProductDetailController controller,
-    PriceUpdateEvent? socketPriceUpdate,
-  ) {
+  Widget _buildBottomSheet({
+    required product_variant.ProductVariant productDetail,
+    required PriceUpdateEvent? socketPriceUpdate,
+    required int cartQuantity,
+  }) {
     // Calculate display price based on discounted_price logic
     final String displayPrice;
 
@@ -323,52 +337,76 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
     return CheckoutSection(
       unitPrice: unitPrice,
-      quantity: state.quantity,
-      onViewCart: () => _handleViewCart(controller),
-      onCheckout: () => _handleCheckout(controller),
+      quantity: cartQuantity,
+      onViewCart: _handleNavigateToCart,
+      onCheckout: _handleNavigateToCheckout,
     );
   }
 
-  /// Handle View Cart button tap
-  /// Adds item to cart and navigates to cart screen
-  Future<void> _handleViewCart(ProductDetailController controller) async {
+  /// Handle Add button tap - adds 1 item to cart
+  Future<void> _handleAddToCart(int variantId) async {
+    if (variantId <= 0) return;
+
     try {
-      await controller.addToCart();
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .addToCart(productVariantId: variantId, quantity: 1);
 
       if (mounted) {
-        Navigator.pushNamed(context, '/cart');
+        AppSnackbar.success(context, 'Added to cart');
+      }
+    } on InsufficientStockException catch (e) {
+      if (mounted) {
+        AppSnackbar.warning(context, e.message);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add to cart: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackbar.error(context, 'Failed to add to cart');
       }
     }
   }
 
-  /// Handle Checkout button tap
-  /// Adds item to cart and navigates directly to checkout
-  Future<void> _handleCheckout(ProductDetailController controller) async {
-    try {
-      await controller.addToCart();
+  /// Handle increment button - increases quantity in cart
+  Future<void> _handleIncrement(int cartLineId) async {
+    if (cartLineId <= 0) return;
 
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: cartLineId, delta: 1);
+    } on InsufficientStockException catch (e) {
       if (mounted) {
-        // Navigate to cart with checkout tab selected
-        Navigator.pushNamed(context, '/cart', arguments: {'tab': 1});
+        AppSnackbar.warning(context, e.message);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add to cart: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackbar.error(context, 'Failed to update cart');
       }
     }
+  }
+
+  /// Handle decrement button - decreases quantity in cart
+  Future<void> _handleDecrement(int cartLineId) async {
+    if (cartLineId <= 0) return;
+
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: cartLineId, delta: -1);
+    } catch (e) {
+      if (mounted) {
+        AppSnackbar.error(context, 'Failed to update cart');
+      }
+    }
+  }
+
+  /// Handle navigate to cart
+  void _handleNavigateToCart() {
+    Navigator.pushNamed(context, '/cart');
+  }
+
+  /// Handle navigate to checkout
+  void _handleNavigateToCheckout() {
+    Navigator.pushNamed(context, '/cart', arguments: {'tab': 1});
   }
 }
