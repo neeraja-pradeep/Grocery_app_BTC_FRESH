@@ -59,6 +59,16 @@ class _CartScreenState extends ConsumerState<CartScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _joinCartItemRooms();
+
+      // Handle route arguments to navigate to specific tab
+      // e.g., from product details "Checkout" button which passes {'tab': 1}
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic>) {
+        final tabIndex = args['tab'] as int?;
+        if (tabIndex != null && tabIndex >= 0 && tabIndex < 3) {
+          _tabController.animateTo(tabIndex);
+        }
+      }
     });
   }
 

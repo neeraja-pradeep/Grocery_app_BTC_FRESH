@@ -89,11 +89,40 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     }
   }
 
+  /// Handle decrease quantity or remove from cart
+  Future<void> _handleDecreaseQuantity(BuildContext context, int lineId) async {
+    if (variantId > 0) {
+      try {
+        await ref
+            .read(checkoutLineControllerProvider.notifier)
+            .updateQuantity(lineId: lineId, delta: -1);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update cart: $e'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final image = widget.product.imageUrl ?? widget.product.thumbnailUrl;
     final formattedWeight = _formatWeight(widget.product.weight);
+
+    // Watch cart state to check if product is in cart
+    final cartState = ref.watch(checkoutLineControllerProvider);
+    final cartItem = cartState.items.where(
+      (item) => item.productVariantId == variantId,
+    );
+    final isInCart = cartItem.isNotEmpty;
+    final cartLineId = isInCart ? cartItem.first.id : 0;
 
     // Watch real-time Socket.IO updates
     final priceUpdates = ref.watch(priceUpdateNotifierProvider);
@@ -132,7 +161,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
               color: widget.colorScheme.shadow.withValues(alpha: 0.03),
               blurRadius: 8,
               offset: const Offset(0, 4),
-              // jnkjbn
             ),
           ],
         ),
@@ -161,10 +189,15 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                   Positioned(
                     top: 8.h,
                     right: 5.w,
-                    child: _AnimatedAddButton(
-                      onTap: () => _handleAddToCart(context),
-                      primaryColor: widget.colorScheme.primary,
-                    ),
+                    child: isInCart
+                        ? _MinusButton(
+                            onTap: () =>
+                                _handleDecreaseQuantity(context, cartLineId),
+                          )
+                        : _AnimatedAddButton(
+                            onTap: () => _handleAddToCart(context),
+                            primaryColor: widget.colorScheme.primary,
+                          ),
                   ),
                   // Real-time update indicator
                   if (priceEvent != null || inventoryEvent != null)
@@ -446,6 +479,80 @@ class _AnimatedAddButtonState extends State<_AnimatedAddButton>
               ),
               alignment: Alignment.center,
               child: const Icon(Icons.add, color: AppColors.white, size: 20),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Animated minus button with user-friendly highlighted border
+/// Shows when product is already in cart - allows reducing quantity
+class _MinusButton extends StatefulWidget {
+  const _MinusButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_MinusButton> createState() => _MinusButtonState();
+}
+
+class _MinusButtonState extends State<_MinusButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward().then((_) {
+      _controller.reverse();
+    });
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              width: 29.w,
+              height: 29.w,
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.green50, width: 2.5),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.remove,
+                color: AppColors.green50,
+                size: 20,
+              ),
             ),
           );
         },

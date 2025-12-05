@@ -1,6 +1,7 @@
 // features/home/presentation/components/profile_icon_button.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileIconButton extends StatelessWidget {
   final VoidCallback onProfileTap;
@@ -13,6 +14,8 @@ class ProfileIconButton extends StatelessWidget {
       onTap: onProfileTap,
       child: Image.asset(
         'assets/profile_icon.png',
+        height: 32.h,
+        width: 32.w,
         color: const Color(0xff016064),
       ),
 
