@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_provider.dart';
 import '../../../../core/network/socket_service.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../application/providers/checkout_line_provider.dart';
 import '../../domain/entities/checkout_line.dart';
@@ -514,19 +515,11 @@ class _CartScreenState extends ConsumerState<CartScreen>
           .updateQuantity(lineId: lineId, delta: 1);
     } on InsufficientStockException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        AppSnackbar.warning(context, e.message);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update quantity')),
-        );
+        AppSnackbar.error(context, 'Failed to update quantity');
       }
     }
   }
@@ -540,19 +533,11 @@ class _CartScreenState extends ConsumerState<CartScreen>
           .updateQuantity(lineId: lineId, delta: -1);
     } on InsufficientStockException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        AppSnackbar.warning(context, e.message);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update quantity: $e')),
-        );
+        AppSnackbar.error(context, 'Failed to update quantity');
       }
     }
   }
@@ -585,15 +570,11 @@ class _CartScreenState extends ConsumerState<CartScreen>
             .deleteCheckoutLine(lineId);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Item removed from cart')),
-          );
+          AppSnackbar.success(context, 'Item removed from cart');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Failed to remove item: $e')));
+          AppSnackbar.error(context, 'Failed to remove item');
         }
       }
     }
@@ -601,9 +582,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   void _handleViewSuggestedProducts() {
     // TODO: Navigate to suggested products
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to suggested products')),
-    );
+    AppSnackbar.info(context, 'Suggested products coming soon');
   }
 
   void _handleCheckout() {
@@ -613,12 +592,9 @@ class _CartScreenState extends ConsumerState<CartScreen>
       // Switch to checkout tab
       _tabController.animateTo(1);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please add more items to meet minimum order value of ${_minimumOrderValue.toStringAsFixed(0)}',
-          ),
-        ),
+      AppSnackbar.warning(
+        context,
+        'Add more items to meet ₹${_minimumOrderValue.toStringAsFixed(0)} minimum',
       );
     }
   }

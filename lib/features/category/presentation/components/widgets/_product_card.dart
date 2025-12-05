@@ -4,8 +4,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/network/socket_provider.dart';
+import '../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../core/widgets/app_text.dart';
 import '../../../../cart/application/providers/checkout_line_provider.dart';
+import '../../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../application/providers/inventory_update_notifier.dart';
 import '../../../application/providers/price_update_notifier.dart';
 import '../../../domain/entities/category_product.dart';
@@ -67,23 +69,18 @@ class _ProductCardState extends ConsumerState<ProductCard> {
             .read(checkoutLineControllerProvider.notifier)
             .addToCart(productVariantId: variantId, quantity: 1);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${widget.product.variantName} added to cart'),
-              duration: const Duration(seconds: 2),
-              backgroundColor: Colors.green,
-            ),
+          AppSnackbar.success(
+            context,
+            '${widget.product.variantName} added to cart',
           );
+        }
+      } on InsufficientStockException catch (e) {
+        if (context.mounted) {
+          AppSnackbar.warning(context, e.message);
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to add to cart: $e'),
-              duration: const Duration(seconds: 2),
-              backgroundColor: Colors.red,
-            ),
-          );
+          AppSnackbar.error(context, 'Failed to add to cart');
         }
       }
     }
@@ -98,13 +95,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
             .updateQuantity(lineId: lineId, delta: -1);
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to update cart: $e'),
-              duration: const Duration(seconds: 2),
-              backgroundColor: Colors.red,
-            ),
-          );
+          AppSnackbar.error(context, 'Failed to update cart');
         }
       }
     }

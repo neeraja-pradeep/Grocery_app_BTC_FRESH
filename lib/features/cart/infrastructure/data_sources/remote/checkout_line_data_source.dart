@@ -265,6 +265,53 @@ class CheckoutLineDataSource {
       );
 
       return CheckoutLineDto.fromJson(response.data as Map<String, dynamic>);
+    } on NetworkException catch (error) {
+      developer.log(
+        'POST FAILED:\nStatus: ${error.statusCode}\nBody: ${error.body}',
+        name: 'CheckoutLineDataSource',
+      );
+
+      // Extract error message from response for 400 errors (insufficient stock)
+      if (error.statusCode == 400 && error.body != null) {
+        dynamic responseData = error.body;
+
+        // Handle case where data is a String (needs JSON decoding)
+        if (responseData is String) {
+          try {
+            responseData = Map<String, dynamic>.from(
+              const JsonDecoder().convert(responseData) as Map,
+            );
+          } catch (_) {
+            // If JSON decoding fails, continue with NetworkException
+          }
+        }
+
+        if (responseData is Map<String, dynamic>) {
+          // Check for quantity errors (insufficient stock)
+          if (responseData.containsKey('quantity')) {
+            final quantityErrors = responseData['quantity'];
+            if (quantityErrors is String) {
+              throw InsufficientStockException(quantityErrors);
+            }
+            if (quantityErrors is List && quantityErrors.isNotEmpty) {
+              throw InsufficientStockException(quantityErrors.first.toString());
+            }
+          }
+          // Check for non_field_errors
+          if (responseData.containsKey('non_field_errors')) {
+            final errors = responseData['non_field_errors'];
+            if (errors is List && errors.isNotEmpty) {
+              throw InsufficientStockException(errors.first.toString());
+            }
+          }
+          // Check for detail message
+          if (responseData.containsKey('detail')) {
+            throw InsufficientStockException(responseData['detail'].toString());
+          }
+        }
+      }
+
+      rethrow;
     } catch (e) {
       developer.log(
         'Failed to add item to cart: $e',

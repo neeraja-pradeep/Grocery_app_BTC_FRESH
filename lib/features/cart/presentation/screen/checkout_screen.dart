@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_models.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../application/providers/address_providers.dart';
 import '../../application/providers/applied_coupon_provider.dart';
@@ -342,30 +343,33 @@ class CheckoutScreen extends ConsumerWidget {
     }
   }
 
-  void _handlePlaceOrder(BuildContext context, WidgetRef ref) {
+  Future<void> _handlePlaceOrder(BuildContext context, WidgetRef ref) async {
     final addressState = ref.read(addressControllerProvider);
     final selectedAddress = addressState.selectedAddress;
 
     // Validate address is selected
     if (selectedAddress == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a delivery address'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackbar.warning(context, 'Please select a delivery address');
       return;
     }
 
-    // Validate cart is not empty
+    // Refresh cart to get latest data before payment
+    AppSnackbar.info(context, 'Verifying cart...');
+    try {
+      await ref.read(checkoutLineControllerProvider.notifier).refresh();
+    } catch (e) {
+      if (context.mounted) {
+        AppSnackbar.error(context, 'Failed to verify cart. Please try again.');
+      }
+      return;
+    }
+
+    // Validate cart is not empty after refresh
     final checkoutState = ref.read(checkoutLineControllerProvider);
     if (checkoutState.items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your cart is empty'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        AppSnackbar.warning(context, 'Your cart is empty');
+      }
       return;
     }
 
@@ -386,12 +390,7 @@ class CheckoutScreen extends ConsumerWidget {
           customerName: selectedAddress.fullName,
           onSuccess: () {
             // Payment successful - show success and navigate
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Payment successful! Order placed.'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            AppSnackbar.success(context, 'Payment successful! Order placed.');
             // Clear applied coupon after successful payment
             ref.read(appliedCouponProvider.notifier).removeCoupon();
             // Navigate to order confirmation
@@ -400,12 +399,7 @@ class CheckoutScreen extends ConsumerWidget {
           },
           onFailure: (error) {
             // Payment failed - show error
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Payment failed: $error'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            AppSnackbar.error(context, 'Payment failed: $error');
           },
         );
   }
