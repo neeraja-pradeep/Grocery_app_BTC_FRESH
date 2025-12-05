@@ -22,11 +22,11 @@ class AdvertisementCard extends StatelessWidget {
       height: 170.h,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20.r),
         color: Colors.grey[200],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20.r),
         child: Stack(
           children: [
             // 1. Background Image

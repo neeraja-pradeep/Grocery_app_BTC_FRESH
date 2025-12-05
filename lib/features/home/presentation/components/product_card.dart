@@ -96,16 +96,19 @@ class ProductCard extends ConsumerWidget {
 
                   SizedBox(height: 10.h),
 
-                  // 2. Product Name
-                  Text(
-                    product.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600, // Semi-bold
-                      color: Colors.black87,
-                      height: 1.2,
+                  // 2. Product Name - Fixed height for 2 lines
+                  SizedBox(
+                    height: 12.sp * 1.2 * 2, // fontSize * lineHeight * 2 lines
+                    child: Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600, // Semi-bold
+                        color: Colors.black87,
+                        height: 1.2,
+                      ),
                     ),
                   ),
 
