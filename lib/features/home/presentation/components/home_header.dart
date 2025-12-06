@@ -41,9 +41,9 @@ class HomeHeader extends StatelessWidget {
     ); // Bright green for logo accent
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24.r)),
+        // borderRadius: BorderRadius.vertical(bottom: Radius.circular(24.r)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -93,13 +93,14 @@ class HomeHeader extends StatelessWidget {
           // --- 2. LOCATION & PROFILE SECTION (Full Width Background) ---
           Container(
             width: double.infinity,
+            height: 50.h,
             color: const Color(0xffbae888), // The specific row background color
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Location Icon
-                Icon(Icons.location_on, color: darkGreenColor, size: 32.sp),
+                Icon(Icons.location_on, color: darkGreenColor, size: 30.h),
 
                 SizedBox(width: 12.w),
 
@@ -108,6 +109,7 @@ class HomeHeader extends StatelessWidget {
                   child: GestureDetector(
                     onTap: onAddressClick,
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Top Line: City : Area
@@ -120,8 +122,8 @@ class HomeHeader extends StatelessWidget {
                                     : 'Select Location',
                                 style: TextStyle(
                                   color: darkGreenColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14.sp,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -139,8 +141,8 @@ class HomeHeader extends StatelessWidget {
                                     'Ozanam bhavan Devagiri',
                                 style: TextStyle(
                                   color: darkGreenColor,
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w400,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -160,7 +162,11 @@ class HomeHeader extends StatelessWidget {
                 ),
 
                 // Profile Icon
-                ProfileIconButton(onProfileTap: onProfileClick),
+                SizedBox(
+                  width: 40.h,
+                  height: 40.h,
+                  child: ProfileIconButton(onProfileTap: onProfileClick),
+                ),
               ],
             ),
           ),

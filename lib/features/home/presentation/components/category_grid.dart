@@ -20,7 +20,7 @@ class CategoryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
     return Container(
-      height: categories.length > 4 ? 240.h : 120.h,
+      height: categories.length > 4 ? 280.h : 140.h,
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: GridView.builder(
         physics: const NeverScrollableScrollPhysics(),
@@ -28,7 +28,8 @@ class CategoryGrid extends StatelessWidget {
           crossAxisCount: 4,
           mainAxisSpacing: 14.h,
           crossAxisSpacing: 10.w,
-          childAspectRatio: 0.75, // Controls height of tile vs width
+          childAspectRatio:
+              0.65, // Lower value = taller cells for more text space
         ),
         itemCount: categories.length,
         itemBuilder: (context, index) {

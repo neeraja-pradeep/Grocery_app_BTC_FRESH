@@ -2,6 +2,7 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../domain/entities/banner.dart' as entities;
 
@@ -18,14 +19,14 @@ class AdvertisementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 170,
+      height: 170.h,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20.r),
         color: Colors.grey[200],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20.r),
         child: Stack(
           children: [
             // 1. Background Image
@@ -110,7 +111,7 @@ class AdvertisementCard extends StatelessWidget {
                         vertical: 8,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                       elevation: 0,
                     ),

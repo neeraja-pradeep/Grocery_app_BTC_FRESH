@@ -43,7 +43,11 @@ class CustomSearchBar extends ConsumerWidget {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search for "Rice"',
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14.sp),
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w400,
+                ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
               ),

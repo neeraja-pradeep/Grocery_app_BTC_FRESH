@@ -6,17 +6,23 @@ import '../../../../app/theme/colors.dart';
 
 class ProfileMenuItem extends StatelessWidget {
   const ProfileMenuItem({
-    required this.icon,
     required this.title,
     required this.onTap,
+    this.icon,
+    this.imagePath,
     this.showChevron = true,
+    this.titleFontSize,
+    this.titleFontWeight,
     super.key,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final String? imagePath;
   final String title;
   final VoidCallback onTap;
   final bool showChevron;
+  final double? titleFontSize;
+  final FontWeight? titleFontWeight;
 
   @override
   Widget build(BuildContext context) {
@@ -26,19 +32,22 @@ class ProfileMenuItem extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         decoration: BoxDecoration(
-          color: AppColors.green10,
+          color: AppColors.field,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 24.sp, color: AppColors.green100),
+            if (imagePath != null)
+              Image.asset(imagePath!, width: 24.sp, height: 24.sp)
+            else if (icon != null)
+              Icon(icon, size: 24.sp, color: AppColors.green100),
             AppSpacing.w16,
             Expanded(
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
+                  fontSize: titleFontSize ?? 14.sp,
+                  fontWeight: titleFontWeight ?? FontWeight.w500,
                   color: AppColors.black,
                 ),
               ),

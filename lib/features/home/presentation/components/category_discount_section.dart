@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/utils/logger.dart';
 import '../../domain/entities/category_discount_group.dart';
@@ -146,24 +147,26 @@ class MegaOfferProductCard extends StatelessWidget {
                     Positioned(
                       top: 0,
                       right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 3,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: Colors.red, // Red background like image
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(12),
-                            bottomLeft: Radius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12.h,
+                            vertical: 5.h,
                           ),
-                        ),
-                        child: Text(
-                          '-$discountPercentage',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                          decoration: BoxDecoration(
+                            color: Colors.red, // Red background like image
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(8.r),
+                            ),
+                          ),
+                          child: Text(
+                            '-$discountPercentage',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
@@ -217,25 +220,26 @@ class MegaOfferProductCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Current Price (Green)
+                        // Current Price (Green) - No Rs symbol
                         Text(
                           hasDiscount
-                              ? '₹${product.discountedPrice?.toStringAsFixed(2)}'
-                              : '₹${product.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF4CAF50), // Green
+                              ? product.discountedPrice?.toStringAsFixed(2) ??
+                                    ''
+                              : product.price.toStringAsFixed(2),
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF4CAF50), // Green
                             height: 1.0,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        // Old Price (Strikethrough)
+                        SizedBox(width: 4.w),
+                        // Old Price (Strikethrough) - No Rs symbol
                         if (hasDiscount)
                           Text(
                             product.price.toStringAsFixed(2),
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 10.sp,
                               decoration: TextDecoration.lineThrough,
                               color: Colors.grey[400],
                             ),
@@ -243,15 +247,15 @@ class MegaOfferProductCard extends StatelessWidget {
                       ],
                     ),
 
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4.h),
 
                     // 2. Product Name
                     Text(
                       product.name,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: TextStyle(
+                        fontSize: 13.sp,
                         color: Colors.black87,
                         fontWeight: FontWeight.w500,
                         height: 1.2,
@@ -260,10 +264,14 @@ class MegaOfferProductCard extends StatelessWidget {
 
                     const Spacer(),
 
-                    // 3. Unit / Weight (e.g., "1 kg" or "3.45 / kg")
+                    // 3. Price per kg (e.g., "3,45 / kg")
                     Text(
-                      product.weight ?? 'per unit',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      '${product.pricePerKg} / kg',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[500],
+                      ),
                     ),
                   ],
                 ),
@@ -286,6 +294,12 @@ extension ProductVariantMegaOffer on ProductVariant {
   }
 
   bool get hasDiscount => discountedPrice != null && discountedPrice! < price;
+
+  String get pricePerKg {
+    // Use discounted price if available, otherwise use regular price
+    final effectivePrice = hasDiscount ? (discountedPrice ?? price) : price;
+    return effectivePrice.toStringAsFixed(2).replaceAll('.', ',');
+  }
 
   String? get weight {
     // Debug logging to understand what's in stockUnit

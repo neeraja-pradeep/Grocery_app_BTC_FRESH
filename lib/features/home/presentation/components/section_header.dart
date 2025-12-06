@@ -18,7 +18,7 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -56,11 +56,12 @@ class SectionHeader extends StatelessWidget {
                 minimumSize: Size(50.w, 30.h),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text(
+              child: Text(
                 'See All',
                 style: TextStyle(
-                  color: Color(0xff016064),
+                  color: const Color(0xff016064),
                   fontWeight: FontWeight.w600,
+                  fontSize: 14.sp,
                 ),
               ),
             ),

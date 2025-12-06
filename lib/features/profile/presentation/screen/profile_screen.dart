@@ -140,8 +140,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     AppSpacing.h24,
                     ProfileMenuItem(
-                      icon: Icons.shopping_bag_outlined,
+                      imagePath: 'assets/svgs/profile/cupcake.png',
                       title: 'Order history',
+                      titleFontSize: 14.sp,
+                      titleFontWeight: FontWeight.w600,
                       onTap: () {
                         // Navigate to order history screen
                       },
@@ -150,8 +152,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const ProfileSectionHeader(title: 'Account settings'),
                     AppSpacing.h12,
                     ProfileMenuItem(
-                      icon: Icons.location_on_outlined,
+                      imagePath: 'assets/svgs/profile/settings.png',
                       title: 'Delivery Address',
+                      titleFontSize: 14.sp,
+                      titleFontWeight: FontWeight.w500,
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -160,28 +164,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         );
                       },
                     ),
-                    AppSpacing.h12,
-                    ProfileMenuItem(
-                      icon: Icons.payment_outlined,
-                      title: 'Payment Methods',
-                      onTap: () {
-                        // Navigate to payment methods screen
-                      },
-                    ),
                     AppSpacing.h24,
                     const ProfileSectionHeader(title: 'Support'),
                     AppSpacing.h12,
                     ProfileMenuItem(
-                      icon: Icons.headset_mic_outlined,
+                      imagePath: 'assets/svgs/profile/contact.png',
                       title: 'Contact Us',
+                      titleFontSize: 14.sp,
+                      titleFontWeight: FontWeight.w500,
                       onTap: () {
                         // Navigate to contact us screen
                       },
                     ),
                     AppSpacing.h12,
                     ProfileMenuItem(
-                      icon: Icons.logout_outlined,
+                      imagePath: 'assets/svgs/profile/contact.png',
                       title: 'Log out',
+                      titleFontSize: 14.sp,
+                      titleFontWeight: FontWeight.w500,
                       showChevron: false,
                       onTap: () => _handleLogout(context),
                     ),
