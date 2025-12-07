@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../features/cart/presentation/screen/cart_screen.dart';
 import '../../features/cart/presentation/screen/coupons_screen.dart';
 
+import '../../features/auth/presentation/screen/login_intro_screen.dart';
 import '../../features/auth/presentation/screen/login_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
 import '../../features/product_details/presentation/screen/product_details_screen.dart';
@@ -10,6 +11,7 @@ class AppRouter {
   const AppRouter();
 
   static const String home = '/';
+  static const String loginIntro = '/auth/login-intro';
   static const String login = '/auth/login';
   static const String bottomNavBar = '/auth/login/bottomNavBar';
   static const String productDetails = '/product-details';
@@ -17,10 +19,13 @@ class AppRouter {
   static const String coupon = '/coupon';
   static const String profile = '/profile';
 
-  static const String initialRoute = home;
+  // Change this to 'home' when done testing login screens
+  static const String initialRoute = loginIntro;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case loginIntro:
+        return _buildRoute<void>(settings, const LoginIntroScreen());
       case login:
         return _buildRoute<void>(settings, const LoginScreen());
       case home:
