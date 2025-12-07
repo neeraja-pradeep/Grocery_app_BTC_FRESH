@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../features/cart/presentation/screen/cart_screen.dart';
-import '../../features/cart/presentation/screen/coupons_screen.dart';
-
 import '../../features/auth/presentation/screen/login_intro_screen.dart';
 import '../../features/auth/presentation/screen/login_screen.dart';
+import '../../features/auth/presentation/screen/splash_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
+import '../../features/cart/presentation/screen/cart_screen.dart';
+import '../../features/cart/presentation/screen/coupons_screen.dart';
 import '../../features/product_details/presentation/screen/product_details_screen.dart';
 
 class AppRouter {
   const AppRouter();
 
   static const String home = '/';
+  static const String splash = '/auth/splash';
   static const String loginIntro = '/auth/login-intro';
   static const String login = '/auth/login';
   static const String bottomNavBar = '/auth/login/bottomNavBar';
@@ -20,10 +21,12 @@ class AppRouter {
   static const String profile = '/profile';
 
   // Change this to 'home' when done testing login screens
-  static const String initialRoute = loginIntro;
+  static const String initialRoute = splash;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case splash:
+        return _buildRoute<void>(settings, const SplashScreen());
       case loginIntro:
         return _buildRoute<void>(settings, const LoginIntroScreen());
       case login:
