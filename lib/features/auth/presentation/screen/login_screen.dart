@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 
@@ -246,7 +247,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Forgot password
                       GestureDetector(
                         onTap: () {
-                          // TODO: Navigate to forgot password
+                          Navigator.pushNamed(
+                            context,
+                            AppRouter.forgotPassword,
+                          );
                         },
                         child: Text(
                           'Forgot password?',

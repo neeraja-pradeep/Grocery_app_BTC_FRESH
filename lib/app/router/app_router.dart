@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../features/auth/presentation/screen/forgot_password_otp_screen.dart';
+import '../../features/auth/presentation/screen/forgot_password_screen.dart';
 import '../../features/auth/presentation/screen/login_intro_screen.dart';
 import '../../features/auth/presentation/screen/login_screen.dart';
 import '../../features/auth/presentation/screen/splash_screen.dart';
@@ -14,6 +16,8 @@ class AppRouter {
   static const String splash = '/auth/splash';
   static const String loginIntro = '/auth/login-intro';
   static const String login = '/auth/login';
+  static const String forgotPassword = '/auth/forgot-password';
+  static const String forgotPasswordOtp = '/auth/forgot-password-otp';
   static const String bottomNavBar = '/auth/login/bottomNavBar';
   static const String productDetails = '/product-details';
   static const String cart = '/cart';
@@ -31,6 +35,14 @@ class AppRouter {
         return _buildRoute<void>(settings, const LoginIntroScreen());
       case login:
         return _buildRoute<void>(settings, const LoginScreen());
+      case forgotPassword:
+        return _buildRoute<void>(settings, const ForgotPasswordScreen());
+      case forgotPasswordOtp:
+        final mobileNumber = settings.arguments as String? ?? '';
+        return _buildRoute<void>(
+          settings,
+          ForgotPasswordOtpScreen(mobileNumber: mobileNumber),
+        );
       case home:
         return _buildRoute<void>(
           settings,
