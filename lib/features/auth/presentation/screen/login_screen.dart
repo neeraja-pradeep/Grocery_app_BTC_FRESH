@@ -318,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          // TODO: Navigate to sign up
+                          Navigator.pushNamed(context, AppRouter.signUp);
                         },
                         child: Text(
                           'Sign up',

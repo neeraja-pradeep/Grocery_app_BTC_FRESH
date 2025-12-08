@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 
@@ -192,7 +193,9 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
                   text: 'Verify',
                   borderRadius: 10.r,
                   onPressed: () {
-                    // TODO: Handle OTP verification
+                    // TODO: Validate OTP with API
+                    // On success, navigate to reset password screen
+                    Navigator.pushNamed(context, AppRouter.resetPassword);
                   },
                 ),
 

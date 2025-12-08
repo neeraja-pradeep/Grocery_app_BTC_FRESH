@@ -3,6 +3,10 @@ import '../../features/auth/presentation/screen/forgot_password_otp_screen.dart'
 import '../../features/auth/presentation/screen/forgot_password_screen.dart';
 import '../../features/auth/presentation/screen/login_intro_screen.dart';
 import '../../features/auth/presentation/screen/login_screen.dart';
+import '../../features/auth/presentation/screen/password_changed_screen.dart';
+import '../../features/auth/presentation/screen/reset_password_scrren.dart';
+import '../../features/auth/presentation/screen/sign_up_screen.dart';
+import '../../features/auth/presentation/screen/address_screen.dart';
 import '../../features/auth/presentation/screen/splash_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
 import '../../features/cart/presentation/screen/cart_screen.dart';
@@ -18,6 +22,10 @@ class AppRouter {
   static const String login = '/auth/login';
   static const String forgotPassword = '/auth/forgot-password';
   static const String forgotPasswordOtp = '/auth/forgot-password-otp';
+  static const String resetPassword = '/auth/reset-password';
+  static const String passwordChanged = '/auth/password-changed';
+  static const String signUp = '/auth/sign-up';
+  static const String address = '/auth/address';
   static const String bottomNavBar = '/auth/login/bottomNavBar';
   static const String productDetails = '/product-details';
   static const String cart = '/cart';
@@ -43,6 +51,14 @@ class AppRouter {
           settings,
           ForgotPasswordOtpScreen(mobileNumber: mobileNumber),
         );
+      case resetPassword:
+        return _buildRoute<void>(settings, const ResetPasswordScreen());
+      case passwordChanged:
+        return _buildRoute<void>(settings, const PasswordChangedScreen());
+      case signUp:
+        return _buildRoute<void>(settings, const SignUpScreen());
+      case address:
+        return _buildRoute<void>(settings, const AddressScreen());
       case home:
         return _buildRoute<void>(
           settings,
