@@ -18,17 +18,23 @@ class HomeHeader extends StatelessWidget {
     required this.onProfileClick,
   });
 
+  /// Truncate address to show only first few words
+  String _truncateToWords(String text, {int maxWords = 2}) {
+    if (text.isEmpty) return text;
+    final words = text.trim().split(RegExp(r'\s+'));
+    if (words.length <= maxWords) return text;
+    return '${words.take(maxWords).join(' ')}...';
+  }
+
   // --- Search Handlers ---
   // // Updated to accept BuildContext so you can navigate
   // void _handleTextSearch(BuildContext context, String query) {
   //   // debugPrint("Search query submitted: $query");
-  //   // TODO: Implement navigation to search results
   //   // Navigator.push(context, MaterialPageRoute(builder: (_) => SearchResultsPage(query: query)));
   // }
 
   // void _handleVoiceSearch(BuildContext context) {
   //   // debugPrint("Voice search clicked");
-  //   // TODO: Implement voice search logic or navigation
   // }
 
   @override
@@ -108,53 +114,49 @@ class HomeHeader extends StatelessWidget {
                 Expanded(
                   child: GestureDetector(
                     onTap: onAddressClick,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        // Top Line: City : Area
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                address != null
-                                    ? 'Calicut :'
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top Line: City or "Select Location"
+                              Text(
+                                address != null && address!.city.isNotEmpty
+                                    ? _truncateToWords(
+                                        address!.city,
+                                        maxWords: 2,
+                                      )
                                     : 'Select Location',
                                 style: TextStyle(
                                   color: darkGreenColor,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.sp,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
-                        ),
-
-                        // Bottom Line: Specific Address + Dropdown Icon
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                address?.shortDisplay ??
-                                    'Ozanam bhavan Devagiri',
+                              SizedBox(height: 2.h),
+                              // Bottom Line: Street Address (truncated to 2 words)
+                              Text(
+                                address != null &&
+                                        address!.streetAddress1.isNotEmpty
+                                    ? _truncateToWords(
+                                        address!.streetAddress1,
+                                        maxWords: 2,
+                                      )
+                                    : 'Tap to add address',
                                 style: TextStyle(
                                   color: darkGreenColor,
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w400,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            SizedBox(width: 4.w),
-                            Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 18.sp,
-                              color: darkGreenColor,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),

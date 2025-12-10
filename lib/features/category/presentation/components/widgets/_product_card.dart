@@ -8,6 +8,7 @@ import '../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../core/widgets/app_text.dart';
 import '../../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
+import '../../../../wishlist/application/providers/wishlist_provider.dart';
 import '../../../application/providers/inventory_update_notifier.dart';
 import '../../../application/providers/price_update_notifier.dart';
 import '../../../domain/entities/category_product.dart';
@@ -103,7 +104,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final image = widget.product.imageUrl ?? widget.product.thumbnailUrl;
     final formattedWeight = _formatWeight(widget.product.weight);
 
@@ -187,7 +187,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                           )
                         : _AnimatedAddButton(
                             onTap: () => _handleAddToCart(context),
-                            primaryColor: widget.colorScheme.primary,
+                            primaryColor: AppColors.green,
                           ),
                   ),
                   // Real-time update indicator
@@ -252,12 +252,38 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                         const AppText.pageTitle(text: 'N/A'),
                       ],
                       const Spacer(),
-                      Icon(
-                        Icons.favorite_border,
-                        size: 22.sp,
-                        color: isDark
-                            ? widget.colorScheme.outline
-                            : AppColors.green100,
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final isInWishlist = ref.watch(
+                            isInWishlistProvider(widget.product.variantId),
+                          );
+                          return GestureDetector(
+                            onTap: () async {
+                              final wishlistNotifier = ref.read(
+                                wishlistProvider.notifier,
+                              );
+                              final success = await wishlistNotifier
+                                  .toggleWishlist(widget.product.variantId);
+                              if (context.mounted && success) {
+                                AppSnackbar.success(
+                                  context,
+                                  isInWishlist
+                                      ? 'Removed from wishlist'
+                                      : 'Added to wishlist',
+                                );
+                              }
+                            },
+                            child: Icon(
+                              isInWishlist
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: 22.sp,
+                              color: isInWishlist
+                                  ? Colors.red
+                                  : AppColors.green100,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

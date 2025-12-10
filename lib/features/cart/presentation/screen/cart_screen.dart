@@ -581,7 +581,6 @@ class _CartScreenState extends ConsumerState<CartScreen>
   }
 
   void _handleViewSuggestedProducts() {
-    // TODO: Navigate to suggested products
     AppSnackbar.info(context, 'Suggested products coming soon');
   }
 

@@ -12,11 +12,12 @@ import '../../application/providers/checkout_line_provider.dart';
 import '../../application/providers/payment_provider.dart';
 import '../../domain/entities/checkout_line.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
-import '../../../bottomnavbar/bottom_navbar.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
 import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
+import 'confirm_order_screen.dart';
+import 'failed_order_screen.dart';
 
 /// Checkout screen - displays cart items and order summary with selected address
 /// Now uses checkoutLineControllerProvider directly for real-time sync
@@ -389,17 +390,24 @@ class CheckoutScreen extends ConsumerWidget {
           couponId: couponId,
           customerName: selectedAddress.fullName,
           onSuccess: () {
-            // Payment successful - show success and navigate
-            AppSnackbar.success(context, 'Payment successful! Order placed.');
             // Clear applied coupon after successful payment
             ref.read(appliedCouponProvider.notifier).removeCoupon();
-            // Navigate to order confirmation
-            BottomNavigation.globalKey.currentState
-                ?.navigateToCategoryAndShowReview();
+            // Navigate to order confirmation screen
+            if (context.mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const ConfirmOrderScreen()),
+              );
+            }
           },
           onFailure: (error) {
-            // Payment failed - show error
-            AppSnackbar.error(context, 'Payment failed: $error');
+            // Navigate to failed order screen
+            if (context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FailedOrderScreen()),
+              );
+            }
           },
         );
   }

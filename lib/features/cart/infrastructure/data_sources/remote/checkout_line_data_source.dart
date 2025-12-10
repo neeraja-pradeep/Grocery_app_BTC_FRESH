@@ -3,7 +3,7 @@ import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import '../../../../../core/network/api_client.dart';
 import '../../../../../core/network/network_exceptions.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import '../../models/checkout_line_dto.dart';
 
 /// Exception thrown when there's insufficient stock for a product

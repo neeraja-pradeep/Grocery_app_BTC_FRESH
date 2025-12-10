@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/widgets/app_text.dart';
 import '../../../application/providers/category_product_providers.dart'
@@ -239,9 +240,7 @@ class _CategoryProductsSliver extends ConsumerWidget {
       name: 'ProductGrid',
       level: 800,
     );
-    Navigator.of(
-      context,
-    ).pushNamed('/product-details', arguments: product.variantId);
+    context.push('/product-details/${product.variantId}');
   }
 
   @override

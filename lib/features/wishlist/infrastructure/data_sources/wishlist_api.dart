@@ -3,7 +3,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../home/infrastructure/data_sources/remote/home_api.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/entities/wishlist_item.dart';
 
 abstract class WishlistRemoteDataSource {
@@ -13,14 +13,14 @@ abstract class WishlistRemoteDataSource {
 }
 
 class WishlistApiImpl implements WishlistRemoteDataSource {
-  final Dio _dio;
+  final ApiClient _apiClient;
 
-  WishlistApiImpl(this._dio);
+  WishlistApiImpl(this._apiClient);
 
   @override
   Future<List<WishlistItem>> getWishlist() async {
     try {
-      final response = await _dio.get('/api/order/wishlist/');
+      final response = await _apiClient.get('/api/order/wishlist/');
 
       if (response.statusCode == 200 && response.data != null) {
         List responseList;
@@ -45,7 +45,7 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
           if (productVariantId != null) {
             try {
               // Fetch complete product details
-              final productResponse = await _dio.get(
+              final productResponse = await _apiClient.get(
                 '/api/products/variants/$productVariantId/',
               );
 
@@ -88,7 +88,7 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
         'product_variant': int.tryParse(productId) ?? productId,
       };
 
-      final response = await _dio.post(
+      final response = await _apiClient.post(
         '/api/order/wishlist/',
         data: requestData,
         options: Options(headers: {'Content-Type': 'application/json'}),
@@ -122,7 +122,7 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
   @override
   Future<void> removeFromWishlist(String wishlistItemId) async {
     try {
-      final response = await _dio.delete(
+      final response = await _apiClient.delete(
         '/api/order/wishlist/$wishlistItemId/',
       );
 
@@ -138,6 +138,6 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
 final wishlistRemoteDataSourceProvider = Provider<WishlistRemoteDataSource>((
   ref,
 ) {
-  final dio = ref.watch(dioProvider);
-  return WishlistApiImpl(dio);
+  final apiClient = ref.watch(apiClientProvider);
+  return WishlistApiImpl(apiClient);
 });

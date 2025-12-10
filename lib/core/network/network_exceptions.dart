@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../error/failure.dart';
+
 enum NetworkErrorType {
   /// Device has no internet connection
   noInternet,
@@ -119,4 +121,82 @@ class NoInternetException extends NetworkException {
 class ServerException extends NetworkException {
   const ServerException(int statusCode, String message)
     : super(message: message, statusCode: statusCode);
+}
+
+Failure mapDioError(Object e) {
+  // IMPORTANT: prevent double mapping
+  if (e is Failure) return e;
+
+  if (e is DioException) {
+    final data = e.response?.data;
+
+    // Read error message safely
+    String? msg;
+    if (data is Map) {
+      // Check for standard error keys first
+      msg = data['message'] ?? data['error'] ?? data['detail'];
+
+      // If no standard message, parse validation errors like {"username": ["error"]}
+      if (msg == null) {
+        final errors = <String>[];
+        data.forEach((key, value) {
+          if (value is List && value.isNotEmpty) {
+            // Extract first error message from each field
+            errors.add(value.first.toString());
+          }
+        });
+        if (errors.isNotEmpty) {
+          msg = errors.join('\n');
+        }
+      }
+    }
+
+    final status = e.response?.statusCode;
+
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return const AppFailure('Connection timed out. Please try again.');
+
+      case DioExceptionType.connectionError:
+      case DioExceptionType.unknown:
+        if (e.message?.contains('SocketException') ?? false) {
+          return const AppFailure('No internet connection.');
+        }
+        return const AppFailure('Network error occurred.');
+
+      case DioExceptionType.badCertificate:
+        return const AppFailure(
+          'Bad SSL certificate. Unable to connect safely.',
+        );
+
+      case DioExceptionType.badResponse:
+        // If backend sent a readable error message -> show it
+        if (msg is String && msg.isNotEmpty) {
+          return AppFailure(msg);
+        }
+
+        // Fallback by HTTP status code
+        switch (status) {
+          case 400:
+            return const AppFailure('Bad request. Please check your input.');
+          case 401:
+            return const AppFailure('Unauthorized. Please log in.');
+          case 403:
+            return const AppFailure('Access denied.');
+          case 404:
+            return const AppFailure('Resource not found.');
+          case 500:
+            return const AppFailure('Server error. Please try again later.');
+        }
+
+        return const AppFailure('Something went wrong. Please try again.');
+
+      case DioExceptionType.cancel:
+        return const AppFailure('Request was cancelled.');
+    }
+  }
+
+  return const AppFailure('Unexpected error. Please try again.');
 }

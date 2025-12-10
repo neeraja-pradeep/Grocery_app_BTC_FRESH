@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
+import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../address/presentation/screens/address_list_screen.dart';
+import '../../../auth/application/providers/auth_provider.dart';
 import '../../application/providers/profile_provider.dart';
 import '../components/profile_header.dart';
 import '../components/profile_menu_item.dart';
 import '../components/profile_section_header.dart';
+import 'contact_us_screen.dart';
 import 'profile_edit_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -144,9 +146,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: 'Order history',
                       titleFontSize: 14.sp,
                       titleFontWeight: FontWeight.w600,
-                      onTap: () {
-                        // Navigate to order history screen
-                      },
+                      onTap: () => context.push('/orders'),
                     ),
                     AppSpacing.h24,
                     const ProfileSectionHeader(title: 'Account settings'),
@@ -173,7 +173,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       titleFontSize: 14.sp,
                       titleFontWeight: FontWeight.w500,
                       onTap: () {
-                        // Navigate to contact us screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ContactUsScreen(),
+                          ),
+                        );
                       },
                     ),
                     AppSpacing.h12,
@@ -229,9 +234,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
 
     if (confirmed == true && context.mounted) {
+      // Clear profile data
       await ref.read(profileControllerProvider.notifier).logout();
-      // Navigate to login screen
-      // Navigator.of(context).pushReplacementNamed('/login');
+      // Clear auth state (this updates the router's auth check)
+      await ref.read(authProvider.notifier).logout();
+      // Navigate to OTP screen
+      if (context.mounted) {
+        context.go('/otp');
+      }
     }
   }
 }

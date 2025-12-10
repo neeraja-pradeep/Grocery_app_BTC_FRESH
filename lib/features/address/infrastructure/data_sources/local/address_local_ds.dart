@@ -1,4 +1,4 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import '../../models/address_dto.dart';
 import 'address_cache_dto.dart';

@@ -2,7 +2,7 @@
 
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/utils/logger.dart';
 import '../../domain/entities/banner.dart';

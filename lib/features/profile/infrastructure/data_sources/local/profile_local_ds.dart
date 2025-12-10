@@ -1,4 +1,4 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import '../../models/profile_dto.dart';
 import 'profile_cache_dto.dart';

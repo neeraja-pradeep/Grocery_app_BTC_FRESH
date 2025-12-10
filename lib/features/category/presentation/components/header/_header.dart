@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/extensions/context_extensions.dart';
@@ -32,9 +33,7 @@ class Header extends StatelessWidget {
           children: [
             AppSpacing.w12,
             GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, '/profile');
-              },
+              onTap: () => context.push('/profile'),
               child: SvgPicture.asset(
                 'assets/svgs/category_screen/category_icon.svg',
                 colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
@@ -43,9 +42,9 @@ class Header extends StatelessWidget {
               ),
             ),
             AppSpacing.w16,
-            AppText.pageTitle(
+            const AppText.pageTitle(
               text: 'Shop By Category',
-              color: colorScheme.onPrimaryContainer,
+              color: AppColors.green50,
             ),
             const Spacer(),
             Container(

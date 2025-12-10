@@ -40,6 +40,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart'; // Requires pull_to_refresh package
 
 // Core & Domain
@@ -65,6 +66,7 @@ import '../components/error_view.dart';
 
 // Other Screens (For navigation)
 import '../../../profile/presentation/screen/profile_screen.dart';
+import '../../../address/presentation/screens/address_list_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -571,15 +573,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
     );
 
-    Navigator.pushNamed(
-      context,
-      '/product-details',
-      arguments: {'productId': product.productId, 'variantId': product.id},
-    );
+    context.push('/product-details/${product.id}');
   }
 
   void _navigateToAddressSelection() {
-    // Navigator.pushNamed(context, '/address-selection');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddressListScreen()),
+    ).then((_) {
+      // Refresh home data after returning from address selection
+      // to update the displayed address
+      ref.read(homeProvider.notifier).refresh();
+    });
   }
 
   void _navigateToProfile() {

@@ -1,32 +1,48 @@
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'endpoints.dart';
 import 'network_exceptions.dart';
 
 class ApiClient {
-  ApiClient({Dio? dio}) : _dio = dio ?? _createDefaultDio();
-
-  final Dio _dio;
+  late Dio dio;
+  late PersistCookieJar cookieJar;
+  static const baseUrl = 'http://156.67.104.149:8080';
 
   static const _defaultConnectTimeout = Duration(seconds: 30);
   static const _defaultReceiveTimeout = Duration(seconds: 30);
 
-  static Dio _createDefaultDio() {
-    final baseOptions = BaseOptions(
-      baseUrl: ApiEndpoints.baseUrl,
-      connectTimeout: _defaultConnectTimeout,
-      receiveTimeout: _defaultReceiveTimeout,
-      sendTimeout: _defaultConnectTimeout,
-      responseType: ResponseType.json,
-      contentType: 'application/json',
-      validateStatus: (status) => status != null && status < 400,
-      headers: const <String, dynamic>{'dev': '4'},
+  ApiClient();
+
+  Future<void> init() async {
+    // 1. CookieJar init
+    final dir = await getApplicationDocumentsDirectory();
+    cookieJar = PersistCookieJar(storage: FileStorage('${dir.path}/.cookies'));
+
+    // 2. Create dio with options
+    dio = Dio(
+      BaseOptions(
+        baseUrl: ApiEndpoints.baseUrl,
+        connectTimeout: _defaultConnectTimeout,
+        receiveTimeout: _defaultReceiveTimeout,
+        sendTimeout: _defaultConnectTimeout,
+        responseType: ResponseType.json,
+        contentType: 'application/json',
+        validateStatus: (status) => status != null && status < 400,
+      ),
     );
 
-    final dio = Dio(baseOptions);
+    // 3. Cookies
+    dio.interceptors.add(CookieManager(cookieJar));
 
+    // Note: Authentication is handled via session cookies (CookieManager above)
+    // No additional user context headers needed for authenticated requests
+
+    // 5. Debug logging
     if (kDebugMode) {
       dio.interceptors.add(
         LogInterceptor(
@@ -38,9 +54,35 @@ class ApiClient {
       );
     }
 
-    return dio;
+    // 6. CSRF interceptor
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final csrf = await _getCsrfToken();
+          if (csrf != null) {
+            options.headers['X-CSRFToken'] = csrf;
+          }
+          handler.next(options);
+        },
+      ),
+    );
   }
 
+  /// Helper for CSRF token
+  Future<String?> _getCsrfToken() async {
+    final cookies = await cookieJar.loadForRequest(
+      Uri.parse(dio.options.baseUrl),
+    );
+
+    final csrfCookie = cookies.firstWhere(
+      (c) => c.name.toLowerCase() == 'csrftoken',
+      orElse: () => Cookie('', ''),
+    );
+
+    return csrfCookie.value.isEmpty ? null : csrfCookie.value;
+  }
+
+  // GET
   Future<Response<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -48,23 +90,26 @@ class ApiClient {
     Options? options,
   }) async {
     try {
-      final mergedHeaders = <String, dynamic>{
+      final mergedHeaders = {
         if (options?.headers != null) ...options!.headers!,
         if (headers != null) ...headers,
       };
-      final requestHeaders = mergedHeaders.isEmpty ? null : mergedHeaders;
 
-      final response = await _dio.get<T>(
+      final response = await dio.get<T>(
         path,
         queryParameters: queryParameters,
-        options: (options ?? Options()).copyWith(headers: requestHeaders),
+        options: (options ?? Options()).copyWith(
+          headers: mergedHeaders.isEmpty ? null : mergedHeaders,
+        ),
       );
+
       return response;
     } on DioException catch (error) {
       throw NetworkException.fromDio(error);
     }
   }
 
+  // POST
   Future<Response<T>> post<T>(
     String path, {
     dynamic data,
@@ -73,24 +118,27 @@ class ApiClient {
     Options? options,
   }) async {
     try {
-      final mergedHeaders = <String, dynamic>{
+      final mergedHeaders = {
         if (options?.headers != null) ...options!.headers!,
         if (headers != null) ...headers,
       };
-      final requestHeaders = mergedHeaders.isEmpty ? null : mergedHeaders;
 
-      final response = await _dio.post<T>(
+      final response = await dio.post<T>(
         path,
         data: data,
         queryParameters: queryParameters,
-        options: (options ?? Options()).copyWith(headers: requestHeaders),
+        options: (options ?? Options()).copyWith(
+          headers: mergedHeaders.isEmpty ? null : mergedHeaders,
+        ),
       );
+
       return response;
     } on DioException catch (error) {
       throw NetworkException.fromDio(error);
     }
   }
 
+  // PATCH
   Future<Response<T>> patch<T>(
     String path, {
     dynamic data,
@@ -105,7 +153,7 @@ class ApiClient {
       };
       final requestHeaders = mergedHeaders.isEmpty ? null : mergedHeaders;
 
-      final response = await _dio.patch<T>(
+      final response = await dio.patch<T>(
         path,
         data: data,
         queryParameters: queryParameters,
@@ -117,6 +165,7 @@ class ApiClient {
     }
   }
 
+  // DELETE
   Future<Response<T>> delete<T>(
     String path, {
     dynamic data,
@@ -131,7 +180,7 @@ class ApiClient {
       };
       final requestHeaders = mergedHeaders.isEmpty ? null : mergedHeaders;
 
-      final response = await _dio.delete<T>(
+      final response = await dio.delete<T>(
         path,
         data: data,
         queryParameters: queryParameters,
@@ -144,4 +193,6 @@ class ApiClient {
   }
 }
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+final apiClientProvider = Provider<ApiClient>((ref) {
+  throw UnimplementedError('ApiClient must be overridden in main.dart');
+});

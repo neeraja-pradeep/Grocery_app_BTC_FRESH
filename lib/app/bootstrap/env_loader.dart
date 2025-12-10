@@ -2,7 +2,5 @@
 
 /// Environment configuration loader
 class EnvLoader {
-  static Future<void> load() async {
-    // TODO: Implement environment loading
-  }
+  static Future<void> load() async {}
 }

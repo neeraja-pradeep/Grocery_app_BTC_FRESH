@@ -175,6 +175,14 @@ class AddressRepositoryImpl implements AddressRepository {
   }
 
   @override
+  Future<void> selectAddress(String id) async {
+    await _remoteDs.selectAddress(id);
+
+    // Invalidate cache after selecting address
+    await _localDs.clearCache();
+  }
+
+  @override
   Future<void> logout() async {
     // Clear all cached address data on logout
     await _localDs.clearAll();

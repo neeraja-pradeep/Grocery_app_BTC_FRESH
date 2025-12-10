@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_models.dart';
@@ -402,11 +403,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
   /// Handle navigate to cart
   void _handleNavigateToCart() {
-    Navigator.pushNamed(context, '/cart');
+    context.push('/cart');
   }
 
   /// Handle navigate to checkout
   void _handleNavigateToCheckout() {
-    Navigator.pushNamed(context, '/cart', arguments: {'tab': 1});
+    context.push('/cart');
   }
 }

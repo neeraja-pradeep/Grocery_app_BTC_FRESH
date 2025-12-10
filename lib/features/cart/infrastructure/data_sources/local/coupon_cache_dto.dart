@@ -1,4 +1,4 @@
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 
 /// Cache metadata for coupon list
 /// Stores only Last-Modified and ETag headers for HTTP conditional requests

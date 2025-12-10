@@ -1,22 +1,48 @@
-// lib/features/auth/domain/entities/user.dart
-
-/// User entity
-class User {
-  final String id;
+class UserEntity {
+  final int id;
+  final String username;
   final String email;
-  final String name;
+  final String firstName;
+  final String lastName;
+  final String phoneNumber;
+  final String role;
 
-  const User({required this.id, required this.email, required this.name});
+  UserEntity({
+    required this.id,
+    required this.username,
+    required this.email,
+    required this.firstName,
+    required this.lastName,
+    required this.phoneNumber,
+    required this.role,
+  });
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      name: json['name'] as String,
+  factory UserEntity.fromMap(Map<String, dynamic> map) {
+    return UserEntity(
+      id: map['id'] as int,
+      username: map['username'] as String,
+      email: map['email'] as String,
+      firstName: map['first_name'] as String,
+      lastName: map['last_name'] as String,
+      phoneNumber: map['phone_number'] as String,
+      role: map['role'] as String,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {'id': id, 'email': email, 'name': name};
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'username': username,
+      'email': email,
+      'first_name': firstName,
+      'last_name': lastName,
+      'phone_number': phoneNumber,
+      'role': role,
+    };
+  }
+
+  @override
+  String toString() {
+    return 'UserEntity(id: $id, username: $username, email: $email, firstName: $firstName, lastName: $lastName, phoneNumber: $phoneNumber, role: $role)';
   }
 }

@@ -43,6 +43,9 @@ abstract class AddressRepository {
   /// Deletes an address
   Future<void> deleteAddress(String id);
 
+  /// Selects an address as the default delivery address
+  Future<void> selectAddress(String id);
+
   /// Clears all cached addresses on logout
   Future<void> logout();
 }

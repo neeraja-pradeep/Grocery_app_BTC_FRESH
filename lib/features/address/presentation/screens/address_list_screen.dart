@@ -156,129 +156,134 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
                           )
                         else
                           ...addressState.addresses.map(
-                            (address) => Container(
-                              margin: EdgeInsets.only(bottom: 12.h),
-                              padding: EdgeInsets.all(16.w),
-                              decoration: BoxDecoration(
-                                color: AppColors.white,
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(
-                                  color: address.selected
-                                      ? AppColors.green
-                                      : AppColors.grey.withValues(alpha: 0.3),
-                                  width: address.selected ? 2 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Radio button
-                                  Container(
-                                    margin: EdgeInsets.only(top: 2.h),
-                                    child: Icon(
-                                      address.selected
-                                          ? Icons.radio_button_checked
-                                          : Icons.radio_button_unchecked,
-                                      color: address.selected
-                                          ? AppColors.green
-                                          : AppColors.grey,
-                                      size: 24.sp,
-                                    ),
+                            (address) => GestureDetector(
+                              onTap: address.selected
+                                  ? null
+                                  : () => _handleSelectAddress(address.id),
+                              child: Container(
+                                margin: EdgeInsets.only(bottom: 12.h),
+                                padding: EdgeInsets.all(16.w),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white,
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  border: Border.all(
+                                    color: address.selected
+                                        ? AppColors.green
+                                        : AppColors.grey.withValues(alpha: 0.3),
+                                    width: address.selected ? 2 : 1,
                                   ),
-                                  AppSpacing.w12,
-                                  // Address details
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          address.addressTypeLabel,
-                                          style: TextStyle(
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.black,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Radio button
+                                    Container(
+                                      margin: EdgeInsets.only(top: 2.h),
+                                      child: Icon(
+                                        address.selected
+                                            ? Icons.radio_button_checked
+                                            : Icons.radio_button_unchecked,
+                                        color: address.selected
+                                            ? AppColors.green
+                                            : AppColors.grey,
+                                        size: 24.sp,
+                                      ),
+                                    ),
+                                    AppSpacing.w12,
+                                    // Address details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            address.addressTypeLabel,
+                                            style: TextStyle(
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.black,
+                                            ),
+                                          ),
+                                          AppSpacing.h4,
+                                          Text(
+                                            address.fullAddress,
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: AppColors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // 3-dot menu
+                                    PopupMenuButton<String>(
+                                      onSelected: (value) async {
+                                        if (value == 'edit') {
+                                          final result =
+                                              await Navigator.of(
+                                                context,
+                                              ).push<bool>(
+                                                MaterialPageRoute<bool>(
+                                                  builder: (_) =>
+                                                      AddressFormScreen(
+                                                        address: address,
+                                                      ),
+                                                ),
+                                              );
+                                          if (result == true && mounted) {
+                                            await ref
+                                                .read(
+                                                  profileAddressControllerProvider
+                                                      .notifier,
+                                                )
+                                                .fetchAddresses();
+                                          }
+                                        } else if (value == 'delete') {
+                                          _handleDelete(context, address.id);
+                                        }
+                                      },
+                                      icon: Icon(
+                                        Icons.more_vert,
+                                        color: AppColors.grey,
+                                        size: 24.sp,
+                                      ),
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.edit_outlined,
+                                                size: 20.sp,
+                                              ),
+                                              AppSpacing.w8,
+                                              const Text('Edit'),
+                                            ],
                                           ),
                                         ),
-                                        AppSpacing.h4,
-                                        Text(
-                                          address.fullAddress,
-                                          style: TextStyle(
-                                            fontSize: 14.sp,
-                                            color: AppColors.grey,
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.delete_outline,
+                                                size: 20.sp,
+                                                color: Colors.red,
+                                              ),
+                                              AppSpacing.w8,
+                                              const Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  // 3-dot menu
-                                  PopupMenuButton<String>(
-                                    onSelected: (value) async {
-                                      if (value == 'edit') {
-                                        final result =
-                                            await Navigator.of(
-                                              context,
-                                            ).push<bool>(
-                                              MaterialPageRoute<bool>(
-                                                builder: (_) =>
-                                                    AddressFormScreen(
-                                                      address: address,
-                                                    ),
-                                              ),
-                                            );
-                                        if (result == true && mounted) {
-                                          await ref
-                                              .read(
-                                                profileAddressControllerProvider
-                                                    .notifier,
-                                              )
-                                              .fetchAddresses();
-                                        }
-                                      } else if (value == 'delete') {
-                                        _handleDelete(context, address.id);
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.more_vert,
-                                      color: AppColors.grey,
-                                      size: 24.sp,
-                                    ),
-                                    itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.edit_outlined,
-                                              size: 20.sp,
-                                            ),
-                                            AppSpacing.w8,
-                                            const Text('Edit'),
-                                          ],
-                                        ),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.delete_outline,
-                                              size: 20.sp,
-                                              color: Colors.red,
-                                            ),
-                                            AppSpacing.w8,
-                                            const Text(
-                                              'Delete',
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -324,6 +329,33 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
               ),
             ),
     );
+  }
+
+  Future<void> _handleSelectAddress(String id) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await ref
+          .read(profileAddressControllerProvider.notifier)
+          .selectAddress(id);
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Address selected successfully'),
+            backgroundColor: AppColors.green,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(error.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleDelete(BuildContext context, String id) async {

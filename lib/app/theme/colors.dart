@@ -20,6 +20,10 @@ class AppColors {
   static const Color lightGreen = Color.fromARGB(255, 201, 244, 170);
   static const Color field = Color.fromRGBO(237, 242, 247, 1);
 
+  // --- Auth/Backend Colors ---
+  static const borderColor = Color(0xFF84C318);
+  static const titleColor = Color(0xff016064);
+
   // --- Primary App Colors (Based on Logo/Branding) ---
   static const Color primaryGreenDark = Color(0xFFC3E6C3);
   static const Color secondaryGreenLogo = Color(0xFF4CAF50);

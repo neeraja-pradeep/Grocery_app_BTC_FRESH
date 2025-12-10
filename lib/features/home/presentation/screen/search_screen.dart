@@ -354,7 +354,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             product: product,
             onTap: () {
               // Navigate to product detail
-              // TODO: Implement navigation to product detail screen
             },
           ),
         );

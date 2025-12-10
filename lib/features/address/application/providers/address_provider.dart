@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/network_exceptions.dart';
@@ -240,6 +240,26 @@ class ProfileAddressController extends Notifier<AddressState> {
       final message = _mapError(error);
 
       state = state.copyWith(isDeleting: false, errorMessage: message);
+
+      rethrow;
+    }
+  }
+
+  /// Select an address as the default delivery address
+  Future<void> selectAddress(String id) async {
+    state = state.copyWith(isUpdating: true, clearError: true);
+
+    try {
+      await _repository.selectAddress(id);
+
+      // Refresh the list after selecting
+      await fetchAddresses();
+
+      state = state.copyWith(isUpdating: false, clearError: true);
+    } catch (error) {
+      final message = _mapError(error);
+
+      state = state.copyWith(isUpdating: false, errorMessage: message);
 
       rethrow;
     }

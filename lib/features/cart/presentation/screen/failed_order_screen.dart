@@ -70,8 +70,7 @@ class FailedOrderScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Navigate to home
-                    Navigator.popUntil(context, (route) => route.isFirst);
+                    Navigator.pop(context);
                   },
                   style: ButtonStyles.greyButton,
                   child: AppText(

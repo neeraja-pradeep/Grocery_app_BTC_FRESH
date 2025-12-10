@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../app/theme/app_spacing.dart';
+import '../../../../../app/theme/colors.dart';
 import '../../../../../core/extensions/context_extensions.dart';
 
 /// Filter controls bar with icon + filter chips
@@ -28,7 +29,7 @@ class FilterBar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isLight = !isDark;
     final unselectedTextColor = isLight
-        ? const Color(0xFF016064)
+        ? AppColors.green50
         : colorScheme.onSurfaceVariant;
     final unselectedBackground = isLight
         ? Colors.white
@@ -56,7 +57,7 @@ class FilterBar extends StatelessWidget {
               width: 18.w,
               height: 18.w,
               colorFilter: isDark
-                  ? ColorFilter.mode(colorScheme.primary, BlendMode.srcIn)
+                  ? const ColorFilter.mode(AppColors.green50, BlendMode.srcIn)
                   : null,
             ),
           ),
@@ -81,19 +82,17 @@ class FilterBar extends StatelessWidget {
                       showCheckmark: false,
                       selected: isSelected,
                       onSelected: (_) => onFilterSelected(index),
-                      selectedColor: colorScheme.primary,
+                      selectedColor: AppColors.green50,
                       backgroundColor: unselectedBackground,
                       labelStyle: TextStyle(
                         fontSize: 10.sp,
-                        color: isSelected
-                            ? colorScheme.onPrimary
-                            : unselectedTextColor,
+                        color: isSelected ? Colors.white : unselectedTextColor,
                         fontWeight: FontWeight.w600,
                       ),
                       side: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.15,
-                        ),
+                        color: isSelected
+                            ? AppColors.green50
+                            : AppColors.green50.withValues(alpha: 0.3),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.r),

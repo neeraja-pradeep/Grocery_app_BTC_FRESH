@@ -1,120 +1,283 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../features/auth/application/providers/auth_provider.dart';
+import '../../features/auth/application/states/auth_state.dart';
+import '../../features/auth/domain/entities/user.dart';
+import '../../features/auth/presentation/screen/address_screen.dart';
 import '../../features/auth/presentation/screen/forgot_password_otp_screen.dart';
 import '../../features/auth/presentation/screen/forgot_password_screen.dart';
-import '../../features/auth/presentation/screen/login_intro_screen.dart';
 import '../../features/auth/presentation/screen/login_screen.dart';
+import '../../features/auth/presentation/screen/otp_screen.dart';
 import '../../features/auth/presentation/screen/password_changed_screen.dart';
-import '../../features/auth/presentation/screen/reset_password_scrren.dart';
-import '../../features/auth/presentation/screen/sign_up_screen.dart';
-import '../../features/auth/presentation/screen/address_screen.dart';
+import '../../features/auth/presentation/screen/reset_password_screen.dart';
+import '../../features/auth/presentation/screen/signup_password_screen.dart';
+import '../../features/auth/presentation/screen/signup_screen.dart';
 import '../../features/auth/presentation/screen/splash_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
 import '../../features/cart/presentation/screen/cart_screen.dart';
-import '../../features/cart/presentation/screen/coupons_screen.dart';
+import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/product_details/presentation/screen/product_details_screen.dart';
+import '../../features/profile/presentation/screen/profile_screen.dart';
+import 'auth_guard.dart';
 
-class AppRouter {
-  const AppRouter();
-
-  static const String home = '/';
-  static const String splash = '/auth/splash';
-  static const String loginIntro = '/auth/login-intro';
-  static const String login = '/auth/login';
-  static const String forgotPassword = '/auth/forgot-password';
-  static const String forgotPasswordOtp = '/auth/forgot-password-otp';
-  static const String resetPassword = '/auth/reset-password';
-  static const String passwordChanged = '/auth/password-changed';
-  static const String signUp = '/auth/sign-up';
-  static const String address = '/auth/address';
-  static const String bottomNavBar = '/auth/login/bottomNavBar';
-  static const String productDetails = '/product-details';
-  static const String cart = '/cart';
-  static const String coupon = '/coupon';
-  static const String profile = '/profile';
-
-  // Change this to 'home' when done testing login screens
-  static const String initialRoute = splash;
-
-  Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
-      case splash:
-        return _buildRoute<void>(settings, const SplashScreen());
-      case loginIntro:
-        return _buildRoute<void>(settings, const LoginIntroScreen());
-      case login:
-        return _buildRoute<void>(settings, const LoginScreen());
-      case forgotPassword:
-        return _buildRoute<void>(settings, const ForgotPasswordScreen());
-      case forgotPasswordOtp:
-        final mobileNumber = settings.arguments as String? ?? '';
-        return _buildRoute<void>(
-          settings,
-          ForgotPasswordOtpScreen(mobileNumber: mobileNumber),
-        );
-      case resetPassword:
-        return _buildRoute<void>(settings, const ResetPasswordScreen());
-      case passwordChanged:
-        return _buildRoute<void>(settings, const PasswordChangedScreen());
-      case signUp:
-        return _buildRoute<void>(settings, const SignUpScreen());
-      case address:
-        return _buildRoute<void>(settings, const AddressScreen());
-      case home:
-        return _buildRoute<void>(
-          settings,
-          BottomNavigation(key: BottomNavigation.globalKey),
-        );
-      case bottomNavBar:
-        return _buildRoute<void>(
-          settings,
-          BottomNavigation(key: BottomNavigation.globalKey),
-        );
-      case productDetails:
-        final variantId = settings.arguments as String?;
-        if (variantId == null || variantId.isEmpty) {
-          return _buildRoute<void>(
-            settings,
-            UnknownRouteScreen(unknownRoute: settings.name),
-          );
-        }
-        return _buildRoute<void>(
-          settings,
-          ProductDetailsScreen(variantId: variantId),
-        );
-      case cart:
-        return _buildRoute<void>(settings, const CartScreen());
-      case coupon:
-        return _buildRoute<void>(settings, const CouponsScreen());
-
-      default:
-        return _buildRoute<void>(
-          settings,
-          UnknownRouteScreen(unknownRoute: settings.name),
-        );
-    }
-  }
-
-  MaterialPageRoute<T> _buildRoute<T>(RouteSettings settings, Widget child) {
-    return MaterialPageRoute<T>(builder: (_) => child, settings: settings);
+/// Notifier class to refresh GoRouter when auth state changes
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Ref ref) {
+    ref.listen(authProvider, (prev, next) {
+      notifyListeners();
+    });
   }
 }
 
-class UnknownRouteScreen extends StatelessWidget {
-  const UnknownRouteScreen({super.key, required this.unknownRoute});
+final goRouterProvider = Provider<GoRouter>((ref) {
+  final refreshNotifier = GoRouterRefreshStream(ref);
 
-  final String? unknownRoute;
+  return GoRouter(
+    // Start with splash screen which checks auth state
+    initialLocation: '/splash',
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Page not found')),
-      body: Center(
-        child: Text(
-          'No route registered for "$unknownRoute".',
-          style: Theme.of(context).textTheme.bodyLarge,
-          textAlign: TextAlign.center,
+    // Refresh router when auth state changes
+    refreshListenable: refreshNotifier,
+
+    // Redirect logic for protected routes
+    redirect: (context, state) {
+      final location = state.matchedLocation;
+      final authState = ref.read(authProvider);
+      final isAuthenticated = authState is Authenticated;
+      final isCheckingAuth = authState is AuthChecking;
+
+      // Skip redirect while checking auth (let splash screen handle it)
+      if (isCheckingAuth && location == '/splash') {
+        return null;
+      }
+
+      // Protected routes that require authentication (including main app)
+      final protectedRoutes = [
+        '/home',
+        '/cart',
+        '/checkout',
+        '/profile',
+        '/orders',
+        '/account',
+        '/product-details',
+      ];
+
+      final isProtectedRoute = protectedRoutes.any(
+        (route) => location.startsWith(route),
+      );
+
+      // Auth routes (login, signup, otp, forgot password)
+      final authRoutes = [
+        '/login',
+        '/signup',
+        '/otp',
+        '/sign-pass',
+        '/forgot-password',
+        '/forgot-password-otp',
+        '/reset-password',
+        '/password-changed',
+      ];
+      final isAuthRoute = authRoutes.any((route) => location.startsWith(route));
+
+      // If authenticated → block auth screens (redirect to home)
+      if (isAuthenticated && isAuthRoute) {
+        return '/home';
+      }
+
+      // If not authenticated → protect all app routes (redirect to OTP screen)
+      if (!isAuthenticated && !isCheckingAuth && isProtectedRoute) {
+        return '/otp';
+      }
+
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+
+      GoRoute(
+        path: '/login',
+        builder: (context, state) {
+          // Pass redirect parameter to login screen
+          final redirectTo = state.uri.queryParameters['redirect'];
+          return LoginScreen(redirectTo: redirectTo);
+        },
+      ),
+      GoRoute(
+        path: '/sign-pass',
+        builder: (context, state) {
+          final data = state.extra as Map<String, String>;
+
+          return SignupPasswordScreen(
+            username: data['username']!,
+            email: data['email']!,
+            first: data['first']!,
+            last: data['last']!,
+            number: data['number']!,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/signup',
+        builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: '/otp',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const OTPScreen(),
+          transitionDuration: const Duration(seconds: 2),
+          transitionsBuilder: (context, animation, secondary, child) =>
+              FadeTransition(opacity: animation, child: child),
         ),
       ),
-    );
+
+      // PROTECTED ROUTE EXAMPLE (Using AuthGuard)
+      GoRoute(
+        path: '/address',
+        redirect: (context, state) {
+          final guard = AuthGuard(ref);
+          return guard.protect(redirectTo: '/number');
+        },
+        builder: (context, state) {
+          final user = state.extra as UserEntity;
+          return AddressScreen(user: user);
+        },
+      ),
+      GoRoute(path: '/home', builder: (_, state) => const BottomNavigation()),
+      GoRoute(path: '/cart', builder: (_, state) => const CartScreen()),
+      GoRoute(path: '/orders', builder: (_, state) => const OrdersScreen()),
+      GoRoute(path: '/profile', builder: (_, state) => const ProfileScreen()),
+      GoRoute(
+        path: '/product-details/:variantId',
+        builder: (context, state) {
+          final variantId = state.pathParameters['variantId'] ?? '';
+          return ProductDetailsScreen(variantId: variantId);
+        },
+      ),
+
+      // Forgot Password Flow Routes
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password-otp',
+        builder: (context, state) {
+          final mobileNumber = state.extra as String;
+          return ForgotPasswordOtpScreen(mobileNumber: mobileNumber);
+        },
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) {
+          final data = state.extra as Map<String, String>;
+          return ResetPasswordScreen(
+            mobileNumber: data['mobileNumber']!,
+            otp: data['otp']!,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/password-changed',
+        builder: (context, state) => const PasswordChangedScreen(),
+      ),
+    ],
+  );
+});
+
+void goToHome(BuildContext context) {
+  context.go('/home');
+}
+
+void goToAddress(BuildContext context, UserEntity user) {
+  context.go('/address', extra: user);
+}
+
+void goToOTP(BuildContext context) {
+  context.go('/otp');
+}
+
+void goToLogin(BuildContext context, {String? redirectTo}) {
+  final uri = redirectTo != null ? '/login?redirect=$redirectTo' : '/login';
+  context.push(uri);
+}
+
+/// Handles post-login redirect to intended destination
+void handlePostLoginRedirect(BuildContext context, GoRouterState? state) {
+  // Check if there's a redirect query parameter
+  final redirectPath = state?.uri.queryParameters['redirect'];
+
+  if (redirectPath != null && redirectPath.isNotEmpty) {
+    // Decode and navigate to intended destination
+    final decodedPath = Uri.decodeComponent(redirectPath);
+    context.go(decodedPath);
+  } else {
+    // Default: go to home
+    context.go('/home');
   }
+}
+
+void goToSignup(BuildContext context) {
+  context.push('/signup');
+}
+
+void goToSignWithPass(
+  BuildContext context, {
+  required String username,
+  required String email,
+  required String first,
+  required String last,
+  required String number,
+}) {
+  context.push(
+    '/sign-pass',
+    extra: {
+      'username': username,
+      'email': email,
+      'first': first,
+      'last': last,
+      'number': number,
+    },
+  );
+}
+
+// Forgot Password Flow Navigation
+void goToForgotPassword(BuildContext context) {
+  context.push('/forgot-password');
+}
+
+void goToForgotPasswordOtp(
+  BuildContext context, {
+  required String mobileNumber,
+}) {
+  context.push('/forgot-password-otp', extra: mobileNumber);
+}
+
+void goToResetPassword(
+  BuildContext context, {
+  required String mobileNumber,
+  required String otp,
+}) {
+  context.push(
+    '/reset-password',
+    extra: {'mobileNumber': mobileNumber, 'otp': otp},
+  );
+}
+
+void goToPasswordChanged(BuildContext context) {
+  context.push('/password-changed');
+}
+
+void goToLoginFromPasswordChanged(BuildContext context) {
+  context.go('/login');
+}
+
+void goToOrders(BuildContext context) {
+  context.push('/orders');
 }

@@ -1,364 +1,259 @@
 // lib/features/auth/presentation/screen/login_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
-import '../../../../core/widgets/app_button.dart';
+import '../../../../core/error/failure.dart';
+import '../../../../core/utils/app_button.dart';
+import '../../../../core/utils/app_text_field.dart';
+import '../../application/providers/auth_provider.dart';
+import '../../application/states/auth_state.dart';
 
-/// Login screen
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class LoginScreen extends ConsumerStatefulWidget {
+  final String? redirectTo;
+
+  const LoginScreen({super.key, this.redirectTo});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  bool _showOtpField = false;
-  bool _showPasswordField = false;
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final TextEditingController userNameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
   bool _rememberMe = false;
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: AppColors.white,
-        body: SafeArea(
+    final authState = ref.watch(authProvider);
+
+    ref.listen<AuthState>(authProvider, (prev, next) {
+      _handleAuthState(next);
+    });
+
+    return Scaffold(
+      body: Center(
+        child: SafeArea(
           child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            padding: EdgeInsets.all(16.w),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 150.h),
-                // App logo/title - centered
                 Center(
-                  child: Image.asset(
-                    'assets/title.png',
-                    height: 78.h,
-                    width: 128.w,
-                    fit: BoxFit.contain,
+                  child: Hero(
+                    tag: 'app-logo',
+                    child: Image.asset('assets/title.png', width: 120.w),
                   ),
                 ),
 
-                SizedBox(height: 40.h),
+                SizedBox(height: 10.h),
 
-                // Hi, Welcome! with hand wave
+                Text(
+                  'Hi, Welcome!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 35.sp,
+                    color: Colors.black87,
+                  ),
+                ),
+
+                SizedBox(height: 15.h),
+
+                const Text(
+                  'User ID',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 5.h),
+
+                AppTextField(
+                  controller: userNameController,
+                  hintText: 'User ID',
+                  isObscure: false,
+                  icon: null,
+                ),
+
+                SizedBox(height: 15.h),
+
+                const Text(
+                  'Password',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 5.h),
+
+                AppTextField(
+                  controller: passwordController,
+                  hintText: 'Password',
+                  isObscure: true,
+                  icon: Icons.remove_red_eye,
+                ),
+
+                SizedBox(height: 12.h),
+
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Hi, Welcome!',
-                      style: TextStyle(
-                        fontSize: 30.sp,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.green100,
-                      ),
+                    Row(
+                      children: [
+                        SizedBox(
+                          height: 24.h,
+                          width: 24.w,
+                          child: Checkbox(
+                            value: _rememberMe,
+                            onChanged: (value) {
+                              setState(() {
+                                _rememberMe = value ?? false;
+                              });
+                            },
+                            activeColor: AppColors.borderColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'Remember Me',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 8.w),
-                    Image.asset(
-                      'assets/images/hand.png',
-                      height: 30.w,
-                      width: 30.w,
-                      fit: BoxFit.contain,
+                    GestureDetector(
+                      onTap: () => goToForgotPassword(context),
+                      child: Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: AppColors.titleColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
 
-                SizedBox(height: 32.h),
+                SizedBox(height: 25.h),
 
-                // Mobile Number label
-                Text(
-                  'Mobile Number',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.black,
+                GestureDetector(
+                  onTap: () => _handleLogin(authState),
+                  child: AppButton(
+                    text: _getButtonText(authState),
+                    loading: authState is AuthLoading,
                   ),
                 ),
 
-                SizedBox(height: 8.h),
+                SizedBox(height: 20.h),
 
-                // Mobile Number input field
-                Container(
-                  height: 50.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(color: AppColors.green, width: 2),
-                  ),
-                  child: TextField(
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      hintText: 'Mobile Number',
-                      hintStyle: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.grey,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 14.h,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // OTP Section - shown after Sign In is pressed
-                if (_showOtpField) ...[
-                  SizedBox(height: 16.h),
-
-                  // OTP label
-                  Text(
-                    'OTP',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.black,
-                    ),
-                  ),
-
-                  SizedBox(height: 8.h),
-
-                  // OTP input field
-                  Container(
-                    height: 50.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(10.r),
-                      border: Border.all(color: AppColors.green, width: 2),
-                    ),
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: 'enter otp',
-                        hintStyle: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.grey,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 14.h,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-
-                // Password Section - shown after Sign in with password is pressed
-                if (_showPasswordField) ...[
-                  SizedBox(height: 16.h),
-
-                  // Password label
-                  Text(
-                    'Password',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.black,
-                    ),
-                  ),
-
-                  SizedBox(height: 8.h),
-
-                  // Password input field
-                  Container(
-                    height: 50.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(10.r),
-                      border: Border.all(color: AppColors.green, width: 2),
-                    ),
-                    child: TextField(
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        hintText: 'password',
-                        hintStyle: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.grey,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 14.h,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  // Remember me and Forgot password row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Remember me checkbox
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _rememberMe = !_rememberMe;
-                          });
-                        },
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 20.w,
-                              height: 20.w,
-                              decoration: BoxDecoration(
-                                color: _rememberMe
-                                    ? AppColors.green
-                                    : AppColors.white,
-                                borderRadius: BorderRadius.circular(50.r),
-                                border: Border.all(
-                                  color: AppColors.green,
-                                  width: 2,
-                                ),
-                              ),
-                              child: _rememberMe
-                                  ? Icon(
-                                      Icons.check,
-                                      size: 14.sp,
-                                      color: AppColors.white,
-                                    )
-                                  : null,
-                            ),
-                            SizedBox(width: 8.w),
-                            Text(
-                              'Remember me',
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w400,
-                                color: AppColors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Forgot password
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRouter.forgotPassword,
-                          );
-                        },
-                        child: Text(
-                          'Forgot password?',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.black,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-
-                SizedBox(height: 24.h),
-
-                // Sign In button
-                AppButton(
-                  text: 'Sign In',
-                  borderRadius: 10.r,
-                  onPressed: () {
-                    if (!_showOtpField && !_showPasswordField) {
-                      // First click - show OTP field
-                      setState(() {
-                        _showOtpField = true;
-                      });
-                    } else {
-                      // Handle sign in with OTP or password
-                      // TODO: Handle verification
-                    }
-                  },
-                ),
-
-                // Sign in with password button - hidden after OTP or Password is shown
-                if (!_showOtpField && !_showPasswordField) ...[
-                  SizedBox(height: 16.h),
-
-                  AppButton(
-                    text: 'Sign in with password',
-                    borderRadius: 10.r,
-                    backgroundColor: AppColors.green.withValues(alpha: 0.2),
-                    textColor: AppColors.green100,
-                    onPressed: () {
-                      setState(() {
-                        _showPasswordField = true;
-                      });
-                    },
-                  ),
-                ],
-
-                SizedBox(height: 32.h),
-
-                // Don't have an account? Sign up
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Don't have an account? ",
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Don't have an Account?"),
+                    SizedBox(width: 5.w),
+                    GestureDetector(
+                      onTap: () => goToSignup(context),
+                      child: const Text(
+                        'Sign Up',
                         style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.black,
+                          color: AppColors.titleColor,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, AppRouter.signUp);
-                        },
-                        child: Text(
-                          'Sign up',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.green100,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
 
-                SizedBox(height: 16.h),
+                SizedBox(height: 20.h),
 
-                // Skip
                 Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      // TODO: Skip to home
-                    },
-                    child: Text(
-                      'Skip',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.green100,
-                        decoration: TextDecoration.underline,
-                        decorationColor: AppColors.green100,
-                      ),
+                  child: Text(
+                    'Skip',
+                    style: TextStyle(
+                      decoration: TextDecoration.underline,
+                      color: AppColors.titleColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15.sp,
                     ),
                   ),
                 ),
-
-                SizedBox(height: 32.h),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // -------------------------------
+  // HANDLE LOGIN ACTION
+  // -------------------------------
+  void _handleLogin(AuthState state) {
+    final username = userNameController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      _showSnack('Please fill all fields');
+      return;
+    }
+
+    ref
+        .read(authProvider.notifier)
+        .login(username: username, password: password);
+  }
+
+  // -------------------------------
+  // AUTH STATE CHANGES
+  // -------------------------------
+  void _handleAuthState(AuthState state) {
+    if (state is Authenticated) {
+      // Handle post-login redirect
+      final redirectPath = widget.redirectTo;
+
+      if (redirectPath != null && redirectPath.isNotEmpty) {
+        // Decode and navigate to intended destination
+        final decodedPath = Uri.decodeComponent(redirectPath);
+        context.go(decodedPath);
+      } else {
+        // Default: go to home
+        goToHome(context);
+      }
+    }
+
+    if (state is AuthError) {
+      _showErrorDialog(state.failure);
+    }
+  }
+
+  // -------------------------------
+  // HELPERS
+  // -------------------------------
+  String _getButtonText(AuthState state) {
+    if (state is AuthLoading) return 'Signing In...';
+    return 'Sign In';
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  void _showErrorDialog(Failure failure) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Login Failed'),
+        content: Text(failure.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }

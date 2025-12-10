@@ -1,7 +1,7 @@
 // lib/features/home/infrastructure/data_sources/local/home_local_ds.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import '../../../../../core/constants/hive_boxes.dart';
 import '../../../../../core/storage/hive/keys.dart';
 import '../../../domain/entities/banner.dart';

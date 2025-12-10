@@ -1,5 +1,7 @@
-import 'package:hive_flutter/hive_flutter.dart';
-
+import 'package:hive_ce/hive.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../core/storage/hive/adapters/address.dart';
+import '../../core/storage/hive/adapters/user.dart';
 import '../../core/storage/hive/boxes.dart';
 
 class HiveInit {
@@ -10,19 +12,16 @@ class HiveInit {
   static Future<void> initialize() async {
     if (_initialized) return;
 
-    await Hive.initFlutter();
+    final dir = await getApplicationDocumentsDirectory();
+    Hive.init(dir.path);
 
-    // Open all required boxes concurrently for better performance
-    await Future.wait([
-      // Profile module boxes
-      Hive.openBox<dynamic>(AppHiveBoxes.cache),
-      Hive.openBox<dynamic>(AppHiveBoxes.profile),
-      Hive.openBox<dynamic>(AppHiveBoxes.address),
-      // Home/Wishlist module boxes
-      Hive.openBox<dynamic>(AppHiveBoxes.homeBox),
-      Hive.openBox<dynamic>(AppHiveBoxes.catalogBox),
-      Hive.openBox<dynamic>(AppHiveBoxes.userPrefsBox),
-    ]);
+    // Register all adapters (must be before opening boxes)
+    Hive.registerAdapter(AddressModelAdapter());
+    Hive.registerAdapter(UserModelAdapter());
+    Hive.registerAdapter(AddressTypeAdapter());
+
+    // Open all needed boxes
+    await Boxes.openHiveBoxes();
 
     _initialized = true;
   }

@@ -2,11 +2,7 @@
 
 /// Analytics service
 class Analytics {
-  static Future<void> initialize() async {
-    // TODO: Implement analytics initialization
-  }
+  static Future<void> initialize() async {}
 
-  static void trackEvent(String event, {Map<String, dynamic>? parameters}) {
-    // TODO: Implement event tracking
-  }
+  static void trackEvent(String event, {Map<String, dynamic>? parameters}) {}
 }

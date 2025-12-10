@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 
 import '../../../../../core/error/failure.dart';
+import '../../../../../core/network/api_client.dart';
 import '../../../../../core/utils/logger.dart';
 import '../../../domain/entities/banner.dart';
 import '../../../domain/entities/category.dart';
@@ -42,8 +43,8 @@ abstract class HomeRemoteDataSource {
 }
 
 class HomeApiImpl implements HomeRemoteDataSource {
-  final Dio _dio;
-  HomeApiImpl(this._dio);
+  final ApiClient _apiClient;
+  HomeApiImpl(this._apiClient);
 
   // --- Helper Methods ---
 
@@ -128,7 +129,10 @@ class HomeApiImpl implements HomeRemoteDataSource {
     required T Function(Map<String, dynamic>) fromJson,
   }) async {
     try {
-      final response = await _dio.get(path, queryParameters: queryParameters);
+      final response = await _apiClient.get(
+        path,
+        queryParameters: queryParameters,
+      );
 
       // Validate response data
       if (response.data == null) {
@@ -165,7 +169,10 @@ class HomeApiImpl implements HomeRemoteDataSource {
     required T Function(Map<String, dynamic>) fromJson,
   }) async {
     try {
-      final response = await _dio.get(path, queryParameters: queryParameters);
+      final response = await _apiClient.get(
+        path,
+        queryParameters: queryParameters,
+      );
 
       // Validate response data
       if (response.data == null) {
@@ -270,13 +277,24 @@ class HomeApiImpl implements HomeRemoteDataSource {
   @override
   Future<UserAddress?> getSelectedAddress() async {
     try {
-      final response = await _dio.get('/api/users/address/selected/');
+      final response = await _apiClient.get(
+        '/api/auth/address/',
+        queryParameters: {'selected': 'true'},
+      );
 
       if (response.data == null) {
         return null;
       }
 
-      return UserAddress.fromJson(response.data as Map<String, dynamic>);
+      // Response is paginated: { "count": 1, "results": [...] }
+      final data = response.data as Map<String, dynamic>;
+      final results = data['results'] as List?;
+
+      if (results == null || results.isEmpty) {
+        return null;
+      }
+
+      return UserAddress.fromJson(results.first as Map<String, dynamic>);
     } on DioException catch (e) {
       // For address, 404 is acceptable (no address selected)
       if (e.response?.statusCode == 404) {
@@ -316,22 +334,9 @@ class HomeApiImpl implements HomeRemoteDataSource {
   }
 }
 
-// Dio Provider
-final dioProvider = riverpod.Provider<Dio>((ref) {
-  final dio = Dio();
-  dio.options.baseUrl =
-      'http://156.67.104.149:8080'; // Replace with your actual base URL
-  dio.options.connectTimeout = const Duration(seconds: 30);
-  dio.options.receiveTimeout = const Duration(seconds: 30);
-
-  dio.options.headers['dev'] = '2';
-
-  return dio;
-});
-
 final homeRemoteDataSourceProvider = riverpod.Provider<HomeRemoteDataSource>((
   ref,
 ) {
-  final dio = ref.watch(dioProvider);
-  return HomeApiImpl(dio);
+  final apiClient = ref.watch(apiClientProvider);
+  return HomeApiImpl(apiClient);
 });

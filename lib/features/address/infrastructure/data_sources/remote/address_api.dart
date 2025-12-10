@@ -10,7 +10,6 @@ class AddressApi {
   Future<List<AddressDto>> fetchAddresses() async {
     final response = await _client.get<Map<String, dynamic>>(
       'api/auth/address/',
-      headers: {'dev': '4'},
     );
 
     final data = response.data;
@@ -33,7 +32,6 @@ class AddressApi {
   Future<AddressDto> fetchAddressById(String id) async {
     final response = await _client.get<Map<String, dynamic>>(
       'api/auth/address/$id/',
-      headers: {'dev': '4'},
     );
 
     final data = response.data;
@@ -75,7 +73,6 @@ class AddressApi {
         if (addressType != null) 'address_type': addressType,
         if (selected != null) 'selected': selected,
       },
-      headers: {'dev': '4'},
     );
 
     final data = response.data;
@@ -118,7 +115,6 @@ class AddressApi {
         if (addressType != null) 'address_type': addressType,
         if (selected != null) 'selected': selected,
       },
-      headers: {'dev': '4'},
     );
 
     final data = response.data;
@@ -131,6 +127,21 @@ class AddressApi {
 
   /// Deletes an address
   Future<void> deleteAddress(String id) async {
-    await _client.delete<void>('api/auth/address/$id/', headers: {'dev': '4'});
+    await _client.delete<void>('api/auth/address/$id/');
+  }
+
+  /// Selects an address as the default delivery address
+  Future<AddressDto> selectAddress(String id) async {
+    final response = await _client.patch<Map<String, dynamic>>(
+      'api/auth/address/$id/',
+      data: <String, dynamic>{'selected': true},
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw const FormatException('Empty select address response.');
+    }
+
+    return AddressDto.fromJson(data);
   }
 }

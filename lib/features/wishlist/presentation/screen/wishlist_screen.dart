@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../home/application/providers/home_provider.dart';
 import '../../../home/domain/entities/product_variant.dart';
@@ -149,11 +150,7 @@ class WishlistScreen extends ConsumerWidget {
   }
 
   void _handleProductTap(BuildContext context, ProductVariant product) {
-    Navigator.pushNamed(
-      context,
-      '/product-details',
-      arguments: {'productId': product.productId, 'variantId': product.id},
-    );
+    context.push('/product-details/${product.id}');
   }
 
   void _handleShopNowClick(BuildContext context) {
