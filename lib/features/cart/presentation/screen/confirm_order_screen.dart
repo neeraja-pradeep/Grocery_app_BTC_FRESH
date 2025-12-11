@@ -60,7 +60,7 @@ class ConfirmOrderScreen extends StatelessWidget {
                   },
                   style: ButtonStyles.greyButton,
                   child: AppText(
-                    text: 'Back to Home',
+                    text: 'Back',
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
                     color: AppColors.black,

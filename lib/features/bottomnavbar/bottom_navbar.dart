@@ -8,6 +8,7 @@ import '../cart/presentation/screen/cart_screen.dart';
 import '../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../home/presentation/screen/home_screen.dart';
 import '../wishlist/presentation/screen/wishlist_screen.dart';
+import '../home/domain/entities/category.dart';
 
 class BottomNavigation extends StatefulWidget {
   const BottomNavigation({super.key});
@@ -22,12 +23,18 @@ class BottomNavigation extends StatefulWidget {
 
 class BottomNavigationState extends State<BottomNavigation>
     with WidgetsBindingObserver {
-  static const List<Widget> _pages = [
-    CategoryScreen(),
-    HomeScreen(),
-    WishlistScreen(),
-    CartScreen(),
-  ];
+  void navigateToCategories(Category category) {
+    _onTabSelected(0);
+  }
+
+  List<Widget> get _pages {
+    return [
+      const CategoryScreen(),
+      HomeScreen(onCategoryNavigate: navigateToCategories),
+      const WishlistScreen(),
+      const CartScreen(),
+    ];
+  }
 
   int _currentIndex = 0;
   late final PollingTabController _pollingController;

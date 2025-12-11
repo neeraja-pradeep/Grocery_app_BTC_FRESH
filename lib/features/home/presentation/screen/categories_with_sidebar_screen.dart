@@ -14,7 +14,8 @@ import '../../domain/entities/category.dart';
 // import 'package:grocery_app/features/wishlist/application/providers/wishlist_provider.dart';
 
 class CategoriesWithSidebarScreen extends ConsumerStatefulWidget {
-  const CategoriesWithSidebarScreen({super.key});
+  final int? initialCategoryId;
+  const CategoriesWithSidebarScreen({super.key, this.initialCategoryId});
 
   @override
   ConsumerState<CategoriesWithSidebarScreen> createState() =>
@@ -32,10 +33,18 @@ class _CategoriesWithSidebarScreenState
     // Select first category by default
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final categories = ref.read(categoriesProvider);
+      if (widget.initialCategoryId != null) {
+        final match = categories.firstWhere(
+          (cat) => cat.id == widget.initialCategoryId,
+          orElse: () => categories.first,
+        );
+        setState(() => selectedCategory = match);
+        return;
+      }
+
+      // Otherwise select first category by default
       if (categories.isNotEmpty && selectedCategory == null) {
-        setState(() {
-          selectedCategory = categories.first;
-        });
+        setState(() => selectedCategory = categories.first);
       }
     });
   }

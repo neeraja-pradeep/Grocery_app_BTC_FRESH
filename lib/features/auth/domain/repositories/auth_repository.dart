@@ -38,6 +38,13 @@ abstract class AuthRepository {
   Future<Cookie?> getCurrentSession();
   Future<UserEntity?> getSavedUser();
 
+  Future<Either<Failure, String>> verifyOtpOnly({
+    required String phoneNumber,
+    required String otp,
+  });
+
+  Future<Either<Failure, String>> resetPassword({required String newPassword});
+
   /// Clears all user data, cookies, and session
   Future<void> logout();
 }

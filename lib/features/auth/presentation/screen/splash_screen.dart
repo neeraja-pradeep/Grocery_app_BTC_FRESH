@@ -34,13 +34,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     if (authState is Authenticated) {
       _hasNavigated = true;
-      Future.delayed(const Duration(seconds: 2));
+      Future.delayed(const Duration(seconds: 1));
       goToHome(context);
     } else if (authState is AuthChecking) {
       // wait for listener
     } else {
       _hasNavigated = true;
-      Future.delayed(const Duration(seconds: 2));
+      Future.delayed(const Duration(seconds: 1));
       goToOTP(context);
     }
   }
@@ -64,8 +64,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               child: Lottie.asset(
                 'assets/lottie/delivery_boy.json',
                 controller: _controller,
-                width: 200.w,
-                height: 200.h,
+                width: 800.w,
+                height: 400.h,
                 fit: BoxFit.contain,
                 onLoaded: (composition) {
                   _controller
@@ -79,7 +79,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ),
             ),
 
-            SizedBox(height: 10.h),
+            SizedBox(height: 20.h),
 
             Text(
               'Get your groceries delivered to your home',

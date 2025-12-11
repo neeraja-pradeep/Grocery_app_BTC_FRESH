@@ -146,6 +146,50 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   // ----------------------------------------------------------
+  // VERIFY ONLY  OTP
+  // ----------------------------------------------------------
+  @override
+  Future<Either<Failure, String>> verifyOtpOnly({
+    required String phoneNumber,
+    required String otp,
+  }) async {
+    try {
+      final message = await remote.verifyOtpOnly(
+        phoneNumber: phoneNumber,
+        otp: otp,
+      );
+
+      if (message == 'OTP verified successfully') {
+        return Right(message);
+      }
+
+      return Left(AppFailure(message));
+    } catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  // ----------------------------------------------------------
+  // RESET PASSWORD
+  // ----------------------------------------------------------
+  @override
+  Future<Either<Failure, String>> resetPassword({
+    required String newPassword,
+  }) async {
+    try {
+      final message = await remote.resetPassword(newPassword: newPassword);
+
+      if (message == 'Password reset successfully') {
+        return Right(message);
+      }
+
+      return Left(AppFailure(message));
+    } catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  // ----------------------------------------------------------
   // ADD ADDRESS
   // ----------------------------------------------------------
   @override

@@ -69,7 +69,8 @@ import '../../../profile/presentation/screen/profile_screen.dart';
 import '../../../address/presentation/screens/address_list_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  final ValueChanged<Category> onCategoryNavigate;
+  const HomeScreen({super.key, required this.onCategoryNavigate});
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -389,6 +390,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Container(
               color: Colors.white,
               child: CategoryDiscountSection(
+                onAddToCart: (_) {},
                 group: group,
                 onProductClick: (product) => _navigateToProductDetails(product),
               ),
@@ -549,11 +551,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
     );
 
-    Navigator.pushNamed(
-      context,
-      '/category-products',
-      arguments: {'categoryId': category.id},
-    );
+    widget.onCategoryNavigate(category);
   }
 
   void _navigateToBestDeals() {

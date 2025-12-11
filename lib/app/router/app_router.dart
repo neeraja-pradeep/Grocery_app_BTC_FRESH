@@ -17,6 +17,7 @@ import '../../features/auth/presentation/screen/signup_screen.dart';
 import '../../features/auth/presentation/screen/splash_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
 import '../../features/cart/presentation/screen/cart_screen.dart';
+import '../../features/home/presentation/screen/categories_with_sidebar_screen.dart';
 import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/product_details/presentation/screen/product_details_screen.dart';
 import '../../features/profile/presentation/screen/profile_screen.dart';
@@ -62,6 +63,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         '/orders',
         '/account',
         '/product-details',
+        '/category-products',
       ];
 
       final isProtectedRoute = protectedRoutes.any(
@@ -186,6 +188,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/password-changed',
         builder: (context, state) => const PasswordChangedScreen(),
+      ),
+      GoRoute(
+        path: '/category-products',
+        builder: (context, state) => const CategoriesWithSidebarScreen(),
       ),
     ],
   );

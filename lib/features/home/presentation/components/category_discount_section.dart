@@ -9,11 +9,13 @@ import '../../domain/entities/product_variant.dart';
 class CategoryDiscountSection extends StatelessWidget {
   final CategoryDiscountGroup group;
   final ValueChanged<ProductVariant> onProductClick;
+  final ValueChanged<ProductVariant> onAddToCart;
 
   const CategoryDiscountSection({
     super.key,
     required this.group,
     required this.onProductClick,
+    required this.onAddToCart,
   });
 
   @override
@@ -57,6 +59,16 @@ class CategoryDiscountSection extends StatelessWidget {
               return MegaOfferProductCard(
                 product: product,
                 onTap: () => onProductClick(product),
+                onAddToCart: () {
+                  onAddToCart(product);
+                  Logger.debug(
+                    'Add to cart clicked',
+                    data: {
+                      'product_id': product.id,
+                      'product_name': product.name,
+                    },
+                  );
+                },
               );
             },
           ),
@@ -71,11 +83,13 @@ class CategoryDiscountSection extends StatelessWidget {
 class MegaOfferProductCard extends StatelessWidget {
   final ProductVariant product;
   final VoidCallback onTap;
+  final VoidCallback onAddToCart;
 
   const MegaOfferProductCard({
     super.key,
     required this.product,
     required this.onTap,
+    required this.onAddToCart,
   });
 
   @override
@@ -178,8 +192,7 @@ class MegaOfferProductCard extends StatelessWidget {
                     right: 4,
                     child: GestureDetector(
                       onTap: () {
-                        // Handle Add to Cart
-                        // print("Added ${product.name} to cart");
+                        onAddToCart();
                       },
                       child: Container(
                         width: 28,

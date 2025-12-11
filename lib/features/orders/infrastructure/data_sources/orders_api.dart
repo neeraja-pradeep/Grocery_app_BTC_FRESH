@@ -54,7 +54,7 @@ class OrdersApi {
 
   /// Fetch completed orders
   Future<List<OrderEntity>> getCompletedOrders({int page = 1}) async {
-    return getOrders(status: 'completed', page: page);
+    return getOrders(status: 'delivered', page: page);
   }
 
   /// Fetch order details by ID

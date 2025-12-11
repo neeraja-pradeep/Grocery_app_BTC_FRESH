@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/app_button.dart';
-import '../../infrastructure/data_sources/remote/auth_api.dart';
+import '../../application/providers/auth_repository_provider.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String mobileNumber;
@@ -63,28 +63,20 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authApi = ref.read(authApiProvider);
+      final repo = ref.read(authRepositoryProvider);
 
-      // Call reset-password API with new_password only
-      final message = await authApi.resetPassword(newPassword: password);
+      final result = await repo.resetPassword(newPassword: password);
 
       if (!mounted) return;
 
-      // Check if password reset was successful
-      if (message.toLowerCase().contains('success') ||
-          message.toLowerCase().contains('reset')) {
-        // Navigate to success screen
+      result.fold((failure) => _showSnack(failure.message), (message) {
         goToPasswordChanged(context);
-      } else {
-        _showSnack(message);
-      }
+      });
     } catch (e) {
       if (!mounted) return;
       _showSnack(e.toString());
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -95,6 +87,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -107,189 +100,202 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Center(
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 20.h),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 20.h),
 
-                  Text(
-                    'Reset Password',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28.sp,
-                      color: AppColors.titleColor,
+                    Text(
+                      'Reset Password',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 28.sp,
+                        color: AppColors.titleColor,
+                      ),
                     ),
-                  ),
 
-                  SizedBox(height: 12.h),
+                    SizedBox(height: 12.h),
 
-                  Text(
-                    'Create a new password for your account',
-                    style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
-                  ),
-
-                  SizedBox(height: 40.h),
-
-                  // New Password Field
-                  Text(
-                    'New Password',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.sp,
+                    Text(
+                      'Create a new password for your account',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.grey[600],
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 8.h),
 
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'Enter new password',
-                      hintStyle: TextStyle(color: Colors.grey, fontSize: 14.sp),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                        borderSide: const BorderSide(
-                          color: AppColors.borderColor,
-                        ),
+                    SizedBox(height: 40.h),
+
+                    // New Password Field
+                    Text(
+                      'New Password',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14.sp,
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                        borderSide: const BorderSide(
-                          color: AppColors.borderColor,
-                        ),
-                      ),
-                      disabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                    ),
+                    SizedBox(height: 8.h),
+
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      enabled: !_isLoading,
+                      decoration: InputDecoration(
+                        hintText: 'Enter new password',
+                        hintStyle: TextStyle(
                           color: Colors.grey,
+                          fontSize: 14.sp,
                         ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value?.isEmpty ?? true) {
-                        return 'Password is required';
-                      }
-                      if (value!.length < 6) {
-                        return 'Password must be at least 6 characters';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  SizedBox(height: 20.h),
-
-                  // Confirm Password Field
-                  Text(
-                    'Confirm Password',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.sp,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: _obscureConfirmPassword,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'Confirm your password',
-                      hintStyle: TextStyle(color: Colors.grey, fontSize: 14.sp),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                        borderSide: const BorderSide(
-                          color: AppColors.borderColor,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                        borderSide: const BorderSide(
-                          color: AppColors.borderColor,
-                        ),
-                      ),
-                      disabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirmPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(
-                            () => _obscureConfirmPassword =
-                                !_obscureConfirmPassword,
-                          );
-                        },
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value?.isEmpty ?? true) {
-                        return 'Please confirm your password';
-                      }
-                      if (value != _passwordController.text) {
-                        return 'Passwords do not match';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  SizedBox(height: 40.h),
-
-                  GestureDetector(
-                    onTap: _isLoading ? null : _handleResetPassword,
-                    child: AppButton(
-                      text: _isLoading ? 'Resetting...' : 'Reset Password',
-                      loading: _isLoading,
-                    ),
-                  ),
-
-                  SizedBox(height: 20.h),
-
-                  // Password requirements hint
-                  Container(
-                    padding: EdgeInsets.all(12.w),
-                    decoration: BoxDecoration(
-                      color: AppColors.green10,
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Password must:',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderColor,
                           ),
                         ),
-                        SizedBox(height: 4.h),
-                        _buildRequirement('Be at least 6 characters long'),
-                        _buildRequirement('Match the confirm password field'),
-                      ],
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderColor,
+                          ),
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) {
+                          return 'Password is required';
+                        }
+                        if (value!.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                ],
+
+                    SizedBox(height: 20.h),
+
+                    // Confirm Password Field
+                    Text(
+                      'Confirm Password',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      enabled: !_isLoading,
+                      decoration: InputDecoration(
+                        hintText: 'Confirm your password',
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.sp,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderColor,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderColor,
+                          ),
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(
+                              () => _obscureConfirmPassword =
+                                  !_obscureConfirmPassword,
+                            );
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) {
+                          return 'Please confirm your password';
+                        }
+                        if (value != _passwordController.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    SizedBox(height: 40.h),
+
+                    GestureDetector(
+                      onTap: _isLoading ? null : _handleResetPassword,
+                      child: AppButton(
+                        text: _isLoading ? 'Resetting...' : 'Reset Password',
+                        loading: _isLoading,
+                      ),
+                    ),
+
+                    SizedBox(height: 20.h),
+
+                    // Password requirements hint
+                    Container(
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.green10,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Password must:',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          _buildRequirement('Be at least 6 characters long'),
+                          _buildRequirement('Match the confirm password field'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
