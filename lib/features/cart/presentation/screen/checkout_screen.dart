@@ -390,6 +390,8 @@ class CheckoutScreen extends ConsumerWidget {
           couponId: couponId,
           customerName: selectedAddress.fullName,
           onSuccess: () {
+            // Refresh cart to clear it after successful payment
+            ref.read(checkoutLineControllerProvider.notifier).refresh();
             // Clear applied coupon after successful payment
             ref.read(appliedCouponProvider.notifier).removeCoupon();
             // Navigate to order confirmation screen

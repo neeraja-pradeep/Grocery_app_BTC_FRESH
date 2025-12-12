@@ -56,7 +56,9 @@ class _CategoriesWithSidebarScreenState
         statusBarColor: Color(0xFFcaf5ac), // Custom green color
         statusBarIconBrightness: Brightness.dark, // Dark icons
       ),
-      child: Scaffold(body: const Center(child: Text('category'))),
+      child: Scaffold(
+        body: SafeArea(child: const Center(child: Text('category'))),
+      ),
     );
   }
 }

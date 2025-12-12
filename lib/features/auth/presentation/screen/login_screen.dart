@@ -10,6 +10,7 @@ import '../../../../app/theme/colors.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/utils/app_button.dart';
 import '../../../../core/utils/app_text_field.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../application/providers/auth_provider.dart';
 import '../../application/states/auth_state.dart';
 
@@ -172,13 +173,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 SizedBox(height: 20.h),
 
                 Center(
-                  child: Text(
-                    'Skip',
-                    style: TextStyle(
-                      decoration: TextDecoration.underline,
-                      color: AppColors.titleColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15.sp,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Activate guest mode
+                      ref.read(authProvider.notifier).continueAsGuest();
+                      goToHome(context);
+                    },
+                    child: Text(
+                      'Skip',
+                      style: TextStyle(
+                        decoration: TextDecoration.underline,
+                        color: AppColors.titleColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15.sp,
+                      ),
                     ),
                   ),
                 ),
@@ -239,22 +247,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    AppSnackbar.error(context, msg);
   }
 
   void _showErrorDialog(Failure failure) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Login Failed'),
-        content: Text(failure.message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    AppSnackbar.error(context, failure.message);
   }
 }

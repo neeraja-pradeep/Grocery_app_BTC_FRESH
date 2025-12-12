@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import '../../app/theme/colors.dart';
 import '../../core/polling/polling_manager.dart';
 import '../../core/polling/polling_tab_controller.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../auth/application/providers/auth_provider.dart';
+import '../auth/application/states/auth_state.dart';
 import '../category/presentation/screen/category_screen.dart';
 import '../cart/presentation/screen/cart_screen.dart';
 import '../category/presentation/components/widgets/review_bottom_sheet.dart';
@@ -10,7 +15,7 @@ import '../home/presentation/screen/home_screen.dart';
 import '../wishlist/presentation/screen/wishlist_screen.dart';
 import '../home/domain/entities/category.dart';
 
-class BottomNavigation extends StatefulWidget {
+class BottomNavigation extends ConsumerStatefulWidget {
   const BottomNavigation({super.key});
 
   /// Global key to access BottomNavigation state from anywhere
@@ -18,18 +23,29 @@ class BottomNavigation extends StatefulWidget {
       GlobalKey<BottomNavigationState>();
 
   @override
-  State<BottomNavigation> createState() => BottomNavigationState();
+  ConsumerState<BottomNavigation> createState() => BottomNavigationState();
 }
 
-class BottomNavigationState extends State<BottomNavigation>
+class BottomNavigationState extends ConsumerState<BottomNavigation>
     with WidgetsBindingObserver {
+  int? _selectedCategoryId;
+
   void navigateToCategories(Category category) {
-    _onTabSelected(0);
+    setState(() {
+      _selectedCategoryId = category.id;
+      _currentIndex = 0;
+    });
+    _pollingController.selectTab(0);
   }
 
   List<Widget> get _pages {
     return [
-      const CategoryScreen(),
+      CategoryScreen(
+        key: ValueKey(
+          _selectedCategoryId,
+        ), // Force rebuild when category changes
+        initialCategoryId: _selectedCategoryId?.toString(),
+      ),
       HomeScreen(onCategoryNavigate: navigateToCategories),
       const WishlistScreen(),
       const CartScreen(),
@@ -74,6 +90,19 @@ class BottomNavigationState extends State<BottomNavigation>
   }
 
   void _onTabSelected(int index) {
+    // Check if user is a guest
+    final authState = ref.read(authProvider);
+    final isGuest = authState is GuestMode;
+
+    // Block wishlist (index 2) and cart (index 3) for guests
+    if (isGuest && (index == 2 || index == 3)) {
+      final featureName = index == 2 ? 'Wishlist' : 'Cart';
+      AppSnackbar.info(context, 'Please login to access $featureName');
+      // Navigate to OTP screen
+      context.go('/otp');
+      return;
+    }
+
     setState(() => _currentIndex = index);
     _pollingController.selectTab(index);
   }

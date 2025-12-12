@@ -40,12 +40,14 @@ class WishlistScreen extends ConsumerWidget {
           elevation: 0,
           centerTitle: false,
         ),
-        body: wishlistState.when(
-          initial: () => const Center(child: CircularProgressIndicator()),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (failure, _) => Center(child: Text('Error: $failure')),
-          refreshing: (items) => _buildContent(context, ref, items),
-          loaded: (items, _) => _buildContent(context, ref, items),
+        body: SafeArea(
+          child: wishlistState.when(
+            initial: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (failure, _) => Center(child: Text('Error: $failure')),
+            refreshing: (items) => _buildContent(context, ref, items),
+            loaded: (items, _) => _buildContent(context, ref, items),
+          ),
         ),
       ),
     );

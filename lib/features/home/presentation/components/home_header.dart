@@ -10,12 +10,14 @@ class HomeHeader extends StatelessWidget {
   final UserAddress? address;
   final VoidCallback onAddressClick;
   final VoidCallback onProfileClick;
+  final bool isGuest;
 
   const HomeHeader({
     super.key,
     this.address,
     required this.onAddressClick,
     required this.onProfileClick,
+    this.isGuest = false,
   });
 
   /// Truncate address to show only first few words
@@ -105,70 +107,93 @@ class HomeHeader extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Location Icon
-                Icon(Icons.location_on, color: darkGreenColor, size: 30.h),
-
-                SizedBox(width: 12.w),
-
-                // Address Details
-                Expanded(
-                  child: GestureDetector(
-                    onTap: onAddressClick,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Top Line: City or "Select Location"
-                              Text(
-                                address != null && address!.city.isNotEmpty
-                                    ? _truncateToWords(
-                                        address!.city,
-                                        maxWords: 2,
-                                      )
-                                    : 'Select Location',
-                                style: TextStyle(
-                                  color: darkGreenColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13.sp,
+                if (!isGuest) ...[
+                  // Location Icon (only for authenticated users)
+                  Icon(Icons.location_on, color: darkGreenColor, size: 30.h),
+                  SizedBox(width: 12.w),
+                  // Address Details (only for authenticated users)
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onAddressClick,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Top Line: City or "Select Location"
+                                Text(
+                                  address != null && address!.city.isNotEmpty
+                                      ? _truncateToWords(
+                                          address!.city,
+                                          maxWords: 2,
+                                        )
+                                      : 'Select Location',
+                                  style: TextStyle(
+                                    color: darkGreenColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13.sp,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 2.h),
-                              // Bottom Line: Street Address (truncated to 2 words)
-                              Text(
-                                address != null &&
-                                        address!.streetAddress1.isNotEmpty
-                                    ? _truncateToWords(
-                                        address!.streetAddress1,
-                                        maxWords: 2,
-                                      )
-                                    : 'Tap to add address',
-                                style: TextStyle(
-                                  color: darkGreenColor,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w400,
+                                SizedBox(height: 2.h),
+                                // Bottom Line: Street Address (truncated to 2 words)
+                                Text(
+                                  address != null &&
+                                          address!.streetAddress1.isNotEmpty
+                                      ? _truncateToWords(
+                                          address!.streetAddress1,
+                                          maxWords: 2,
+                                        )
+                                      : 'Tap to add address',
+                                  style: TextStyle(
+                                    color: darkGreenColor,
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ] else ...[
+                  // Guest mode: Show Login button
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onProfileClick, // Navigate to login
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.login, color: darkGreenColor, size: 24.h),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Login',
+                            style: TextStyle(
+                              color: darkGreenColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
 
-                // Profile Icon
-                SizedBox(
-                  width: 40.h,
-                  height: 40.h,
-                  child: ProfileIconButton(onProfileTap: onProfileClick),
-                ),
+                if (!isGuest)
+                  // Profile Icon (only for authenticated users)
+                  SizedBox(
+                    width: 40.h,
+                    height: 40.h,
+                    child: ProfileIconButton(onProfileTap: onProfileClick),
+                  ),
               ],
             ),
           ),

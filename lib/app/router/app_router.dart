@@ -54,16 +54,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // Protected routes that require authentication (including main app)
+      // Protected routes that require authentication (guests will be redirected to OTP)
       final protectedRoutes = [
-        '/home',
         '/cart',
         '/checkout',
         '/profile',
         '/orders',
         '/account',
-        '/product-details',
-        '/category-products',
       ];
 
       final isProtectedRoute = protectedRoutes.any(
@@ -88,10 +85,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return '/home';
       }
 
-      // If not authenticated → protect all app routes (redirect to OTP screen)
+      // If not authenticated and trying to access protected routes → redirect to OTP
       if (!isAuthenticated && !isCheckingAuth && isProtectedRoute) {
         return '/otp';
       }
+
+      // Guest mode: Allow access to guest-accessible routes
+      // (no redirect needed for /home, /product-details, /category-products)
 
       return null;
     },

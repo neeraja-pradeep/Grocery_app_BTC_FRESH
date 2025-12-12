@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../application/providers/address_provider.dart';
 import 'address_form_screen.dart';
 
@@ -332,36 +333,21 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
   }
 
   Future<void> _handleSelectAddress(String id) async {
-    final messenger = ScaffoldMessenger.of(context);
-
     try {
       await ref
           .read(profileAddressControllerProvider.notifier)
           .selectAddress(id);
       if (mounted) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Address selected successfully'),
-            backgroundColor: AppColors.green,
-          ),
-        );
+        AppSnackbar.success(context, 'Address selected successfully');
       }
     } catch (error) {
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(error.toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackbar.error(context, error.toString());
       }
     }
   }
 
   Future<void> _handleDelete(BuildContext context, String id) async {
-    // Capture ScaffoldMessenger before async gap
-    final messenger = ScaffoldMessenger.of(context);
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -401,22 +387,12 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
         await ref
             .read(profileAddressControllerProvider.notifier)
             .deleteAddress(id);
-        if (mounted) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Address deleted successfully'),
-              backgroundColor: AppColors.green,
-            ),
-          );
+        if (context.mounted) {
+          AppSnackbar.success(context, 'Address deleted successfully');
         }
       } catch (error) {
-        if (mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(error.toString()),
-              backgroundColor: Colors.red,
-            ),
-          );
+        if (context.mounted) {
+          AppSnackbar.error(context, error.toString());
         }
       }
     }

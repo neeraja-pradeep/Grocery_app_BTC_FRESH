@@ -39,10 +39,10 @@ class CategoryScreenBody extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<CategoryScreenBody> createState() => _CategoryScreenBodyState();
+  ConsumerState<CategoryScreenBody> createState() => CategoryScreenBodyState();
 }
 
-class _CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
+class CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
   /// Key to access ProductGrid state and trigger scroll-to-category
   late final GlobalKey<ProductGridState> _productGridKey;
 
@@ -50,6 +50,11 @@ class _CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
   void initState() {
     super.initState();
     _productGridKey = GlobalKey<ProductGridState>();
+  }
+
+  /// Public method to trigger scroll to a specific category
+  void scrollToCategory(int index) {
+    _productGridKey.currentState?.scrollToCategory(index);
   }
 
   @override

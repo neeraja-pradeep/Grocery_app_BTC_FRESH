@@ -62,7 +62,7 @@ class AppSnackbar {
     required String message,
     required IconData icon,
     required Color accentColor,
-    Duration duration = const Duration(seconds: 2),
+    Duration duration = const Duration(seconds: 4),
   }) {
     // Dismiss any existing snackbar
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -72,9 +72,12 @@ class AppSnackbar {
         content: Container(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.95),
+            color: Colors.white.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: accentColor, width: 2),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.5),
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.08),

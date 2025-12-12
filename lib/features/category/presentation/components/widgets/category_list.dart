@@ -47,6 +47,17 @@ class _CategoryListState extends State<CategoryList> {
       155.0; // Approximate height when selected (with image)
 
   @override
+  void initState() {
+    super.initState();
+    // Scroll to initial selected category after first frame
+    if (widget.selectedIndex > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToSelectedCategory();
+      });
+    }
+  }
+
+  @override
   void didUpdateWidget(CategoryList oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Auto-scroll when selected index changes (from product scrolling)

@@ -16,8 +16,10 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _borderController;
+  late Animation<double> _borderAnimation;
   bool _hasNavigated = false;
 
   @override
@@ -25,6 +27,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.initState();
 
     _controller = AnimationController(vsync: this);
+
+    // Border animation controller
+    _borderController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _borderAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _borderController, curve: Curves.easeInOut),
+    );
+
+    // Start border animation
+    _borderController.forward();
   }
 
   void _navigateBasedOnAuthState() {
@@ -34,13 +49,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     if (authState is Authenticated) {
       _hasNavigated = true;
-      Future.delayed(const Duration(seconds: 1));
       goToHome(context);
     } else if (authState is AuthChecking) {
       // wait for listener
     } else {
       _hasNavigated = true;
-      Future.delayed(const Duration(seconds: 1));
       goToOTP(context);
     }
   }
@@ -54,57 +67,103 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     });
 
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Hero(
-              tag: 'delivery_boy',
-              child: Lottie.asset(
-                'assets/lottie/delivery_boy.json',
-                controller: _controller,
-                width: 800.w,
-                height: 400.h,
-                fit: BoxFit.contain,
-                onLoaded: (composition) {
-                  _controller
-                    ..duration = composition.duration
-                    ..forward().whenComplete(() {
-                      if (mounted) {
-                        _navigateBasedOnAuthState();
-                      }
-                    });
-                },
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(flex: 1),
+
+              // Lottie Animation
+              Center(
+                child: AnimatedBuilder(
+                  animation: _borderAnimation,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: _AnimatedBorderPainter(
+                        progress: _borderAnimation.value,
+                        color: const Color(0xFF64DD17), // Bright green
+                        borderRadius: 20.r,
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.titleColor.withValues(alpha: 0.03),
+                              AppColors.titleColor.withValues(alpha: 0.01),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(20.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.titleColor.withValues(
+                                alpha: 0.04,
+                              ),
+                              blurRadius: 15,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Hero(
+                          tag: 'delivery_boy',
+                          child: Lottie.asset(
+                            'assets/lottie/delivery_boy.json',
+                            controller: _controller,
+                            width: 280.w,
+                            height: 260.h,
+                            fit: BoxFit.contain,
+                            onLoaded: (composition) {
+                              _controller
+                                ..duration = composition.duration
+                                ..forward().whenComplete(() {
+                                  if (mounted) {
+                                    _navigateBasedOnAuthState();
+                                  }
+                                });
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
 
-            SizedBox(height: 20.h),
+              SizedBox(height: 40.h),
 
-            Text(
-              'Get your groceries delivered to your home',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 30.sp,
-                color: AppColors.titleColor,
+              // Main Title
+              Text(
+                'Get your groceries delivered to your home',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 26.sp,
+                  color: AppColors.titleColor,
+                  height: 1.3,
+                ),
               ),
-            ),
 
-            SizedBox(height: 20.h),
+              SizedBox(height: 16.h),
 
-            Text(
-              'The best delivery app in town\nfor delivering your daily fresh groceries',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16.sp,
-                color: Colors.grey,
-                fontWeight: FontWeight.w600,
+              // Subtitle
+              Text(
+                'The best delivery app in town\nfor delivering your daily fresh groceries',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
               ),
-            ),
 
-            SizedBox(height: 100.h),
-          ],
+              const Spacer(flex: 2),
+            ],
+          ),
         ),
       ),
     );
@@ -113,6 +172,45 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _borderController.dispose();
     super.dispose();
+  }
+}
+
+/// Custom painter for animated border
+class _AnimatedBorderPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final double borderRadius;
+
+  _AnimatedBorderPainter({
+    required this.progress,
+    required this.color,
+    required this.borderRadius,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.15)
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
+
+    final path = Path()..addRRect(rrect);
+    final pathMetrics = path.computeMetrics().first;
+    final extractPath = pathMetrics.extractPath(
+      0.0,
+      pathMetrics.length * progress,
+    );
+
+    canvas.drawPath(extractPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(_AnimatedBorderPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }

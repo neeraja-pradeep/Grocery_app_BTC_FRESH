@@ -16,6 +16,9 @@ class ApiClient {
   static const _defaultConnectTimeout = Duration(seconds: 30);
   static const _defaultReceiveTimeout = Duration(seconds: 30);
 
+  // Guest mode check function - will be set by main.dart
+  bool Function()? isGuestMode;
+
   ApiClient();
 
   Future<void> init() async {
@@ -54,13 +57,22 @@ class ApiClient {
       );
     }
 
-    // 6. CSRF interceptor
+    // 6. Guest mode & CSRF interceptor
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final csrf = await _getCsrfToken();
-          if (csrf != null) {
-            options.headers['X-CSRFToken'] = csrf;
+          // Check if user is in guest mode
+          final isGuest = isGuestMode?.call() ?? false;
+
+          if (isGuest) {
+            // For guest mode: Use 'dev: 2' header, skip CSRF
+            options.headers['dev'] = '2';
+          } else {
+            // For authenticated users: Use CSRF token
+            final csrf = await _getCsrfToken();
+            if (csrf != null) {
+              options.headers['X-CSRFToken'] = csrf;
+            }
           }
           handler.next(options);
         },

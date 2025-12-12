@@ -51,150 +51,156 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       ),
-      body: profileState.isLoading && !profileState.hasData
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.green),
-            )
-          : profileState.isError && !profileState.hasData
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    profileState.errorMessage ?? 'Something went wrong',
-                    style: TextStyle(fontSize: 14.sp, color: AppColors.grey),
-                    textAlign: TextAlign.center,
-                  ),
-                  AppSpacing.h16,
-                  ElevatedButton(
-                    onPressed: () {
-                      ref
-                          .read(profileControllerProvider.notifier)
-                          .fetchProfile();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.green,
-                    ),
-                    child: Text(
-                      'Retry',
-                      style: TextStyle(fontSize: 14.sp, color: AppColors.white),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : RefreshIndicator(
-              color: AppColors.green,
-              onRefresh: () async {
-                await ref
-                    .read(profileControllerProvider.notifier)
-                    .refreshProfile();
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+      body: SafeArea(
+        child: profileState.isLoading && !profileState.hasData
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.green),
+              )
+            : profileState.isError && !profileState.hasData
+            ? Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Text(
+                      profileState.errorMessage ?? 'Something went wrong',
+                      style: TextStyle(fontSize: 14.sp, color: AppColors.grey),
+                      textAlign: TextAlign.center,
+                    ),
                     AppSpacing.h16,
-                    // Stale data warning banner
-                    if (profileState.isStale)
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(12.w),
-                        margin: EdgeInsets.only(bottom: 16.h),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8.r),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.orange.shade700,
-                              size: 20.sp,
-                            ),
-                            AppSpacing.w12,
-                            Expanded(
-                              child: Text(
-                                'Showing offline data. Pull to refresh for latest updates.',
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.orange.shade900,
-                                ),
-                              ),
-                            ),
-                          ],
+                    ElevatedButton(
+                      onPressed: () {
+                        ref
+                            .read(profileControllerProvider.notifier)
+                            .fetchProfile();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.green,
+                      ),
+                      child: Text(
+                        'Retry',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: AppColors.white,
                         ),
                       ),
-                    ProfileHeader(
-                      fullName: profileState.profile?.fullName ?? 'User',
-                      mobileNumber: profileState.profile?.mobileNumber ?? 'N/A',
-                      profileImageUrl: profileState.profile?.profileImageUrl,
-                      onEditTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const ProfileEditScreen(),
-                          ),
-                        );
-                      },
                     ),
-                    AppSpacing.h24,
-                    ProfileMenuItem(
-                      imagePath: 'assets/svgs/profile/cupcake.png',
-                      title: 'Order history',
-                      titleFontSize: 14.sp,
-                      titleFontWeight: FontWeight.w600,
-                      onTap: () => context.push('/orders'),
-                    ),
-                    AppSpacing.h24,
-                    const ProfileSectionHeader(title: 'Account settings'),
-                    AppSpacing.h12,
-                    ProfileMenuItem(
-                      imagePath: 'assets/svgs/profile/settings.png',
-                      title: 'Delivery Address',
-                      titleFontSize: 14.sp,
-                      titleFontWeight: FontWeight.w500,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const AddressListScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    AppSpacing.h24,
-                    const ProfileSectionHeader(title: 'Support'),
-                    AppSpacing.h12,
-                    ProfileMenuItem(
-                      imagePath: 'assets/svgs/profile/contact.png',
-                      title: 'Contact Us',
-                      titleFontSize: 14.sp,
-                      titleFontWeight: FontWeight.w500,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ContactUsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    AppSpacing.h12,
-                    ProfileMenuItem(
-                      imagePath: 'assets/svgs/profile/contact.png',
-                      title: 'Log out',
-                      titleFontSize: 14.sp,
-                      titleFontWeight: FontWeight.w500,
-                      showChevron: false,
-                      onTap: () => _handleLogout(context),
-                    ),
-                    AppSpacing.h32,
                   ],
                 ),
+              )
+            : RefreshIndicator(
+                color: AppColors.green,
+                onRefresh: () async {
+                  await ref
+                      .read(profileControllerProvider.notifier)
+                      .refreshProfile();
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AppSpacing.h16,
+                      // Stale data warning banner
+                      if (profileState.isStale)
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(12.w),
+                          margin: EdgeInsets.only(bottom: 16.h),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.orange.shade700,
+                                size: 20.sp,
+                              ),
+                              AppSpacing.w12,
+                              Expanded(
+                                child: Text(
+                                  'Showing offline data. Pull to refresh for latest updates.',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Colors.orange.shade900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ProfileHeader(
+                        fullName: profileState.profile?.fullName ?? 'User',
+                        mobileNumber:
+                            profileState.profile?.mobileNumber ?? 'N/A',
+                        profileImageUrl: profileState.profile?.profileImageUrl,
+                        onEditTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ProfileEditScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      AppSpacing.h24,
+                      ProfileMenuItem(
+                        imagePath: 'assets/svgs/profile/cupcake.png',
+                        title: 'Order history',
+                        titleFontSize: 14.sp,
+                        titleFontWeight: FontWeight.w600,
+                        onTap: () => context.push('/orders'),
+                      ),
+                      AppSpacing.h24,
+                      const ProfileSectionHeader(title: 'Account settings'),
+                      AppSpacing.h12,
+                      ProfileMenuItem(
+                        imagePath: 'assets/svgs/profile/settings.png',
+                        title: 'Delivery Address',
+                        titleFontSize: 14.sp,
+                        titleFontWeight: FontWeight.w500,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const AddressListScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      AppSpacing.h24,
+                      const ProfileSectionHeader(title: 'Support'),
+                      AppSpacing.h12,
+                      ProfileMenuItem(
+                        imagePath: 'assets/svgs/profile/contact.png',
+                        title: 'Contact Us',
+                        titleFontSize: 14.sp,
+                        titleFontWeight: FontWeight.w500,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ContactUsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      AppSpacing.h12,
+                      ProfileMenuItem(
+                        imagePath: 'assets/svgs/profile/contact.png',
+                        title: 'Log out',
+                        titleFontSize: 14.sp,
+                        titleFontWeight: FontWeight.w500,
+                        showChevron: false,
+                        onTap: () => _handleLogout(context),
+                      ),
+                      AppSpacing.h32,
+                    ],
+                  ),
+                ),
               ),
-            ),
+      ),
     );
   }
 

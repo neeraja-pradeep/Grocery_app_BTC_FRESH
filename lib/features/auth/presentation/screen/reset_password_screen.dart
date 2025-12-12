@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/app_button.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../application/providers/auth_repository_provider.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
@@ -81,7 +82,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    AppSnackbar.error(context, msg);
   }
 
   @override
@@ -104,7 +105,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              padding: EdgeInsets.only(
+                left: 16.w,
+                right: 16.w,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(

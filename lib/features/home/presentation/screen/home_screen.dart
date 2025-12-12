@@ -54,8 +54,12 @@ import '../../domain/entities/user_address.dart';
 // Application Layer
 import '../../application/providers/home_provider.dart';
 import '../../application/states/home_state.dart';
+import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
 
 // Components
+import '../../../../core/widgets/app_snackbar.dart';
 import '../components/home_header.dart';
 import '../components/section_header.dart';
 import '../components/category_grid.dart';
@@ -150,6 +154,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Watch the HomeNotifier state
     final homeState = ref.watch(homeProvider);
 
+    // Check if user is in guest mode
+    final authState = ref.watch(authProvider);
+    final isGuest = authState is GuestMode;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Color(0xFFcaf5ac), // Custom green color
@@ -231,6 +239,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         bestDeals: deals,
                         discountGroups: discounts,
                         activeAd: ad,
+                        isGuest: isGuest,
                       );
                     },
 
@@ -245,6 +254,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         discountGroups: discounts,
                         activeAd: ad,
                         isRefreshing: true,
+                        isGuest: isGuest,
                       ),
                       // Optional: Show a subtle loading indicator at the top
                       Positioned(
@@ -267,7 +277,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                 // Error State
                 error: (failure, previousState) {
-                  return _buildErrorContent(failure, previousState);
+                  return _buildErrorContent(failure, previousState, isGuest);
                 },
               ),
             ),
@@ -284,6 +294,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required List<dynamic> discountGroups,
     required entities.Banner? activeAd,
     bool isRefreshing = false,
+    required bool isGuest,
   }) {
     return CustomScrollView(
       key: const Key('home_content_scroll'),
@@ -300,7 +311,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: HomeHeader(
             address: selectedAddress,
             onAddressClick: _navigateToAddressSelection,
-            onProfileClick: _navigateToProfile,
+            onProfileClick: isGuest ? _navigateToLogin : _navigateToProfile,
+            isGuest: isGuest,
           ),
         ),
 
@@ -390,7 +402,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Container(
               color: Colors.white,
               child: CategoryDiscountSection(
-                onAddToCart: (_) {},
+                onAddToCart: _handleAddToCart,
                 group: group,
                 onProductClick: (product) => _navigateToProductDetails(product),
               ),
@@ -409,7 +421,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildErrorContent(Failure failure, HomeState? previousState) {
+  Widget _buildErrorContent(
+    Failure failure,
+    HomeState? previousState,
+    bool isGuest,
+  ) {
     // If we have previous data, show it (SnackBar is handled by ref.listen above)
     if (previousState != null) {
       return previousState.maybeMap(
@@ -419,6 +435,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           bestDeals: state.bestDeals,
           discountGroups: state.discountGroups,
           activeAd: state.activeAd,
+          isGuest: isGuest,
         ),
         refreshing: (state) => _buildScrollContent(
           categories: state.categories,
@@ -426,6 +443,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           bestDeals: state.bestDeals,
           discountGroups: state.discountGroups,
           activeAd: state.activeAd,
+          isGuest: isGuest,
         ),
         orElse: () => _buildFullErrorScrollView(failure),
       );
@@ -590,5 +608,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const ProfileScreen()),
     );
+  }
+
+  void _navigateToLogin() {
+    context.go('/otp');
+  }
+
+  Future<void> _handleAddToCart(ProductVariant product) async {
+    // Block guests from adding to cart
+    final authState = ref.read(authProvider);
+    final isGuest = authState is GuestMode;
+
+    if (isGuest) {
+      AppSnackbar.info(context, 'Please login to add items to cart');
+      return;
+    }
+
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .addToCart(productVariantId: product.id, quantity: 1);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${product.name} added to cart'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add to cart: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 }

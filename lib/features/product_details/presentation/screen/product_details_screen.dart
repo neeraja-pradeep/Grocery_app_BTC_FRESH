@@ -9,6 +9,8 @@ import '../../../../core/network/socket_provider.dart';
 import '../../../../core/polling/polling_manager.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../category/application/providers/inventory_update_notifier.dart';
@@ -347,6 +349,15 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   /// Handle Add button tap - adds 1 item to cart
   Future<void> _handleAddToCart(int variantId) async {
     if (variantId <= 0) return;
+
+    // Block guests from adding to cart
+    final authState = ref.read(authProvider);
+    final isGuest = authState is GuestMode;
+
+    if (isGuest) {
+      AppSnackbar.info(context, 'Please login to add items to cart');
+      return;
+    }
 
     try {
       await ref

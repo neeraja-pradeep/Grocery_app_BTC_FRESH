@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
 
 import '../../domain/repositories/product_detail_repository.dart';
@@ -415,7 +417,18 @@ class ProductDetailController
   }
 
   /// Toggle wishlist status
-  Future<void> toggleWishlist() async {
+  Future<bool> toggleWishlist() async {
+    // Block guests from adding to wishlist
+    final authState = ref.read(authProvider);
+    final isGuest = authState is GuestMode;
+
+    if (isGuest) {
+      state = state.copyWith(
+        errorMessage: 'Please login to add items to wishlist',
+      );
+      return false;
+    }
+
     try {
       if (state.isInWishlist) {
         await _repository.removeFromWishlist(_variantId);
@@ -424,8 +437,10 @@ class ProductDetailController
         await _repository.addToWishlist(_variantId);
         state = state.copyWith(isInWishlist: true);
       }
+      return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update wishlist: $e');
+      return false;
     }
   }
 
