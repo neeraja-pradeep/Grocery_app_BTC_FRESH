@@ -47,9 +47,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
         ),
       ),
       body: addressState.isLoading && !addressState.hasData
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.green),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : addressState.isError && !addressState.hasData
           ? Center(
               child: Column(

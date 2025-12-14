@@ -244,23 +244,14 @@ class ProductCard extends ConsumerWidget {
                         .read(checkoutLineControllerProvider.notifier)
                         .addToCart(productVariantId: product.id, quantity: 1);
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${product.name} added to cart'),
-                          duration: const Duration(seconds: 2),
-                          backgroundColor: Colors.green,
-                        ),
+                      AppSnackbar.success(
+                        context,
+                        '${product.name} added to cart',
                       );
                     }
                   } catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to add to cart: $e'),
-                          duration: const Duration(seconds: 2),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      AppSnackbar.error(context, 'Unable to add item to cart');
                     }
                   }
                 },

@@ -25,7 +25,9 @@ mixin _$ProductMedia {
   int get productId => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ProductMedia
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ProductMediaCopyWith<ProductMedia> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -58,6 +60,8 @@ class _$ProductMediaCopyWithImpl<$Res, $Val extends ProductMedia>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ProductMedia
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -134,6 +138,8 @@ class __$$ProductMediaImplCopyWithImpl<$Res>
     $Res Function(_$ProductMediaImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of ProductMedia
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -244,7 +250,9 @@ class _$ProductMediaImpl implements _ProductMedia {
     createdAt,
   );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ProductMedia
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ProductMediaImplCopyWith<_$ProductMediaImpl> get copyWith =>
@@ -276,8 +284,11 @@ abstract class _ProductMedia implements ProductMedia {
   int get productId;
   @override
   DateTime get createdAt;
+
+  /// Create a copy of ProductMedia
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProductMediaImplCopyWith<_$ProductMediaImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

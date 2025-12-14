@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'app/bootstrap/app_bootstrap.dart';
 import 'app/router/app_router.dart';
+import 'app/theme/colors.dart';
 import 'core/network/api_client.dart';
 import 'core/providers/network_providers.dart';
 import 'features/auth/application/providers/auth_provider.dart';
@@ -52,6 +53,11 @@ class MyApp extends ConsumerWidget {
         return MaterialApp.router(
           debugShowCheckedModeBanner: false,
           routerConfig: router,
+          theme: ThemeData(
+            progressIndicatorTheme: const ProgressIndicatorThemeData(
+              color: AppColors.loaderGreen,
+            ),
+          ),
         );
       },
     );

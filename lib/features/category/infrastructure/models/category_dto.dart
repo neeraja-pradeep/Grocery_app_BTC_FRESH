@@ -132,7 +132,7 @@ String? _resolveImageUrl(String? imageUrl, String? imagePath) {
   }
 
   if (imagePath != null && imagePath.isNotEmpty) {
-    const base = ApiEndpoints.baseUrl;
+    final base = ApiEndpoints.baseUrl;
     if (base.endsWith('/') && imagePath.startsWith('/')) {
       return '${base.substring(0, base.length - 1)}$imagePath';
     }

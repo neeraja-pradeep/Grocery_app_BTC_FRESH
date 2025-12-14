@@ -67,7 +67,7 @@ class CouponRemoteDataSourceImpl implements CouponRemoteDataSource {
       }
 
       final response = await _apiClient.get(
-        '/api/order/coupons/',
+        '/api/order/v1/coupons/',
         headers: headers.isNotEmpty ? headers : null,
       );
 

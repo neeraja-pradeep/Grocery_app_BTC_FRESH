@@ -36,7 +36,7 @@ class ProfileApi {
     }
 
     final response = await _client.get<Map<String, dynamic>>(
-      'api/auth/profile/',
+      'api/auth/v1/profile/',
       headers: headers.isEmpty ? null : headers,
     );
 
@@ -88,6 +88,6 @@ class ProfileApi {
 
   /// Deletes the user's account.
   Future<void> deleteAccount() async {
-    await _client.post<void>('api/auth/delete-account/');
+    await _client.post<void>('api/auth/v1/delete-account/');
   }
 }

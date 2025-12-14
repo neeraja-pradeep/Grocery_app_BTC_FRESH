@@ -7,6 +7,7 @@ import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_models.dart';
 import '../../../../core/network/socket_provider.dart';
 import '../../../../core/polling/polling_manager.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../../auth/application/providers/auth_provider.dart';
@@ -15,6 +16,7 @@ import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
+import '../../../wishlist/application/providers/wishlist_provider.dart';
 import '../components/checkout_section/checkout_section.dart';
 import '../components/price_row/price_row.dart';
 import '../components/product_info/product_info.dart';
@@ -143,12 +145,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
     if (state.hasError || state.status == ProductDetailStatus.empty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
-        body: Center(
-          child: AppText(
-            text: state.errorMessage ?? 'Failed to load product details',
-            color: AppColors.grey,
-          ),
+        appBar: _buildAppBar(context),
+        body: _buildErrorView(
+          context,
+          state.errorMessage ?? 'Failed to load product details',
         ),
       );
     }
@@ -221,10 +221,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     required int cartQuantity,
     required int cartLineId,
   }) {
-    // Get controller for wishlist toggle
-    final controller = ref.read(
-      productDetailControllerProvider(widget.variantId).notifier,
-    );
+    // Check wishlist status from wishlist provider
+    final isInWishlist = ref.watch(isInWishlistProvider(widget.variantId));
 
     // Calculate display price and original price based on discounted_price
     // If discountedPrice exists → it's the display price, price is strikethrough
@@ -262,8 +260,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             // Product info (name, weight, wishlist)
             ProductInfo(
               productDetail: productDetail,
-              isInWishlist: state.isInWishlist,
-              onWishlistToggle: controller.toggleWishlist,
+              isInWishlist: isInWishlist,
+              onWishlistToggle: _handleWishlistToggle,
             ),
             AppSpacing.h16,
 
@@ -412,6 +410,50 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     }
   }
 
+  /// Handle wishlist toggle
+  Future<bool> _handleWishlistToggle() async {
+    // Check if user is in guest mode
+    final authState = ref.read(authProvider);
+    final isGuest = authState is GuestMode;
+
+    if (isGuest) {
+      return false; // Return false to show login message in ProductInfo
+    }
+
+    try {
+      // Check current state BEFORE toggling to show correct message
+      final wasInWishlist = ref.read(isInWishlistProvider(widget.variantId));
+
+      Logger.info(
+        'Toggling wishlist for variant ${widget.variantId}: wasInWishlist=$wasInWishlist',
+      );
+
+      // Use wishlist provider to toggle wishlist
+      final success = await ref
+          .read(wishlistProvider.notifier)
+          .toggleWishlist(widget.variantId);
+
+      Logger.info('Toggle wishlist result: success=$success');
+
+      if (mounted && success) {
+        // Show message based on what action was performed
+        final message = wasInWishlist
+            ? 'Removed from wishlist'
+            : 'Added to wishlist';
+        Logger.info('Showing message: $message');
+        AppSnackbar.success(context, message);
+      }
+
+      return success;
+    } catch (e) {
+      Logger.error('Failed to toggle wishlist: $e', error: e);
+      if (mounted) {
+        AppSnackbar.error(context, 'Failed to update wishlist');
+      }
+      return false;
+    }
+  }
+
   /// Handle navigate to cart
   void _handleNavigateToCart() {
     context.push('/cart');
@@ -420,5 +462,129 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   /// Handle navigate to checkout
   void _handleNavigateToCheckout() {
     context.push('/cart');
+  }
+
+  /// Build error view with user-friendly message
+  Widget _buildErrorView(BuildContext context, String errorMessage) {
+    // Log the error for debugging
+    Logger.error('Product details error: $errorMessage', error: errorMessage);
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.shopping_bag_outlined,
+                size: 48.sp,
+                color: Colors.red.shade400,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Product not available',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              _getUserFriendlyErrorMessage(errorMessage),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey,
+                height: 1.5,
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Logger.info('User tapped retry on product details error');
+                    ref
+                        .read(
+                          productDetailControllerProvider(
+                            widget.variantId,
+                          ).notifier,
+                        )
+                        .refresh();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 12.h,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                  icon: Icon(Icons.refresh, size: 20.sp),
+                  label: const Text('Try Again'),
+                ),
+                SizedBox(width: 12.w),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 12.h,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                  icon: Icon(Icons.arrow_back, size: 20.sp),
+                  label: const Text('Go Back'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Convert error messages to user-friendly text
+  String _getUserFriendlyErrorMessage(String errorMessage) {
+    final lowerError = errorMessage.toLowerCase();
+
+    if (lowerError.contains('network') ||
+        lowerError.contains('internet') ||
+        lowerError.contains('connection')) {
+      return 'No internet connection. Please check your network and try again.';
+    } else if (lowerError.contains('timeout') ||
+        lowerError.contains('timed out')) {
+      return 'Request timed out. Please check your connection and try again.';
+    } else if (lowerError.contains('server') ||
+        lowerError.contains('500') ||
+        lowerError.contains('502') ||
+        lowerError.contains('503')) {
+      return 'Unable to connect to server. Please try again later.';
+    } else if (lowerError.contains('not found') || lowerError.contains('404')) {
+      return 'This product is no longer available.';
+    } else if (lowerError.contains('unauthorized') ||
+        lowerError.contains('401')) {
+      return 'Please log in to view product details.';
+    } else {
+      return 'Unable to load product details. Please try again.';
+    }
   }
 }

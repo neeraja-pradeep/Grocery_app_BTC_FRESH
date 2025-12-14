@@ -1,80 +1,65 @@
+import '../config/app_config.dart';
+
 /// Centralized API endpoint configuration
 class ApiEndpoints {
   const ApiEndpoints._();
 
   /// Base URL for all API requests
-  static const String baseUrl = 'http://156.67.104.149:8080/';
+  /// Now uses centralized AppConfig
+  static String get baseUrl => AppConfig.apiBaseUrlWithSlash;
 
   // ============================================================================
   // AUTH ENDPOINTS
   // ============================================================================
-  static const String login = '/api/auth/signin/';
-  static const String signup = '/api/auth/signup/';
-  static const String sendOtp = '/api/auth/send-otp/';
-  static const String verifyOTP = '/api/auth/verify-otp/';
-  static const String resetPassword = '/api/auth/reset-password/';
-  static const String addAddress = '/api/auth/address/';
-  static const String profile = 'api/auth/profile/';
+  static const String login = '/api/auth/v1/signin/';
+  static const String signup = '/api/auth/v1/signup/';
+  static const String sendOtp = '/api/auth/v1/send-otp/';
+  static const String verifyOTP = '/api/auth/v1/verify-otp/';
+  static const String resetPassword = '/api/auth/v1/reset-password/';
+  static const String addAddress = '/api/auth/v1/address/';
+  static const String addresses = '/api/auth/v1/address/';
+  static const String profile = '/api/auth/v1/profile/';
 
   // ============================================================================
   // CATEGORY ENDPOINTS
   // ============================================================================
-  static const String categories = 'api/products/category/';
-
+  static const String categories = 'api/products/v1/category/';
   static String categoryProducts(String categoryId) =>
-      'api/products/?category_id=$categoryId';
+      'api/products/v1/?category_id=$categoryId';
 
   // ============================================================================
-  // PRODUCT DETAIL ENDPOINTS
+  // PRODUCT ENDPOINTS
   // ============================================================================
   static String productVariant(String variantId) =>
-      'api/products/variants/$variantId/';
-
-  static String productBase(String productId) => 'api/products/$productId/';
-
-  static String productReviews(String productId) =>
-      'api/products/$productId/reviews';
+      'api/products/v1/variants/$variantId/';
 
   // ============================================================================
-  // WISHLIST ENDPOINTS
+  // ORDER ENDPOINTS
   // ============================================================================
-  static String isInWishlist(String productId) => 'wishlist/check/$productId';
-  static const String addToWishlist = 'wishlist';
-  static const String removeFromWishlist = 'wishlist/remove';
+  static const String orders = '/api/order/v1/orders/';
+  static String orderDetails(String orderId) =>
+      '/api/order/v1/orders/$orderId/';
 
   // ============================================================================
-  // ORDER / PAYMENT ENDPOINTS
+  // CHECKOUT / PAYMENT ENDPOINTS
   // ============================================================================
   static String applyCoupon(int checkoutId) =>
-      'api/order/checkouts/$checkoutId/';
-  static const String paymentInitiate = 'api/order/payment/initiate/';
-  static const String paymentVerify = 'api/order/payment/verify/';
-
-  // ============================================================================
-  // ORDERS ENDPOINTS
-  // ============================================================================
-  static const String orders = '/api/order/orders/';
-  static const String activeOrders = '/api/order/orders/?status=active';
-  static const String pendingOrders = '/api/order/orders/?status=pending';
-  static String orderDetails(String orderId) => '/api/order/orders/$orderId/';
+      'api/order/v1/checkouts/$checkoutId/';
+  static const String paymentInitiate = 'api/order/v1/payment/initiate/';
+  static const String paymentVerify = 'api/order/v1/payment/verify/';
 
   // ============================================================================
   // CART (CHECKOUT LINES) ENDPOINTS
   // ============================================================================
-  static const String checkoutLines = '/api/order/checkout-lines/';
+  static const String checkoutLines = '/api/order/v1/checkout-lines/';
   static String checkoutLineById(int lineId) =>
-      '/api/order/checkout-lines/$lineId/';
+      '/api/order/v1/checkout-lines/$lineId/';
 
   // ============================================================================
-  // CHECKOUT ENDPOINTS
+  // WISHLIST ENDPOINTS
   // ============================================================================
-  static const String checkouts = '/api/order/checkouts/';
-
-  // ============================================================================
-  // ADDRESS ENDPOINTS
-  // ============================================================================
-  static const String addresses = '/api/auth/address/';
-  static const String selectedAddress = '/api/auth/address/?selected=true';
+  static const String wishlist = '/api/order/v1/wishlist/';
+  static String wishlistById(String id) => '/api/order/v1/wishlist/$id/';
 }
 
 // Alias for backward compatibility
@@ -84,9 +69,8 @@ typedef Endpoints = ApiEndpoints;
 class HomeEndpoints {
   const HomeEndpoints._();
 
-  static const String categories = '/api/products/category/';
-  static const String discountedVariants = '/api/products/variants/discounts/';
-  static const String search = '/api/v1/products/search';
-  static const String products = '/api/products/';
-  static const String profileHeader = '/api/v1/users/profile/summary';
+  static const String categories = '/api/products/v1/category/';
+  static const String discountedVariants =
+      '/api/products/v1/variants/discounts/';
+  static const String products = '/api/products/v1/';
 }

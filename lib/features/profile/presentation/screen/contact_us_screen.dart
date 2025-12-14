@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class ContactUsScreen extends StatefulWidget {
   const ContactUsScreen({super.key});
@@ -30,12 +31,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     final subject = _subjectController.text.trim();
 
     if (subject.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter how we can help you'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackbar.info(context, 'Please enter how we can help you');
       return;
     }
 
@@ -47,12 +43,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     setState(() => _isLoading = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Message sent successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppSnackbar.success(context, 'Message sent successfully!');
       _subjectController.clear();
       _descriptionController.clear();
     }
@@ -105,11 +96,9 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                 onPressed: () {
                   Clipboard.setData(const ClipboardData(text: whatsAppNumber));
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Phone number copied to clipboard'),
-                      backgroundColor: Colors.green,
-                    ),
+                  AppSnackbar.success(
+                    context,
+                    'Phone number copied to clipboard',
                   );
                 },
                 style: ElevatedButton.styleFrom(

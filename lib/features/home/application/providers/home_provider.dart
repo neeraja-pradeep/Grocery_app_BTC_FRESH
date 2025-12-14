@@ -176,22 +176,52 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   Future<void> performSearch(String query) async {
-    final result = await _repository.searchProductsWithVariants(query: query);
+    final result = await _repository.searchProducts(query: query);
 
     result.fold(
       (failure) => state = SearchState.error(failure: failure, query: query),
-      (paginatedResult) {
-        if (paginatedResult.results.isEmpty) {
+      (variants) {
+        if (variants.isEmpty) {
           state = SearchState.empty(query: query);
         } else {
+          // Sort results: products starting with query first, then others
+          final sortedVariants = _sortSearchResults(variants, query);
+
           state = SearchState.loaded(
             query: query,
-            results: paginatedResult.results,
-            hasMore: paginatedResult.next != null,
+            results: sortedVariants,
+            hasMore: false, // Simple list, no pagination for now
           );
         }
       },
     );
+  }
+
+  /// Sort search results by relevance:
+  /// 1. Products starting with query (case-insensitive)
+  /// 2. Products containing query elsewhere
+  List<ProductVariant> _sortSearchResults(
+    List<ProductVariant> variants,
+    String query,
+  ) {
+    final queryLower = query.toLowerCase();
+
+    // Separate into two groups
+    final startsWithQuery = <ProductVariant>[];
+    final containsQuery = <ProductVariant>[];
+
+    for (final variant in variants) {
+      final nameLower = variant.name.toLowerCase();
+
+      if (nameLower.startsWith(queryLower)) {
+        startsWithQuery.add(variant);
+      } else {
+        containsQuery.add(variant);
+      }
+    }
+
+    // Return starts-with first, then contains
+    return [...startsWithQuery, ...containsQuery];
   }
 
   void clearSearch() {

@@ -133,18 +133,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       next.mapOrNull(
         error: (errorState) {
           // Only show SnackBar if we have previous data (partial failure)
-          if (errorState.previousState != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error: ${errorState.failure.toString()}'),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-                action: SnackBarAction(
-                  label: 'Retry',
-                  textColor: Colors.white,
-                  onPressed: () => ref.read(homeProvider.notifier).refresh(),
-                ),
-              ),
+          if (errorState.previousState != null && context.mounted) {
+            AppSnackbar.error(
+              context,
+              'Unable to refresh data. Please check your connection.',
             );
           }
         },
@@ -454,9 +446,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildFullErrorScrollView(Failure failure) {
-    // Analytics: Track error occurrence
+    // Log technical details for debugging (not shown to user)
     Logger.error(
-      'Home screen error displayed: ${failure.runtimeType} - $failure',
+      'Home screen error: ${failure.runtimeType} - ${failure.message}',
       error: failure,
     );
 
@@ -467,7 +459,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Semantics(
             label: 'Error loading home screen content',
             child: ErrorView(
-              message: failure.toString(),
+              message: _getUserFriendlyMessage(failure),
               onRetry: () {
                 Logger.info('User tapped retry on home screen error');
                 ref.read(homeProvider.notifier).refresh();
@@ -477,6 +469,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ],
     );
+  }
+
+  /// Convert technical failures to user-friendly messages
+  String _getUserFriendlyMessage(Failure failure) {
+    if (failure is NetworkFailure) {
+      return 'No internet connection. Please check your network and try again.';
+    } else if (failure is TimeoutFailure) {
+      return 'Request timed out. Please check your connection and try again.';
+    } else if (failure is ServerFailure) {
+      return 'Unable to connect to server. Please try again later.';
+    } else if (failure is DataParsingFailure) {
+      return 'Something went wrong. Please try again later.';
+    } else {
+      // Use the displayMessage from the Failure class
+      return failure.displayMessage;
+    }
   }
 
   /// Calculate semantic child count for accessibility
@@ -630,23 +638,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           .addToCart(productVariantId: product.id, quantity: 1);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${product.name} added to cart'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        AppSnackbar.success(context, '${product.name} added to cart');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add to cart: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        AppSnackbar.error(context, 'Unable to add item to cart');
       }
     }
   }

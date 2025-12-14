@@ -27,7 +27,9 @@ mixin _$WishlistItem {
   int get discountPct => throw _privateConstructorUsedError;
   DateTime? get addedAt => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WishlistItem
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $WishlistItemCopyWith<WishlistItem> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -62,6 +64,8 @@ class _$WishlistItemCopyWithImpl<$Res, $Val extends WishlistItem>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of WishlistItem
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -150,6 +154,8 @@ class __$$WishlistItemImplCopyWithImpl<$Res>
     $Res Function(_$WishlistItemImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of WishlistItem
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -279,7 +285,9 @@ class _$WishlistItemImpl implements _WishlistItem {
     addedAt,
   );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WishlistItem
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$WishlistItemImplCopyWith<_$WishlistItemImpl> get copyWith =>
@@ -317,8 +325,11 @@ abstract class _WishlistItem implements WishlistItem {
   int get discountPct;
   @override
   DateTime? get addedAt;
+
+  /// Create a copy of WishlistItem
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$WishlistItemImplCopyWith<_$WishlistItemImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

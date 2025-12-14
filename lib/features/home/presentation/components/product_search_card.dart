@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../domain/entities/product.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
+import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../domain/entities/product_variant.dart';
 
-class ProductSearchCard extends StatelessWidget {
-  final Product product;
+class ProductSearchCard extends ConsumerWidget {
+  final ProductVariant variant;
   final VoidCallback? onTap;
 
-  const ProductSearchCard({super.key, required this.product, this.onTap});
+  const ProductSearchCard({super.key, required this.variant, this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
       child: Stack(
         clipBehavior: Clip.none, // Allow button to float outside
@@ -42,13 +47,13 @@ class ProductSearchCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.r),
                       color: Colors.grey[100],
                     ),
-                    child: product.displayImage.isNotEmpty
+                    child: variant.media.isNotEmpty
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(8.r),
                             child: Image.network(
-                              product.displayImage.startsWith('http')
-                                  ? product.displayImage
-                                  : 'https://${product.displayImage}',
+                              variant.media.first.imageUrl.startsWith('http')
+                                  ? variant.media.first.imageUrl
+                                  : 'https://${variant.media.first.imageUrl}',
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Icon(
@@ -75,7 +80,7 @@ class ProductSearchCard extends StatelessWidget {
                       children: [
                         // Product Name
                         Text(
-                          product.name,
+                          variant.name,
                           style: TextStyle(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
@@ -87,24 +92,27 @@ class ProductSearchCard extends StatelessWidget {
 
                         SizedBox(height: 4.h),
 
-                        // Category
-                        Text(
-                          product.categoryName,
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.grey[600],
+                        // Weight/Stock Unit
+                        if (variant.stockUnit != null &&
+                            variant.stockUnit!.isNotEmpty)
+                          Text(
+                            variant.stockUnit!,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[600],
+                            ),
                           ),
-                        ),
 
                         SizedBox(height: 8.h),
 
-                        // Price and Rating Row
+                        // Price Row
                         Row(
                           children: [
-                            // Price
-                            if (product.hasDiscount) ...[
+                            // Discounted Price (if available)
+                            if (variant.discountedPrice != null &&
+                                variant.discountedPrice! > 0) ...[
                               Text(
-                                '₹${product.defaultVariant?.price.toStringAsFixed(2) ?? '0.00'}',
+                                '₹${variant.price.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   fontSize: 12.sp,
                                   color: Colors.grey[500],
@@ -112,33 +120,21 @@ class ProductSearchCard extends StatelessWidget {
                                 ),
                               ),
                               SizedBox(width: 4.w),
-                            ],
-                            Text(
-                              '₹${product.displayPrice.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                                color: product.hasDiscount
-                                    ? Colors.red
-                                    : Colors.black87,
-                              ),
-                            ),
-
-                            const Spacer(),
-
-                            // Rating
-                            if (product.rating != '0.0') ...[
-                              Icon(
-                                Icons.star,
-                                size: 14.sp,
-                                color: Colors.amber,
-                              ),
-                              SizedBox(width: 2.w),
                               Text(
-                                product.rating,
+                                '₹${variant.discountedPrice!.toStringAsFixed(2)}',
                                 style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.grey[600],
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ] else ...[
+                              Text(
+                                '₹${variant.price.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
                               ),
                             ],
@@ -147,10 +143,10 @@ class ProductSearchCard extends StatelessWidget {
 
                         SizedBox(height: 8.h),
 
-                        // Variants info
-                        if (product.hasVariants) ...[
+                        // Stock status
+                        if (variant.status) ...[
                           Text(
-                            '${product.availableVariants.length} variant${product.availableVariants.length != 1 ? 's' : ''} available',
+                            'In Stock',
                             style: TextStyle(
                               fontSize: 11.sp,
                               color: Colors.green[600],
@@ -176,19 +172,40 @@ class ProductSearchCard extends StatelessWidget {
           ),
 
           // FLOATING ADD BUTTON (+)
-          // Only show if product has variants (is available)
-          if (product.hasVariants)
+          // Only show if variant is in stock
+          if (variant.status)
             Positioned(
               top: -8.h, // Negative to float outside
               right: -8.w, // Negative to float outside
               child: GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.name} added to cart'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                onTap: () async {
+                  // Block guests from adding to cart
+                  final authState = ref.read(authProvider);
+                  final isGuest = authState is GuestMode;
+
+                  if (isGuest) {
+                    AppSnackbar.info(
+                      context,
+                      'Please login to add items to cart',
+                    );
+                    return;
+                  }
+
+                  try {
+                    await ref
+                        .read(checkoutLineControllerProvider.notifier)
+                        .addToCart(productVariantId: variant.id, quantity: 1);
+                    if (context.mounted) {
+                      AppSnackbar.success(
+                        context,
+                        '${variant.name} added to cart',
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      AppSnackbar.error(context, 'Unable to add item to cart');
+                    }
+                  }
                 },
                 child: Container(
                   width: 28.w,

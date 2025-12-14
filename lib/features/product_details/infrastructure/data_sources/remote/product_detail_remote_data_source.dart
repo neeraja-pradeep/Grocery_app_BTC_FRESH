@@ -82,7 +82,7 @@ class ProductDetailRemoteDataSourceImpl
   @override
   Future<ProductVariantDto> getProductDetail(String productId) async {
     try {
-      final response = await _apiClient.get('/products/$productId');
+      final response = await _apiClient.get('/api/products/v1/$productId/');
       return ProductVariantDto.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       rethrow;
@@ -122,7 +122,7 @@ class ProductDetailRemoteDataSourceImpl
       }
 
       final response = await _apiClient.get(
-        '/api/products/variants/$productId/',
+        '/api/products/v1/variants/$productId/',
         headers: headers.isNotEmpty ? headers : null,
       );
 
@@ -223,7 +223,7 @@ class ProductDetailRemoteDataSourceImpl
       }
 
       final response = await _apiClient.get(
-        '/api/products/$productId/',
+        '/api/products/v1/$productId/',
         headers: headers.isNotEmpty ? headers : null,
       );
 
@@ -296,7 +296,9 @@ class ProductDetailRemoteDataSourceImpl
     String productId,
   ) async {
     try {
-      final response = await _apiClient.get('/products/$productId/reviews');
+      final response = await _apiClient.get(
+        '/api/products/v1/$productId/reviews/',
+      );
       final list = response.data as List<dynamic>;
       return list
           .map(
@@ -312,7 +314,7 @@ class ProductDetailRemoteDataSourceImpl
   Future<ProductVariantDto> getProductVariant(String variantId) async {
     try {
       final response = await _apiClient.get(
-        '/api/products/variants/$variantId',
+        '/api/products/v1/variants/$variantId/',
       );
       return ProductVariantDto.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {

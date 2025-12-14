@@ -53,9 +53,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       body: SafeArea(
         child: profileState.isLoading && !profileState.hasData
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.green),
-              )
+            ? const Center(child: CircularProgressIndicator())
             : profileState.isError && !profileState.hasData
             ? Center(
                 child: Column(

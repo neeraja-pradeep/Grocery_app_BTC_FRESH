@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../application/providers/profile_provider.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
@@ -165,7 +166,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                             width: 20.w,
                             child: const CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.green100,
                             ),
                           )
                         : Text(
@@ -185,7 +185,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   child: OutlinedButton(
                     onPressed: profileState.isDeletingAccount == true
                         ? null
-                        : () => _handleDeleteAccount(context),
+                        : _handleDeleteAccount,
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: Colors.red.shade300),
                       shape: RoundedRectangleBorder(
@@ -364,29 +364,18 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully'),
-            backgroundColor: AppColors.green,
-          ),
-        );
+        AppSnackbar.success(context, 'Profile updated successfully');
         Navigator.of(context).pop();
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackbar.error(context, 'Unable to update profile');
       }
     }
   }
 
-  Future<void> _handleDeleteAccount(BuildContext context) async {
-    // Capture ScaffoldMessenger before async gap
-    final messenger = ScaffoldMessenger.of(context);
+  Future<void> _handleDeleteAccount() async {
+    if (!mounted) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -427,23 +416,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         await ref.read(profileControllerProvider.notifier).deleteAccount();
 
         if (mounted) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Account deleted successfully'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          AppSnackbar.success(context, 'Account deleted successfully');
           // Navigate to login screen
           // Navigator.of(context).pushReplacementNamed('/login');
         }
       } catch (error) {
         if (mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(error.toString()),
-              backgroundColor: Colors.red,
-            ),
-          );
+          AppSnackbar.error(context, 'Unable to delete account');
         }
       }
     }
