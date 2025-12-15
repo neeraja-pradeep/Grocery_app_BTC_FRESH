@@ -6,6 +6,8 @@ import '../../../../../app/theme/colors.dart';
 import '../../../../../core/network/socket_provider.dart';
 import '../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../core/widgets/app_text.dart';
+import '../../../../auth/application/providers/auth_provider.dart';
+import '../../../../auth/application/states/auth_state.dart';
 import '../../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../../wishlist/application/providers/wishlist_provider.dart';
@@ -60,6 +62,15 @@ class _ProductCardState extends ConsumerState<ProductCard> {
 
   /// Handle add to cart with backend integration
   Future<void> _handleAddToCart(BuildContext context) async {
+    // Block guests from adding to cart
+    final authState = ref.read(authProvider);
+    final isGuest = authState is GuestMode;
+
+    if (isGuest) {
+      AppSnackbar.info(context, 'Please login to add items to cart');
+      return;
+    }
+
     // Also call the parent callback for any additional behavior
     widget.onAddToCart();
 
@@ -259,6 +270,18 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                           );
                           return GestureDetector(
                             onTap: () async {
+                              // Block guests from adding to wishlist
+                              final authState = ref.read(authProvider);
+                              final isGuest = authState is GuestMode;
+
+                              if (isGuest) {
+                                AppSnackbar.info(
+                                  context,
+                                  'Please login to add items to wishlist',
+                                );
+                                return;
+                              }
+
                               final wishlistNotifier = ref.read(
                                 wishlistProvider.notifier,
                               );

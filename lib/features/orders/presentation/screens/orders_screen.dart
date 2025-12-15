@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../application/providers/orders_provider.dart';
 import '../../domain/entities/order_entity.dart';
 
@@ -133,9 +134,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
 
   Widget _buildBody(OrdersState state) {
     if (state.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.green),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (state.errorMessage != null) {
@@ -235,30 +234,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 
   void _handleReorder(OrderEntity order) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reorder feature coming soon'),
-        backgroundColor: AppColors.green,
-      ),
-    );
+    AppSnackbar.info(context, 'Reorder feature coming soon');
   }
 
   void _handleCall() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Calling support...'),
-        backgroundColor: AppColors.green,
-      ),
-    );
+    AppSnackbar.info(context, 'Calling support...');
   }
 
   void _handleWriteReview(OrderEntity order) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Review feature coming soon'),
-        backgroundColor: AppColors.green,
-      ),
-    );
+    AppSnackbar.info(context, 'Review feature coming soon');
   }
 }
 

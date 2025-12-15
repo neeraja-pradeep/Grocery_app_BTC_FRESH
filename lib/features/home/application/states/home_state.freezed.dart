@@ -135,6 +135,9 @@ class _$HomeStateCopyWithImpl<$Res, $Val extends HomeState>
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -153,6 +156,9 @@ class __$$HomeInitialImplCopyWithImpl<$Res>
     _$HomeInitialImpl _value,
     $Res Function(_$HomeInitialImpl) _then,
   ) : super(_value, _then);
+
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -326,6 +332,9 @@ class __$$HomeLoadingImplCopyWithImpl<$Res>
     _$HomeLoadingImpl _value,
     $Res Function(_$HomeLoadingImpl) _then,
   ) : super(_value, _then);
+
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -514,6 +523,8 @@ class __$$HomeLoadedImplCopyWithImpl<$Res>
     $Res Function(_$HomeLoadedImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -564,6 +575,8 @@ class __$$HomeLoadedImplCopyWithImpl<$Res>
     );
   }
 
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $UserAddressCopyWith<$Res>? get selectedAddress {
@@ -576,6 +589,8 @@ class __$$HomeLoadedImplCopyWithImpl<$Res>
     });
   }
 
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $BannerCopyWith<$Res>? get activeAd {
@@ -692,7 +707,9 @@ class _$HomeLoadedImpl implements HomeLoaded {
     discountsLoading,
   );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$HomeLoadedImplCopyWith<_$HomeLoadedImpl> get copyWith =>
@@ -878,7 +895,10 @@ abstract class HomeLoaded implements HomeState {
   bool get categoriesLoading;
   bool get bestDealsLoading;
   bool get discountsLoading;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$HomeLoadedImplCopyWith<_$HomeLoadedImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -911,6 +931,8 @@ class __$$HomeRefreshingImplCopyWithImpl<$Res>
     $Res Function(_$HomeRefreshingImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -946,6 +968,8 @@ class __$$HomeRefreshingImplCopyWithImpl<$Res>
     );
   }
 
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $UserAddressCopyWith<$Res>? get selectedAddress {
@@ -958,6 +982,8 @@ class __$$HomeRefreshingImplCopyWithImpl<$Res>
     });
   }
 
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $BannerCopyWith<$Res>? get activeAd {
@@ -1051,7 +1077,9 @@ class _$HomeRefreshingImpl implements HomeRefreshing {
     activeAd,
   );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$HomeRefreshingImplCopyWith<_$HomeRefreshingImpl> get copyWith =>
@@ -1224,7 +1252,10 @@ abstract class HomeRefreshing implements HomeState {
   List<ProductVariant> get bestDeals;
   List<CategoryDiscountGroup> get discountGroups;
   Banner? get activeAd;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$HomeRefreshingImplCopyWith<_$HomeRefreshingImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1250,6 +1281,8 @@ class __$$HomeErrorImplCopyWithImpl<$Res>
     $Res Function(_$HomeErrorImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? failure = null, Object? previousState = freezed}) {
@@ -1267,6 +1300,8 @@ class __$$HomeErrorImplCopyWithImpl<$Res>
     );
   }
 
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $HomeStateCopyWith<$Res>? get previousState {
@@ -1308,7 +1343,9 @@ class _$HomeErrorImpl implements HomeError {
   @override
   int get hashCode => Object.hash(runtimeType, failure, previousState);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$HomeErrorImplCopyWith<_$HomeErrorImpl> get copyWith =>
@@ -1454,7 +1491,10 @@ abstract class HomeError implements HomeState {
 
   Failure get failure;
   HomeState? get previousState;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of HomeState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$HomeErrorImplCopyWith<_$HomeErrorImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

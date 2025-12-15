@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 
+import '../../../../core/config/app_config.dart';
 import '../../domain/entities/product_variant.dart';
 
 /// Utility function to fix malformed URLs
@@ -142,29 +143,10 @@ class ProductVariantDto {
   final int? reviewCount;
 
   /// Transform image URL to use CDN domain
+  /// Now uses centralized AppConfig
   static String _formatImageUrl(String? url) {
     if (url == null || url.isEmpty) return '';
-
-    // If already a full HTTPS URL, check if it needs domain replacement
-    if (url.startsWith('https://')) {
-      return url;
-    }
-
-    // Replace internal server URLs with CDN domain
-    if (url.startsWith('http://156.67.104.149:8080')) {
-      return url.replaceFirst(
-        'http://156.67.104.149:8080',
-        'https://grocery-application.b-cdn.net',
-      );
-    }
-
-    // Handle relative paths
-    if (url.startsWith('/')) {
-      return 'https://grocery-application.b-cdn.net$url';
-    }
-
-    // Default: treat as relative path
-    return 'https://grocery-application.b-cdn.net/$url';
+    return AppConfig.convertToCdnUrl(url);
   }
 
   /// Convert DTO to domain entity
@@ -340,29 +322,10 @@ class ProductVariantMediaDto {
   final DateTime updatedAt;
 
   /// Transform image URL to use CDN domain
+  /// Now uses centralized AppConfig
   static String _formatImageUrl(String url) {
     if (url.isEmpty) return '';
-
-    // If already a full HTTPS URL, check if it needs domain replacement
-    if (url.startsWith('https://')) {
-      return url;
-    }
-
-    // Replace internal server URLs with CDN domain
-    if (url.startsWith('http://156.67.104.149:8080')) {
-      return url.replaceFirst(
-        'http://156.67.104.149:8080',
-        'https://grocery-application.b-cdn.net',
-      );
-    }
-
-    // Handle relative paths
-    if (url.startsWith('/')) {
-      return 'https://grocery-application.b-cdn.net$url';
-    }
-
-    // Default: treat as relative path
-    return 'https://grocery-application.b-cdn.net/$url';
+    return AppConfig.convertToCdnUrl(url);
   }
 
   /// Convert DTO to domain entity

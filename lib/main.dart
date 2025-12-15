@@ -4,19 +4,35 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'app/bootstrap/app_bootstrap.dart';
 import 'app/router/app_router.dart';
+import 'app/theme/colors.dart';
 import 'core/network/api_client.dart';
 import 'core/providers/network_providers.dart';
+import 'features/auth/application/providers/auth_provider.dart';
+import 'features/auth/application/states/auth_state.dart';
+
+// Global container to access ProviderContainer
+late ProviderContainer _container;
 
 Future<void> main() async {
   await AppBootstrap.run(() async {
     final api = AppBootstrap.result.apiClient;
 
-    return ProviderScope(
+    _container = ProviderContainer(
       overrides: [
         dioProvider.overrideWithValue(api.dio),
         cookieJarProvider.overrideWithValue(api.cookieJar),
         apiClientProvider.overrideWithValue(api),
       ],
+    );
+
+    // Set the guest mode check function in ApiClient
+    api.isGuestMode = () {
+      final authState = _container.read(authProvider);
+      return authState is GuestMode;
+    };
+
+    return UncontrolledProviderScope(
+      container: _container,
       child: const MyApp(),
     );
   });
@@ -37,6 +53,11 @@ class MyApp extends ConsumerWidget {
         return MaterialApp.router(
           debugShowCheckedModeBanner: false,
           routerConfig: router,
+          theme: ThemeData(
+            progressIndicatorTheme: const ProgressIndicatorThemeData(
+              color: AppColors.loaderGreen,
+            ),
+          ),
         );
       },
     );

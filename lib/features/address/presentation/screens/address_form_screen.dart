@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../profile/application/providers/profile_provider.dart';
 import '../../application/providers/address_provider.dart';
 import '../../domain/entities/address.dart';
@@ -307,26 +308,17 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditing
-                  ? 'Address updated successfully'
-                  : 'Address added successfully',
-            ),
-            backgroundColor: AppColors.green,
-          ),
+        AppSnackbar.success(
+          context,
+          isEditing
+              ? 'Address updated successfully'
+              : 'Address added successfully',
         );
         Navigator.of(context).pop(true);
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackbar.error(context, error.toString());
       }
     }
   }

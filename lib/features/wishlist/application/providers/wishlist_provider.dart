@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/wishlist_item.dart';
 import '../../domain/repositories/wishlist_repository.dart';
 import '../../infrastructure/repositories/wishlist_repository_impl.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
 import '../states/wishlist_state.dart';
 
 // ----------------------------------------------------------------------
@@ -13,12 +15,29 @@ import '../states/wishlist_state.dart';
 
 class WishlistNotifier extends StateNotifier<WishlistState> {
   final WishlistRepository _repository;
+  final Ref _ref;
 
-  WishlistNotifier({required WishlistRepository repository})
+  WishlistNotifier({required WishlistRepository repository, required Ref ref})
     : _repository = repository,
+      _ref = ref,
       super(const WishlistState.initial()) {
-    // Load wishlist data on app start
-    _loadWishlist();
+    // Listen to auth state changes
+    _ref.listen<AuthState>(authProvider, (previous, next) {
+      // When user becomes authenticated (from any previous state), reload wishlist
+      if (next is Authenticated && previous is! Authenticated) {
+        _loadWishlist();
+      }
+      // When user logs out (becomes guest from authenticated), clear wishlist
+      else if (next is GuestMode && previous is Authenticated) {
+        state = const WishlistState.initial();
+      }
+    });
+
+    // Only load wishlist if user is authenticated
+    final currentAuthState = _ref.read(authProvider);
+    if (currentAuthState is Authenticated) {
+      _loadWishlist();
+    }
   }
 
   Future<void> _loadWishlist() async {
@@ -171,7 +190,7 @@ class WishlistNotifier extends StateNotifier<WishlistState> {
 final wishlistProvider = StateNotifierProvider<WishlistNotifier, WishlistState>(
   (ref) {
     final repository = ref.watch(wishlistRepositoryProvider);
-    return WishlistNotifier(repository: repository);
+    return WishlistNotifier(repository: repository, ref: ref);
   },
 );
 

@@ -14,8 +14,8 @@ final socketServiceProvider = Provider<SocketService>((ref) {
 
   final socketService = SocketService();
 
-  // Get the base URL from endpoints
-  const baseUrl = ApiEndpoints.baseUrl;
+  // Get the base URL from endpoints (using AppConfig)
+  final baseUrl = ApiEndpoints.baseUrl;
 
   // Connect to Socket.IO server
   socketService.connect(baseUrl);

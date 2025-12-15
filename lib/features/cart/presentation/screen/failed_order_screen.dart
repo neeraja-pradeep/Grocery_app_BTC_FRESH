@@ -10,80 +10,82 @@ class FailedOrderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(20.0.w),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(height: 120.h),
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(20.0.w),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 120.h),
 
-              Center(
-                child: Image.asset(
-                  'assets/images/bag.png',
-                  width: 222.w,
-                  height: 221.h,
-                ),
-              ),
-
-              SizedBox(height: 40.h),
-
-              AppText(
-                text: 'Oops! Order Failed',
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.black,
-              ),
-
-              SizedBox(height: 12.h),
-
-              AppText(
-                text: 'Something went terribly wrong.',
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w400,
-                color: AppColors.lightGrey,
-                textAlign: TextAlign.center,
-              ),
-
-              const Spacer(),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ButtonStyles.greenButton,
-                  child: AppText(
-                    text: 'Go to cart',
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.white,
+                Center(
+                  child: Image.asset(
+                    'assets/images/bag.png',
+                    width: 222.w,
+                    height: 221.h,
                   ),
                 ),
-              ),
 
-              SizedBox(height: 16.h),
+                SizedBox(height: 40.h),
 
-              // Back to Home Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ButtonStyles.greyButton,
-                  child: AppText(
-                    text: 'Back to Home',
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.black,
+                AppText(
+                  text: 'Oops! Order Failed',
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.black,
+                ),
+
+                SizedBox(height: 12.h),
+
+                AppText(
+                  text: 'Something went terribly wrong.',
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.lightGrey,
+                  textAlign: TextAlign.center,
+                ),
+
+                const Spacer(),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ButtonStyles.greenButton,
+                    child: AppText(
+                      text: 'Go to cart',
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.white,
+                    ),
                   ),
                 ),
-              ),
 
-              SizedBox(height: 40.h),
-            ],
+                SizedBox(height: 16.h),
+
+                // Back to Home Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ButtonStyles.greyButton,
+                    child: AppText(
+                      text: 'Back to Home',
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.black,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 40.h),
+              ],
+            ),
           ),
         ),
       ),

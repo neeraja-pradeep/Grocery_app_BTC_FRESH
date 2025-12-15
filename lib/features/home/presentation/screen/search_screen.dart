@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../application/providers/home_provider.dart';
 import '../../application/providers/simple_search_history.dart';
 import '../../application/states/search_state.dart';
-import '../../domain/entities/product.dart';
 import '../../domain/entities/product_variant.dart';
 import '../components/product_horizontal_list.dart';
 import '../components/product_search_card.dart';
@@ -328,16 +328,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildResultsList(List<Product> products, bool hasMore) {
+  Widget _buildResultsList(List<ProductVariant> variants, bool hasMore) {
     return ListView.builder(
       padding: EdgeInsets.only(
         left: 16.w,
         right: 16.w,
         bottom: 20.h, // Extra bottom padding for floating buttons
       ),
-      itemCount: products.length + (hasMore ? 1 : 0),
+      itemCount: variants.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == products.length) {
+        if (index == variants.length) {
           // Load more indicator
           return const Padding(
             padding: EdgeInsets.all(16.0),
@@ -345,15 +345,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           );
         }
 
-        final product = products[index];
+        final variant = variants[index];
         return Padding(
           padding: EdgeInsets.only(
             bottom: 16.h,
           ), // Increased spacing for floating buttons
           child: ProductSearchCard(
-            product: product,
+            variant: variant,
             onTap: () {
-              // Navigate to product detail
+              // Navigate to product detail page
+              context.push('/product-details/${variant.id}');
             },
           ),
         );

@@ -1,6 +1,9 @@
+import '../../core/config/app_config.dart';
+
 class AppConstants {
-  // API Configuration
-  static const String baseUrl = 'https://api.example.com';
+  // API Configuration - Now uses centralized AppConfig
+  @Deprecated('Use AppConfig.apiBaseUrl instead')
+  static String get baseUrl => AppConfig.apiBaseUrl;
 
   // App Configuration
   static const String appName = 'New App';

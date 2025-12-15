@@ -7,6 +7,8 @@ import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/app_button.dart';
 import '../../../../core/utils/app_text_field.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../application/providers/auth_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -138,6 +140,28 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     ),
                   ],
                 ),
+
+                SizedBox(height: 20.h),
+
+                // Skip Button
+                Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      // Activate guest mode
+                      ref.read(authProvider.notifier).continueAsGuest();
+                      goToHome(context);
+                    },
+                    child: Text(
+                      'Skip',
+                      style: TextStyle(
+                        decoration: TextDecoration.underline,
+                        color: AppColors.titleColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15.sp,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -177,6 +201,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    AppSnackbar.error(context, msg);
   }
 }

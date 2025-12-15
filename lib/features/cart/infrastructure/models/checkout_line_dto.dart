@@ -1,10 +1,8 @@
+import '../../../../core/config/app_config.dart';
 import '../../domain/entities/checkout_line.dart';
 
-/// CDN base URL for media
-const String _cdnBase = 'https://grocery-application.b-cdn.net';
-const String _internalServerBase = 'http://156.67.104.149:8080';
-
 /// Resolve media URL to CDN
+/// Now uses centralized AppConfig
 String? _resolveMediaUrl(dynamic mediaEntry) {
   if (mediaEntry == null) return null;
 
@@ -23,27 +21,12 @@ String? _resolveMediaUrl(dynamic mediaEntry) {
 
   // Try to resolve URL
   if (rawUrl != null && rawUrl.isNotEmpty) {
-    // Replace internal server URLs with CDN
-    if (rawUrl.startsWith(_internalServerBase)) {
-      return rawUrl.replaceFirst(_internalServerBase, _cdnBase);
-    }
-    // Already HTTPS
-    if (rawUrl.startsWith('https://')) {
-      return rawUrl;
-    }
-    // Relative path
-    if (rawUrl.startsWith('/')) {
-      return '$_cdnBase$rawUrl';
-    }
-    return '$_cdnBase/$rawUrl';
+    return AppConfig.convertToCdnUrl(rawUrl);
   }
 
   // Try file_path as fallback
   if (filePath != null && filePath.isNotEmpty) {
-    if (filePath.startsWith('/')) {
-      return '$_cdnBase$filePath';
-    }
-    return '$_cdnBase/$filePath';
+    return AppConfig.convertToCdnUrl(filePath);
   }
 
   return null;

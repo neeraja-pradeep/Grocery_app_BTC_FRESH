@@ -33,7 +33,9 @@ mixin _$UserAddress {
   bool get selected => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of UserAddress
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $UserAddressCopyWith<UserAddress> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -73,6 +75,8 @@ class _$UserAddressCopyWithImpl<$Res, $Val extends UserAddress>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of UserAddress
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -191,6 +195,8 @@ class __$$UserAddressImplCopyWithImpl<$Res>
     $Res Function(_$UserAddressImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of UserAddress
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -377,7 +383,9 @@ class _$UserAddressImpl extends _UserAddress {
     createdAt,
   );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of UserAddress
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$UserAddressImplCopyWith<_$UserAddressImpl> get copyWith =>
@@ -426,13 +434,16 @@ abstract class _UserAddress extends UserAddress {
   @override
   String? get longitude;
   @override
-  String get addressType;
-  @override // 'home', 'work', 'other'
+  String get addressType; // 'home', 'work', 'other'
+  @override
   bool get selected;
   @override
   DateTime get createdAt;
+
+  /// Create a copy of UserAddress
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$UserAddressImplCopyWith<_$UserAddressImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

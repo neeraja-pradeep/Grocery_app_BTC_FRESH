@@ -24,7 +24,7 @@ mixin _$SearchState {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )
@@ -39,7 +39,7 @@ mixin _$SearchState {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -54,7 +54,7 @@ mixin _$SearchState {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -110,6 +110,9 @@ class _$SearchStateCopyWithImpl<$Res, $Val extends SearchState>
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -128,6 +131,9 @@ class __$$SearchInitialImplCopyWithImpl<$Res>
     _$SearchInitialImpl _value,
     $Res Function(_$SearchInitialImpl) _then,
   ) : super(_value, _then);
+
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -157,7 +163,7 @@ class _$SearchInitialImpl implements SearchInitial {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )
@@ -176,7 +182,7 @@ class _$SearchInitialImpl implements SearchInitial {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -195,7 +201,7 @@ class _$SearchInitialImpl implements SearchInitial {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -277,6 +283,8 @@ class __$$SearchListeningImplCopyWithImpl<$Res>
     $Res Function(_$SearchListeningImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? isVoiceSearch = null}) {
@@ -316,7 +324,9 @@ class _$SearchListeningImpl implements SearchListening {
   @override
   int get hashCode => Object.hash(runtimeType, isVoiceSearch);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SearchListeningImplCopyWith<_$SearchListeningImpl> get copyWith =>
@@ -333,7 +343,7 @@ class _$SearchListeningImpl implements SearchListening {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )
@@ -352,7 +362,7 @@ class _$SearchListeningImpl implements SearchListening {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -371,7 +381,7 @@ class _$SearchListeningImpl implements SearchListening {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -435,7 +445,10 @@ abstract class SearchListening implements SearchState {
       _$SearchListeningImpl;
 
   bool get isVoiceSearch;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SearchListeningImplCopyWith<_$SearchListeningImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -459,6 +472,8 @@ class __$$SearchLoadingImplCopyWithImpl<$Res>
     $Res Function(_$SearchLoadingImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? query = null, Object? isVoiceSearch = null}) {
@@ -505,7 +520,9 @@ class _$SearchLoadingImpl implements SearchLoading {
   @override
   int get hashCode => Object.hash(runtimeType, query, isVoiceSearch);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SearchLoadingImplCopyWith<_$SearchLoadingImpl> get copyWith =>
@@ -519,7 +536,7 @@ class _$SearchLoadingImpl implements SearchLoading {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )
@@ -538,7 +555,7 @@ class _$SearchLoadingImpl implements SearchLoading {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -557,7 +574,7 @@ class _$SearchLoadingImpl implements SearchLoading {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -624,7 +641,10 @@ abstract class SearchLoading implements SearchState {
 
   String get query;
   bool get isVoiceSearch;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SearchLoadingImplCopyWith<_$SearchLoadingImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -638,7 +658,7 @@ abstract class _$$SearchLoadedImplCopyWith<$Res> {
   @useResult
   $Res call({
     String query,
-    List<Product> results,
+    List<ProductVariant> results,
     bool hasMore,
     int currentPage,
   });
@@ -653,6 +673,8 @@ class __$$SearchLoadedImplCopyWithImpl<$Res>
     $Res Function(_$SearchLoadedImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -670,7 +692,7 @@ class __$$SearchLoadedImplCopyWithImpl<$Res>
         results: null == results
             ? _value._results
             : results // ignore: cast_nullable_to_non_nullable
-                  as List<Product>,
+                  as List<ProductVariant>,
         hasMore: null == hasMore
             ? _value.hasMore
             : hasMore // ignore: cast_nullable_to_non_nullable
@@ -689,16 +711,16 @@ class __$$SearchLoadedImplCopyWithImpl<$Res>
 class _$SearchLoadedImpl implements SearchLoaded {
   const _$SearchLoadedImpl({
     required this.query,
-    required final List<Product> results,
+    required final List<ProductVariant> results,
     this.hasMore = false,
     this.currentPage = 1,
   }) : _results = results;
 
   @override
   final String query;
-  final List<Product> _results;
+  final List<ProductVariant> _results;
   @override
-  List<Product> get results {
+  List<ProductVariant> get results {
     if (_results is EqualUnmodifiableListView) return _results;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_results);
@@ -737,7 +759,9 @@ class _$SearchLoadedImpl implements SearchLoaded {
     currentPage,
   );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SearchLoadedImplCopyWith<_$SearchLoadedImpl> get copyWith =>
@@ -751,7 +775,7 @@ class _$SearchLoadedImpl implements SearchLoaded {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )
@@ -770,7 +794,7 @@ class _$SearchLoadedImpl implements SearchLoaded {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -789,7 +813,7 @@ class _$SearchLoadedImpl implements SearchLoaded {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -851,16 +875,19 @@ class _$SearchLoadedImpl implements SearchLoaded {
 abstract class SearchLoaded implements SearchState {
   const factory SearchLoaded({
     required final String query,
-    required final List<Product> results,
+    required final List<ProductVariant> results,
     final bool hasMore,
     final int currentPage,
   }) = _$SearchLoadedImpl;
 
   String get query;
-  List<Product> get results;
+  List<ProductVariant> get results;
   bool get hasMore;
   int get currentPage;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SearchLoadedImplCopyWith<_$SearchLoadedImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -884,6 +911,8 @@ class __$$SearchEmptyImplCopyWithImpl<$Res>
     $Res Function(_$SearchEmptyImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? query = null}) {
@@ -922,7 +951,9 @@ class _$SearchEmptyImpl implements SearchEmpty {
   @override
   int get hashCode => Object.hash(runtimeType, query);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SearchEmptyImplCopyWith<_$SearchEmptyImpl> get copyWith =>
@@ -936,7 +967,7 @@ class _$SearchEmptyImpl implements SearchEmpty {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )
@@ -955,7 +986,7 @@ class _$SearchEmptyImpl implements SearchEmpty {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -974,7 +1005,7 @@ class _$SearchEmptyImpl implements SearchEmpty {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -1037,7 +1068,10 @@ abstract class SearchEmpty implements SearchState {
   const factory SearchEmpty({required final String query}) = _$SearchEmptyImpl;
 
   String get query;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SearchEmptyImplCopyWith<_$SearchEmptyImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1061,6 +1095,8 @@ class __$$SearchErrorImplCopyWithImpl<$Res>
     $Res Function(_$SearchErrorImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? failure = null, Object? query = null}) {
@@ -1106,7 +1142,9 @@ class _$SearchErrorImpl implements SearchError {
   @override
   int get hashCode => Object.hash(runtimeType, failure, query);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SearchErrorImplCopyWith<_$SearchErrorImpl> get copyWith =>
@@ -1120,7 +1158,7 @@ class _$SearchErrorImpl implements SearchError {
     required TResult Function(String query, bool isVoiceSearch) loading,
     required TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )
@@ -1139,7 +1177,7 @@ class _$SearchErrorImpl implements SearchError {
     TResult? Function(String query, bool isVoiceSearch)? loading,
     TResult? Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -1158,7 +1196,7 @@ class _$SearchErrorImpl implements SearchError {
     TResult Function(String query, bool isVoiceSearch)? loading,
     TResult Function(
       String query,
-      List<Product> results,
+      List<ProductVariant> results,
       bool hasMore,
       int currentPage,
     )?
@@ -1225,7 +1263,10 @@ abstract class SearchError implements SearchState {
 
   Failure get failure;
   String get query;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SearchErrorImplCopyWith<_$SearchErrorImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

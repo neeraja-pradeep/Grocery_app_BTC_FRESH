@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../../category/application/providers/category_providers.dart';
+import '../../../wishlist/application/providers/wishlist_provider.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../states/auth_state.dart';
 import 'auth_repository_provider.dart';
@@ -96,6 +99,9 @@ class Auth extends _$Auth {
       (failure) => state = AuthError(failure: failure, previousState: state),
       (user) {
         state = Authenticated(user: user, isNewUser: false);
+
+        // Refresh user-specific data after successful login
+        _refreshUserData();
       },
     );
   }
@@ -130,6 +136,9 @@ class Auth extends _$Auth {
       },
       (user) {
         state = Authenticated(user: user, isNewUser: true);
+
+        // Refresh user-specific data after successful signup
+        _refreshUserData();
       },
     );
   }
@@ -154,6 +163,9 @@ class Auth extends _$Auth {
       },
       (user) {
         state = Authenticated(user: user, isNewUser: false);
+
+        // Refresh user-specific data after successful login
+        _refreshUserData();
       },
     );
   }
@@ -181,8 +193,13 @@ class Auth extends _$Auth {
       _otpExpiryTimer?.cancel();
       await _repository.logout();
       state = const GuestMode();
+
+      // Clear user-specific data after logout
+      await _clearUserData();
     } catch (e) {
       state = const GuestMode();
+      // Still try to clear data even if logout fails
+      await _clearUserData();
       rethrow;
     }
   }
@@ -193,5 +210,64 @@ class Auth extends _$Auth {
   void continueAsGuest() {
     _otpExpiryTimer?.cancel();
     state = const GuestMode();
+
+    // Clear user-specific data when entering guest mode
+    _clearUserData();
+  }
+
+  // --------------------------------------------------------
+  // CLEAR USER-SPECIFIC DATA
+  // --------------------------------------------------------
+  /// Clears cached data that belongs to authenticated users
+  /// This includes cart, wishlist, and refreshes categories
+  Future<void> _clearUserData() async {
+    try {
+      // Import providers at the top of the file if needed
+      // We'll use ref.read to access other providers
+
+      // Clear wishlist cache and refresh
+      final wishlistNotifier = ref.read(wishlistProvider.notifier);
+      await wishlistNotifier.clearCacheAndRefresh();
+
+      // Clear cart cache (checkout lines need to be re-fetched for guest)
+      // Cart will be empty for guests or show different data
+      final checkoutLineController = ref.read(
+        checkoutLineControllerProvider.notifier,
+      );
+      await checkoutLineController.refresh();
+
+      // Refresh category data to show guest version
+      final categoryController = ref.read(categoryControllerProvider.notifier);
+      await categoryController.refresh(force: true);
+    } catch (e) {
+      // Log error but don't fail the logout/guest mode
+      // Guest mode should still work even if data clearing fails
+    }
+  }
+
+  // --------------------------------------------------------
+  // REFRESH USER-SPECIFIC DATA
+  // --------------------------------------------------------
+  /// Refreshes user-specific data after successful login
+  /// This loads the authenticated user's cart, wishlist, and category preferences
+  Future<void> _refreshUserData() async {
+    try {
+      // Refresh wishlist to load user's saved items
+      final wishlistNotifier = ref.read(wishlistProvider.notifier);
+      await wishlistNotifier.refresh();
+
+      // Refresh cart to load user's cart items
+      final checkoutLineController = ref.read(
+        checkoutLineControllerProvider.notifier,
+      );
+      await checkoutLineController.refresh();
+
+      // Refresh category data to show user's preferences (liked products, etc.)
+      final categoryController = ref.read(categoryControllerProvider.notifier);
+      await categoryController.refresh(force: true);
+    } catch (e) {
+      // Log error but don't fail the login
+      // User should still be logged in even if data refresh fails
+    }
   }
 }

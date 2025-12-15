@@ -1,3 +1,4 @@
+import '../../../../core/config/app_config.dart';
 import '../../domain/entities/category_product.dart';
 
 class CategoryProductDto {
@@ -393,39 +394,17 @@ class CategoryProductDto {
   }
 }
 
+/// Resolve media URL to CDN
+/// Now uses centralized AppConfig
 String? _resolveMediaUrl(String? url, String? path) {
-  const cdnBase = 'https://grocery-application.b-cdn.net';
-  const cdnDomain = 'grocery-application.b-cdn.net';
-  const internalServerBase = 'http://156.67.104.149:8080';
-
-  String? normalized = url;
-  if (normalized != null && normalized.isNotEmpty) {
-    // Replace internal server URLs with CDN domain
-    if (normalized.startsWith(internalServerBase)) {
-      return normalized.replaceFirst(internalServerBase, cdnBase);
-    }
-    // If already HTTPS, keep it
-    if (normalized.startsWith('https://')) {
-      return normalized;
-    }
-    // If already contains CDN domain (without https), prepend https
-    if (normalized.startsWith(cdnDomain)) {
-      return 'https://$normalized';
-    }
-    // If relative path, prepend CDN base
-    if (normalized.startsWith('/')) {
-      return '$cdnBase$normalized';
-    }
-    // Default: assume relative path
-    return '$cdnBase/$normalized';
+  // Try primary URL first
+  if (url != null && url.isNotEmpty) {
+    return AppConfig.convertToCdnUrl(url);
   }
 
+  // Try file_path as fallback
   if (path != null && path.isNotEmpty) {
-    // Use CDN base instead of internal server base
-    if (path.startsWith('/')) {
-      return '$cdnBase$path';
-    }
-    return '$cdnBase/$path';
+    return AppConfig.convertToCdnUrl(path);
   }
 
   return null;

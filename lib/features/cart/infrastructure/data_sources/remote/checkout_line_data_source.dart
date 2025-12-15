@@ -72,7 +72,7 @@ class CheckoutLineDataSource {
       }
 
       final response = await _apiClient.get(
-        '/api/order/checkout-lines/',
+        '/api/order/v1/checkout-lines/',
         headers: headers.isNotEmpty ? headers : null,
       );
 
@@ -158,7 +158,7 @@ class CheckoutLineDataSource {
       );
 
       final response = await _apiClient.patch(
-        '/api/order/checkout-lines/$lineId/',
+        '/api/order/v1/checkout-lines/$lineId/',
         data: {'product_variant_id': productVariantId, 'quantity': quantity},
       );
 
@@ -220,11 +220,11 @@ class CheckoutLineDataSource {
   Future<void> deleteCheckoutLine(int lineId) async {
     try {
       developer.log(
-        'DELETE REQUEST:\nURL: /api/order/checkout-lines/$lineId/',
+        'DELETE REQUEST:\nURL: /api/order/v1/checkout-lines/$lineId/',
         name: 'CheckoutLineDataSource',
       );
 
-      await _apiClient.delete('/api/order/checkout-lines/$lineId/');
+      await _apiClient.delete('/api/order/v1/checkout-lines/$lineId/');
 
       developer.log('DELETE SUCCESS', name: 'CheckoutLineDataSource');
     } on DioException catch (error) {
@@ -250,12 +250,12 @@ class CheckoutLineDataSource {
   }) async {
     try {
       developer.log(
-        'POST REQUEST:\nURL: /api/order/checkout-lines/\nData: {"product_variant_id": $productVariantId, "quantity": $quantity}',
+        'POST REQUEST:\nURL: /api/order/v1/checkout-lines/\nData: {"product_variant_id": $productVariantId, "quantity": $quantity}',
         name: 'CheckoutLineDataSource',
       );
 
       final response = await _apiClient.post(
-        '/api/order/checkout-lines/',
+        '/api/order/v1/checkout-lines/',
         data: {'product_variant_id': productVariantId, 'quantity': quantity},
       );
 

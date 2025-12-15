@@ -20,7 +20,7 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
   @override
   Future<List<WishlistItem>> getWishlist() async {
     try {
-      final response = await _apiClient.get('/api/order/wishlist/');
+      final response = await _apiClient.get('/api/order/v1/wishlist/');
 
       if (response.statusCode == 200 && response.data != null) {
         List responseList;
@@ -46,7 +46,7 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
             try {
               // Fetch complete product details
               final productResponse = await _apiClient.get(
-                '/api/products/variants/$productVariantId/',
+                '/api/products/v1/variants/$productVariantId/',
               );
 
               if (productResponse.statusCode == 200 &&
@@ -89,7 +89,7 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
       };
 
       final response = await _apiClient.post(
-        '/api/order/wishlist/',
+        '/api/order/v1/wishlist/',
         data: requestData,
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
@@ -123,7 +123,7 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
   Future<void> removeFromWishlist(String wishlistItemId) async {
     try {
       final response = await _apiClient.delete(
-        '/api/order/wishlist/$wishlistItemId/',
+        '/api/order/v1/wishlist/$wishlistItemId/',
       );
 
       if (response.statusCode != 204 && response.statusCode != 200) {

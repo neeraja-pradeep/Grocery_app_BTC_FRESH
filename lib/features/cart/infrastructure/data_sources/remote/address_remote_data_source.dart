@@ -105,7 +105,7 @@ class AddressRemoteDataSourceImpl implements AddressRemoteDataSource {
       }
 
       final response = await _apiClient.get(
-        '/api/auth/address/',
+        '/api/auth/v1/address/',
         headers: headers.isNotEmpty ? headers : null,
       );
 
@@ -202,7 +202,10 @@ class AddressRemoteDataSourceImpl implements AddressRemoteDataSource {
         'address_type': addressType,
       };
 
-      final response = await _apiClient.post('/api/auth/address/', data: data);
+      final response = await _apiClient.post(
+        '/api/auth/v1/address/',
+        data: data,
+      );
 
       return AddressDto.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
@@ -243,7 +246,7 @@ class AddressRemoteDataSourceImpl implements AddressRemoteDataSource {
       if (selected != null) data['selected'] = selected;
 
       final response = await _apiClient.patch(
-        '/api/auth/address/$id/',
+        '/api/auth/v1/address/$id/',
         data: data,
       );
 
@@ -256,7 +259,7 @@ class AddressRemoteDataSourceImpl implements AddressRemoteDataSource {
   @override
   Future<void> deleteAddress(int id) async {
     try {
-      await _apiClient.delete('/api/auth/address/$id/');
+      await _apiClient.delete('/api/auth/v1/address/$id/');
     } catch (e) {
       rethrow;
     }

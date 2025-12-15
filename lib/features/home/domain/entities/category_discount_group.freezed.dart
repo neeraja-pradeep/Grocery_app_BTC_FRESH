@@ -21,7 +21,9 @@ mixin _$CategoryDiscountGroup {
   List<ProductVariant> get discountedProducts =>
       throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CategoryDiscountGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $CategoryDiscountGroupCopyWith<CategoryDiscountGroup> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -51,6 +53,8 @@ class _$CategoryDiscountGroupCopyWithImpl<
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of CategoryDiscountGroup
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? category = null, Object? discountedProducts = null}) {
@@ -69,6 +73,8 @@ class _$CategoryDiscountGroupCopyWithImpl<
     );
   }
 
+  /// Create a copy of CategoryDiscountGroup
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $CategoryCopyWith<$Res> get category {
@@ -103,6 +109,8 @@ class __$$CategoryDiscountGroupImplCopyWithImpl<$Res>
     $Res Function(_$CategoryDiscountGroupImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of CategoryDiscountGroup
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? category = null, Object? discountedProducts = null}) {
@@ -166,7 +174,9 @@ class _$CategoryDiscountGroupImpl extends _CategoryDiscountGroup {
     const DeepCollectionEquality().hash(_discountedProducts),
   );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CategoryDiscountGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CategoryDiscountGroupImplCopyWith<_$CategoryDiscountGroupImpl>
@@ -188,8 +198,11 @@ abstract class _CategoryDiscountGroup extends CategoryDiscountGroup {
   Category get category;
   @override
   List<ProductVariant> get discountedProducts;
+
+  /// Create a copy of CategoryDiscountGroup
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CategoryDiscountGroupImplCopyWith<_$CategoryDiscountGroupImpl>
   get copyWith => throw _privateConstructorUsedError;
 }

@@ -218,7 +218,7 @@ class HomeApiImpl implements HomeRemoteDataSource {
   @override
   Future<PaginatedResult<Category>> getCategories({int page = 1}) {
     return _fetchPaginated(
-      '/api/products/category/', // Updated endpoint
+      '/api/products/v1/category/', // Updated endpoint
       queryParameters: {'page': page},
       fromJson: Category.fromJson,
     );
@@ -244,7 +244,7 @@ class HomeApiImpl implements HomeRemoteDataSource {
     };
 
     return _fetchList(
-      '/api/products/variants/discounts/', // Updated endpoint
+      '/api/products/v1/variants/discounts/', // Updated endpoint
       queryParameters: params,
       fromJson: ProductVariant.fromJson,
     );
@@ -253,7 +253,7 @@ class HomeApiImpl implements HomeRemoteDataSource {
   @override
   Future<PaginatedResult<Banner>> getBanners({int page = 1}) {
     return _fetchPaginated(
-      '/api/products/banners/',
+      '/api/products/v1/banners/',
       queryParameters: {'page': page},
       fromJson: Banner.fromJson,
     );
@@ -264,11 +264,10 @@ class HomeApiImpl implements HomeRemoteDataSource {
     required String query,
     int page = 1,
   }) {
-    // Note: The requirement says "Returns Paginated... (if it works)".
-    // But the return type requested is List<ProductVariant>.
-    // I am extracting the list to match the signature.
+    // Use 'search' parameter on variants endpoint
+    // http://156.67.104.149:8080/api/products/v1/variants/?search=ri
     return _fetchList(
-      '/api/products/variants/',
+      '/api/products/v1/variants/',
       queryParameters: {'search': query, 'page': page},
       fromJson: ProductVariant.fromJson,
     );
@@ -278,7 +277,7 @@ class HomeApiImpl implements HomeRemoteDataSource {
   Future<UserAddress?> getSelectedAddress() async {
     try {
       final response = await _apiClient.get(
-        '/api/auth/address/',
+        '/api/auth/v1/address/',
         queryParameters: {'selected': 'true'},
       );
 
@@ -311,7 +310,7 @@ class HomeApiImpl implements HomeRemoteDataSource {
   @override
   Future<List<ProductVariant>> getBestDeals({int limit = 10}) {
     return _fetchList(
-      '/api/products/variants/',
+      '/api/products/v1/variants/',
       queryParameters: {
         'limit': limit,
         'ordering': '-discounted_price',
@@ -327,7 +326,7 @@ class HomeApiImpl implements HomeRemoteDataSource {
     int page = 1,
   }) {
     return _fetchPaginated(
-      '/api/products/',
+      '/api/products/v1/',
       queryParameters: {'search': query, 'page': page},
       fromJson: Product.fromJson,
     );

@@ -6,6 +6,8 @@ import '../../../../core/polling/polling_manager.dart';
 import '../../../../core/storage/cache_config.dart';
 import '../../domain/entities/checkout_line.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
 import '../states/checkout_line_state.dart';
 
 /// Data source provider
@@ -41,7 +43,31 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
 
     ref.onDispose(_disposeController);
 
-    Future.microtask(_initialize);
+    // Listen to auth state changes - reload cart when switching from guest to authenticated
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      // When user becomes authenticated (from any previous state), reload cart
+      if (next is Authenticated && previous is! Authenticated) {
+        developer.log(
+          'Auth state changed to Authenticated - reloading cart',
+          name: 'CheckoutLineController',
+        );
+        Future.microtask(() => _forceRefresh());
+      }
+      // When user logs out (becomes guest from authenticated), clear cart
+      else if (next is GuestMode && previous is Authenticated) {
+        developer.log(
+          'Auth state changed from Authenticated to Guest - clearing cart',
+          name: 'CheckoutLineController',
+        );
+        state = const CheckoutLineState();
+      }
+    });
+
+    // Only initialize cart if user is authenticated
+    final currentAuthState = ref.read(authProvider);
+    if (currentAuthState is Authenticated) {
+      Future.microtask(_initialize);
+    }
 
     return const CheckoutLineState();
   }

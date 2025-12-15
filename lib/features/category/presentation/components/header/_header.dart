@@ -6,6 +6,7 @@ import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/extensions/context_extensions.dart';
 import '../../../../../core/widgets/app_text.dart';
+import '../../../../home/presentation/screen/search_screen.dart';
 
 class Header extends StatelessWidget {
   const Header({super.key, required this.colorScheme});
@@ -47,18 +48,27 @@ class Header extends StatelessWidget {
               color: AppColors.green50,
             ),
             const Spacer(),
-            Container(
-              width: 24.w,
-              height: 24.w,
-              decoration: BoxDecoration(
-                color: colorScheme.onPrimary,
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              alignment: Alignment.center,
-              child: SvgPicture.asset(
-                'assets/svgs/category_screen/search_icon.svg',
-                width: 22.w,
-                height: 22.w,
+            GestureDetector(
+              onTap: () {
+                // Navigate to search screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SearchScreen()),
+                );
+              },
+              child: Container(
+                width: 24.w,
+                height: 24.w,
+                decoration: BoxDecoration(
+                  color: colorScheme.onPrimary,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                alignment: Alignment.center,
+                child: SvgPicture.asset(
+                  'assets/svgs/category_screen/search_icon.svg',
+                  width: 22.w,
+                  height: 22.w,
+                ),
               ),
             ),
             AppSpacing.w12,

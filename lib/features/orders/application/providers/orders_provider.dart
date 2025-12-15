@@ -79,7 +79,7 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
 
   /// Fetch completed orders (for Previous tab)
   Future<void> fetchCompletedOrders() async {
-    await fetchOrders(status: 'completed');
+    await fetchOrders(status: 'delivered');
   }
 
   /// Refresh orders

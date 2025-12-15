@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../application/providers/category_product_providers.dart'
     as category_products;
 import '../../application/providers/category_providers.dart';
@@ -36,9 +37,7 @@ class CategoryStateListener {
         (next.status != CategoryStatus.error || next.hasData)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+        AppSnackbar.error(context, 'Unable to load categories');
       });
     }
   }

@@ -129,22 +129,24 @@ class _CartScreenState extends ConsumerState<CartScreen>
     return Scaffold(
       backgroundColor: AppColors.green60,
       appBar: const CartAppBar(),
-      body: Column(
-        children: [
-          Expanded(
-            child: Container(
-              color: Colors.white,
-              child: Column(
-                children: [
-                  _buildHeader(),
-                  _buildDivider(),
-                  _buildTabBar(),
-                  Expanded(child: _buildBody()),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Container(
+                color: Colors.white,
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    _buildDivider(),
+                    _buildTabBar(),
+                    Expanded(child: _buildBody()),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

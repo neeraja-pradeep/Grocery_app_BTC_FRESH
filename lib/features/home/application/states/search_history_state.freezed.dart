@@ -74,6 +74,9 @@ class _$SearchHistoryStateCopyWithImpl<$Res, $Val extends SearchHistoryState>
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of SearchHistoryState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -92,6 +95,9 @@ class __$$SearchHistoryInitialImplCopyWithImpl<$Res>
     _$SearchHistoryInitialImpl _value,
     $Res Function(_$SearchHistoryInitialImpl) _then,
   ) : super(_value, _then);
+
+  /// Create a copy of SearchHistoryState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -206,6 +212,8 @@ class __$$SearchHistoryLoadedImplCopyWithImpl<$Res>
     $Res Function(_$SearchHistoryLoadedImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of SearchHistoryState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? searches = null}) {
@@ -251,7 +259,9 @@ class _$SearchHistoryLoadedImpl implements SearchHistoryLoaded {
   int get hashCode =>
       Object.hash(runtimeType, const DeepCollectionEquality().hash(_searches));
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SearchHistoryState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SearchHistoryLoadedImplCopyWith<_$SearchHistoryLoadedImpl> get copyWith =>
@@ -334,7 +344,10 @@ abstract class SearchHistoryLoaded implements SearchHistoryState {
       _$SearchHistoryLoadedImpl;
 
   List<String> get searches;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SearchHistoryState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SearchHistoryLoadedImplCopyWith<_$SearchHistoryLoadedImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -358,6 +371,8 @@ class __$$SearchHistoryErrorImplCopyWithImpl<$Res>
     $Res Function(_$SearchHistoryErrorImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of SearchHistoryState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? message = null}) {
@@ -396,7 +411,9 @@ class _$SearchHistoryErrorImpl implements SearchHistoryError {
   @override
   int get hashCode => Object.hash(runtimeType, message);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SearchHistoryState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SearchHistoryErrorImplCopyWith<_$SearchHistoryErrorImpl> get copyWith =>
@@ -479,7 +496,10 @@ abstract class SearchHistoryError implements SearchHistoryState {
       _$SearchHistoryErrorImpl;
 
   String get message;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SearchHistoryState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SearchHistoryErrorImplCopyWith<_$SearchHistoryErrorImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

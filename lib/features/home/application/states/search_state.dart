@@ -3,7 +3,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../../core/error/failure.dart';
-import '../../domain/entities/product.dart';
+import '../../domain/entities/product_variant.dart';
 
 part 'search_state.freezed.dart';
 
@@ -22,10 +22,10 @@ sealed class SearchState with _$SearchState {
     required bool isVoiceSearch,
   }) = SearchLoading;
 
-  // Results available
+  // Results available - now returns individual variants
   const factory SearchState.loaded({
     required String query,
-    required List<Product> results,
+    required List<ProductVariant> results,
     @Default(false) bool hasMore,
     @Default(1) int currentPage,
   }) = SearchLoaded;

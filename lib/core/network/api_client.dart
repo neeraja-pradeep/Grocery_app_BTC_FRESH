@@ -5,16 +5,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../config/app_config.dart';
 import 'endpoints.dart';
 import 'network_exceptions.dart';
 
 class ApiClient {
   late Dio dio;
   late PersistCookieJar cookieJar;
-  static const baseUrl = 'http://156.67.104.149:8080';
 
-  static const _defaultConnectTimeout = Duration(seconds: 30);
-  static const _defaultReceiveTimeout = Duration(seconds: 30);
+  // Use centralized configuration
+  static String get baseUrl => AppConfig.apiBaseUrl;
+
+  static Duration get _defaultConnectTimeout => AppConfig.connectTimeout;
+  static Duration get _defaultReceiveTimeout => AppConfig.receiveTimeout;
+
+  // Guest mode check function - will be set by main.dart
+  bool Function()? isGuestMode;
 
   ApiClient();
 
@@ -54,13 +60,22 @@ class ApiClient {
       );
     }
 
-    // 6. CSRF interceptor
+    // 6. Guest mode & CSRF interceptor
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final csrf = await _getCsrfToken();
-          if (csrf != null) {
-            options.headers['X-CSRFToken'] = csrf;
+          // Check if user is in guest mode
+          final isGuest = isGuestMode?.call() ?? false;
+
+          if (isGuest) {
+            // For guest mode: Use 'dev: 2' header, skip CSRF
+            options.headers['dev'] = '2';
+          } else {
+            // For authenticated users: Use CSRF token
+            final csrf = await _getCsrfToken();
+            if (csrf != null) {
+              options.headers['X-CSRFToken'] = csrf;
+            }
           }
           handler.next(options);
         },

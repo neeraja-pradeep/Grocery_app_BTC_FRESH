@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
+import '../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../core/widgets/app_text.dart';
 
 import '../../../domain/entities/product_variant.dart';
@@ -15,7 +16,7 @@ class ProductInfo extends StatefulWidget {
     required this.onWishlistToggle,
   });
   final bool isInWishlist;
-  final VoidCallback onWishlistToggle;
+  final Future<bool> Function() onWishlistToggle;
   final ProductVariant productDetail;
 
   @override
@@ -87,15 +88,26 @@ class _ProductInfoState extends State<ProductInfo> {
               maxLines: 2,
             ),
             const Spacer(),
-            Container(
-              width: 48.w,
-              height: 48.w,
-
-              alignment: Alignment.center,
-              child: Icon(
-                widget.isInWishlist ? Icons.favorite : Icons.favorite_border,
-                color: widget.isInWishlist ? Colors.red : AppColors.grey,
-                size: 26.sp,
+            GestureDetector(
+              onTap: () async {
+                final success = await widget.onWishlistToggle();
+                if (context.mounted && !success) {
+                  // Show error message if toggle failed
+                  AppSnackbar.info(
+                    context,
+                    'Please login to add items to wishlist',
+                  );
+                }
+              },
+              child: Container(
+                width: 48.w,
+                height: 48.w,
+                alignment: Alignment.center,
+                child: Icon(
+                  widget.isInWishlist ? Icons.favorite : Icons.favorite_border,
+                  color: widget.isInWishlist ? Colors.red : AppColors.grey,
+                  size: 26.sp,
+                ),
               ),
             ),
           ],

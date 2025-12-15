@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/error/failure.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../home/application/providers/home_provider.dart';
 import '../../../home/domain/entities/product_variant.dart';
 import '../../../home/presentation/components/advertisement_card.dart';
@@ -40,12 +42,14 @@ class WishlistScreen extends ConsumerWidget {
           elevation: 0,
           centerTitle: false,
         ),
-        body: wishlistState.when(
-          initial: () => const Center(child: CircularProgressIndicator()),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (failure, _) => Center(child: Text('Error: $failure')),
-          refreshing: (items) => _buildContent(context, ref, items),
-          loaded: (items, _) => _buildContent(context, ref, items),
+        body: SafeArea(
+          child: wishlistState.when(
+            initial: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (failure, _) => _WishlistErrorView(failure: failure),
+            refreshing: (items) => _buildContent(context, ref, items),
+            loaded: (items, _) => _buildContent(context, ref, items),
+          ),
         ),
       ),
     );
@@ -155,5 +159,99 @@ class WishlistScreen extends ConsumerWidget {
 
   void _handleShopNowClick(BuildContext context) {
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+}
+
+/// Error view widget for wishlist screen
+class _WishlistErrorView extends ConsumerWidget {
+  final Failure failure;
+
+  const _WishlistErrorView({required this.failure});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Log technical details for debugging (not shown to user)
+    Logger.error(
+      'Wishlist error: ${failure.runtimeType} - ${failure.message}',
+      error: failure,
+    );
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 48.sp,
+                color: Colors.red.shade400,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Unable to load wishlist',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              _getUserFriendlyMessage(failure),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey,
+                height: 1.5,
+              ),
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton.icon(
+              onPressed: () {
+                Logger.info('User tapped retry on wishlist error');
+                ref.read(wishlistProvider.notifier).refresh();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              icon: Icon(Icons.refresh, size: 20.sp),
+              label: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Convert technical failures to user-friendly messages
+  String _getUserFriendlyMessage(Failure failure) {
+    if (failure is NetworkFailure) {
+      return 'No internet connection. Please check your network and try again.';
+    } else if (failure is TimeoutFailure) {
+      return 'Request timed out. Please check your connection and try again.';
+    } else if (failure is ServerFailure) {
+      return 'Unable to connect to server. Please try again later.';
+    } else if (failure is DataParsingFailure) {
+      return 'Something went wrong. Please try again later.';
+    } else if (failure is NotAuthenticatedFailure) {
+      return 'Please log in to view your wishlist.';
+    } else {
+      // Use the displayMessage from the Failure class
+      return failure.displayMessage;
+    }
   }
 }

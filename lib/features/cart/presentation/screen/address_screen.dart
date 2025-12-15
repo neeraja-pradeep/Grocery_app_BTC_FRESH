@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../application/providers/address_providers.dart';
 import '../../domain/entities/address.dart';
@@ -58,9 +59,7 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
     if (_firstNameController.text.isEmpty ||
         _lastNameController.text.isEmpty ||
         _houseController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields')),
-      );
+      AppSnackbar.info(context, 'Please fill in all required fields');
       return;
     }
 
@@ -98,21 +97,16 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isEditMode
-                  ? 'Address updated successfully'
-                  : 'Address added successfully',
-            ),
-          ),
+        AppSnackbar.success(
+          context,
+          _isEditMode
+              ? 'Address updated successfully'
+              : 'Address saved successfully',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save address: $e')));
+        AppSnackbar.error(context, 'Unable to save address');
       }
     } finally {
       if (mounted) {
@@ -153,15 +147,11 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Address deleted successfully')),
-        );
+        AppSnackbar.success(context, 'Address deleted successfully');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to delete address: $e')));
+        AppSnackbar.error(context, 'Unable to delete address');
       }
     }
   }

@@ -7,6 +7,7 @@ import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/app_button.dart';
 import '../../../../core/utils/app_text_field.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../application/providers/auth_provider.dart';
 import '../../application/states/auth_state.dart';
 
@@ -214,6 +215,6 @@ class _SignupPasswordScreenState extends ConsumerState<SignupPasswordScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    AppSnackbar.error(context, msg);
   }
 }

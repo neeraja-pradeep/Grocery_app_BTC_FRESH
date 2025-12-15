@@ -9,7 +9,7 @@ class AddressApi {
   /// Fetches all addresses for the current user
   Future<List<AddressDto>> fetchAddresses() async {
     final response = await _client.get<Map<String, dynamic>>(
-      'api/auth/address/',
+      'api/auth/v1/address/',
     );
 
     final data = response.data;
@@ -31,7 +31,7 @@ class AddressApi {
   /// Fetches a single address by ID
   Future<AddressDto> fetchAddressById(String id) async {
     final response = await _client.get<Map<String, dynamic>>(
-      'api/auth/address/$id/',
+      'api/auth/v1/address/$id/',
     );
 
     final data = response.data;
@@ -58,7 +58,7 @@ class AddressApi {
     bool? selected,
   }) async {
     final response = await _client.post<Map<String, dynamic>>(
-      'api/auth/address/',
+      'api/auth/v1/address/',
       data: <String, dynamic>{
         'first_name': firstName,
         'last_name': lastName,
@@ -100,7 +100,7 @@ class AddressApi {
     bool? selected,
   }) async {
     final response = await _client.patch<Map<String, dynamic>>(
-      'api/auth/address/$id/',
+      'api/auth/v1/address/$id/',
       data: <String, dynamic>{
         'first_name': firstName,
         'last_name': lastName,
@@ -127,13 +127,13 @@ class AddressApi {
 
   /// Deletes an address
   Future<void> deleteAddress(String id) async {
-    await _client.delete<void>('api/auth/address/$id/');
+    await _client.delete<void>('api/auth/v1/address/$id/');
   }
 
   /// Selects an address as the default delivery address
   Future<AddressDto> selectAddress(String id) async {
     final response = await _client.patch<Map<String, dynamic>>(
-      'api/auth/address/$id/',
+      'api/auth/v1/address/$id/',
       data: <String, dynamic>{'selected': true},
     );
 

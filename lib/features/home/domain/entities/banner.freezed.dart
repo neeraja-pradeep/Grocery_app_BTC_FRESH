@@ -25,7 +25,9 @@ mixin _$Banner {
   int? get productId => throw _privateConstructorUsedError;
   int? get productVariantId => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Banner
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $BannerCopyWith<Banner> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -55,6 +57,8 @@ class _$BannerCopyWithImpl<$Res, $Val extends Banner>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Banner
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -130,6 +134,8 @@ class __$$BannerImplCopyWithImpl<$Res>
     $Res Function(_$BannerImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of Banner
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -240,7 +246,9 @@ class _$BannerImpl extends _Banner {
     productVariantId,
   );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Banner
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$BannerImplCopyWith<_$BannerImpl> get copyWith =>
@@ -273,8 +281,11 @@ abstract class _Banner extends Banner {
   int? get productId;
   @override
   int? get productVariantId;
+
+  /// Create a copy of Banner
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$BannerImplCopyWith<_$BannerImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

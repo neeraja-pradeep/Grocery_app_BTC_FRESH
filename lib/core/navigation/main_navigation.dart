@@ -16,18 +16,28 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  late final List<Widget> _screens;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const CategoriesWithSidebarScreen(),
-    const WishlistScreen(),
-    const CartScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+
+    _screens = [
+      HomeScreen(
+        onCategoryNavigate: (category) {
+          setState(() {
+            _currentIndex = 0;
+          });
+        },
+      ),
+      const CategoriesWithSidebarScreen(),
+      const WishlistScreen(),
+      const CartScreen(),
+    ];
+  }
 
   void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    setState(() => _currentIndex = index);
   }
 
   @override
