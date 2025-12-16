@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/location/location_provider.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../profile/application/providers/profile_provider.dart';
 import '../../application/providers/address_provider.dart';
@@ -269,7 +270,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
 
     // Use profile name or default values
     String firstName = 'User';
-    String lastName = '';
+    String lastName = '.'; // Backend requires non-blank last_name
 
     if (profile != null && profile.fullName.isNotEmpty) {
       final nameParts = profile.fullName.split(' ');
@@ -278,6 +279,20 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
         lastName = nameParts.sublist(1).join(' ');
       }
     }
+
+    // Get current location coordinates
+    final locationState = ref.read(locationProvider);
+    String? latitude;
+    String? longitude;
+
+    locationState.mapOrNull(
+      loaded: (state) {
+        // Round to 6 decimal places (max_digits=9, decimal_places=6)
+        // Format: XXX.XXXXXX (3 digits before decimal, 6 after)
+        latitude = state.location.latitude.toStringAsFixed(6);
+        longitude = state.location.longitude.toStringAsFixed(6);
+      },
+    );
 
     try {
       if (isEditing) {
@@ -291,6 +306,8 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
               streetAddress2: _apartmentController.text.trim().isEmpty
                   ? null
                   : _apartmentController.text.trim(),
+              latitude: latitude,
+              longitude: longitude,
               addressType: _addressType,
             );
       } else {
@@ -303,6 +320,8 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
               streetAddress2: _apartmentController.text.trim().isEmpty
                   ? null
                   : _apartmentController.text.trim(),
+              latitude: latitude,
+              longitude: longitude,
               addressType: _addressType,
             );
       }
