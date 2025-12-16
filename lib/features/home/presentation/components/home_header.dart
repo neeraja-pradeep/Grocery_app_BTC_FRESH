@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../../core/location/location_provider.dart';
 import '../../domain/entities/user_address.dart';
 import '../screen/search_screen.dart';
+import 'location_selection_screen.dart';
 import 'profile_icon_button.dart';
 import 'search_bar.dart';
 
-class HomeHeader extends StatelessWidget {
+class HomeHeader extends ConsumerWidget {
   final UserAddress? address;
   final VoidCallback onAddressClick;
   final VoidCallback onProfileClick;
   final bool isGuest;
+  final bool showMap;
 
   const HomeHeader({
     super.key,
@@ -18,6 +23,7 @@ class HomeHeader extends StatelessWidget {
     required this.onAddressClick,
     required this.onProfileClick,
     this.isGuest = false,
+    this.showMap = true,
   });
 
   /// Truncate address to show only first few words
@@ -39,8 +45,81 @@ class HomeHeader extends StatelessWidget {
   //   // debugPrint("Voice search clicked");
   // }
 
+  /// Navigate to full-screen location selection map with smooth transition
+  void _navigateToLocationSelection(BuildContext context, WidgetRef ref) {
+    // Get current location if available
+    final locationState = ref.read(locationProvider);
+    LatLng? initialPosition;
+
+    locationState.mapOrNull(
+      loaded: (state) {
+        initialPosition = LatLng(
+          state.location.latitude,
+          state.location.longitude,
+        );
+      },
+    );
+
+    // Also check if we have address with coordinates
+    if (initialPosition == null &&
+        address?.latitude != null &&
+        address?.longitude != null) {
+      final lat = double.tryParse(address!.latitude!);
+      final lng = double.tryParse(address!.longitude!);
+      if (lat != null && lng != null) {
+        initialPosition = LatLng(lat, lng);
+      }
+    }
+
+    // Use smooth page transition for professional feel
+    Navigator.push<SelectedLocation>(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            LocationSelectionScreen(
+              initialLocation: initialPosition,
+              onBackWithoutSelection: () {
+                // User pressed back without selecting - no action needed
+              },
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Smooth slide up transition like delivery apps
+          const begin = Offset(0.0, 0.3);
+          const end = Offset.zero;
+          const curve = Curves.easeOutCubic;
+
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+
+          var fadeTween = Tween<double>(
+            begin: 0.0,
+            end: 1.0,
+          ).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: FadeTransition(
+              opacity: animation.drive(fadeTween),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+      ),
+    ).then((selectedLocation) {
+      if (selectedLocation != null) {
+        // Location was selected, trigger the original callback
+        // The parent widget can handle saving the location
+        onAddressClick();
+      }
+    });
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Define theme colors
     const Color backgroundColor = Color(0xFFcaf5ac); // Light green background
     const Color darkGreenColor = Color(0xFF0b6866); // Dark green for Text/Icons
@@ -114,7 +193,7 @@ class HomeHeader extends StatelessWidget {
                   // Address Details (only for authenticated users)
                   Expanded(
                     child: GestureDetector(
-                      onTap: onAddressClick,
+                      onTap: () => _navigateToLocationSelection(context, ref),
                       child: Row(
                         children: [
                           Expanded(
@@ -198,9 +277,11 @@ class HomeHeader extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: 20.h),
+          SizedBox(height: 12.h),
 
-          // --- 3. SEARCH BAR SECTION ---
+          SizedBox(height: 12.h),
+
+          // --- 4. SEARCH BAR SECTION ---
           Padding(
             padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 20.h),
             child: GestureDetector(
