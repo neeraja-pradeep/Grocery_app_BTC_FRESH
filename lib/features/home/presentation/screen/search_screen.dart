@@ -10,9 +10,12 @@ import '../../application/states/search_state.dart';
 import '../../domain/entities/product_variant.dart';
 import '../components/product_horizontal_list.dart';
 import '../components/product_search_card.dart';
+import '../components/voice_search_overlay.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  final String? initialQuery;
+
+  const SearchScreen({super.key, this.initialQuery});
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -22,6 +25,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
   Timer? _debounceTimer;
   static const Duration _debounceDuration = Duration(milliseconds: 300);
+
+  @override
+  void initState() {
+    super.initState();
+    // If initial query is provided (e.g., from voice search), populate and search
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _controller.text = widget.initialQuery!;
+      // Perform search after the first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _performSearch(widget.initialQuery!);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -56,6 +72,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _debounceTimer = Timer(_debounceDuration, () {
       ref.read(searchProvider.notifier).startSearch(query.trim());
     });
+  }
+
+  Future<void> _handleVoiceSearch() async {
+    // Show voice search overlay and wait for result
+    final recognizedText = await showVoiceSearchOverlay(context);
+
+    if (recognizedText != null && recognizedText.isNotEmpty) {
+      // Update the text field with recognized text
+      _controller.text = recognizedText;
+      // Move cursor to end of text
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: recognizedText.length),
+      );
+      // Perform search with recognized text
+      _performSearch(recognizedText);
+    }
   }
 
   @override
@@ -158,7 +190,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         color: Colors.grey[300],
                       ),
                       SizedBox(width: 8.w),
-                      Icon(Icons.mic, color: Colors.black, size: 24.sp),
+                      GestureDetector(
+                        onTap: _handleVoiceSearch,
+                        child: Icon(
+                          Icons.mic,
+                          color: const Color(0xFF0b6866),
+                          size: 24.sp,
+                        ),
+                      ),
                     ],
                   ),
                 ),
