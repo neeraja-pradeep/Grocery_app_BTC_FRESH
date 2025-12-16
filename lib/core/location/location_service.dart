@@ -1,7 +1,7 @@
 // lib/core/location/location_service.dart
 
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart' as permission;
 import 'package:fpdart/fpdart.dart';
 
 import '../error/failure.dart';
@@ -77,7 +77,7 @@ class LocationService {
     }
 
     // Check permission status
-    final status = await Permission.location.status;
+    final status = await permission.Permission.location.status;
 
     if (status.isGranted) {
       return LocationPermissionStatus.granted;
@@ -103,7 +103,7 @@ class LocationService {
     }
 
     // Request permission
-    final status = await Permission.location.request();
+    final status = await permission.Permission.location.request();
 
     if (status.isGranted) {
       return LocationPermissionStatus.granted;
@@ -116,7 +116,7 @@ class LocationService {
 
   /// Open app settings for permission
   Future<bool> openAppSettings() async {
-    return openAppSettings();
+    return await permission.openAppSettings();
   }
 
   /// Open location settings

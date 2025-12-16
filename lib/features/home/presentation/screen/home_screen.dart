@@ -46,6 +46,7 @@ import 'package:pull_to_refresh/pull_to_refresh.dart'; // Requires pull_to_refre
 // Core & Domain
 import '../../../../core/error/failure.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../core/location/location_provider.dart';
 import '../../domain/entities/banner.dart' as entities;
 import '../../domain/entities/category.dart';
 import '../../domain/entities/product_variant.dart';
@@ -97,6 +98,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'user_session': 'active',
       },
     );
+
+    // Initialize location on app startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(locationProvider.notifier).initialize();
+    });
 
     // Listen to scroll for "scroll to top" FAB or animations
     _scrollController.addListener(_onScroll);
