@@ -137,6 +137,9 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
   Future<void> reloadAddress() async {
     // Called when user updates address in profile/settings
+    // Clear the selected address cache first to force fresh fetch
+    await _repository.clearCache();
+
     final result = await _repository.getSelectedAddress();
 
     result.fold(
@@ -144,9 +147,19 @@ class HomeNotifier extends StateNotifier<HomeState> {
         // Keep current address on error, maybe show a snackbar in UI
       },
       (address) {
+        // Handle both loaded and refreshing states
         state.mapOrNull(
           loaded: (loadedState) {
             state = loadedState.copyWith(selectedAddress: address);
+          },
+          refreshing: (refreshingState) {
+            state = HomeState.loaded(
+              categories: refreshingState.categories,
+              selectedAddress: address,
+              bestDeals: refreshingState.bestDeals,
+              discountGroups: refreshingState.discountGroups,
+              activeAd: refreshingState.activeAd,
+            );
           },
         );
       },

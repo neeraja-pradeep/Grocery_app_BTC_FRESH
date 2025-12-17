@@ -281,7 +281,10 @@ class HomeApiImpl implements HomeRemoteDataSource {
         queryParameters: {'selected': 'true'},
       );
 
+      Logger.debug('getSelectedAddress response: ${response.data}');
+
       if (response.data == null) {
+        Logger.debug('getSelectedAddress: response.data is null');
         return null;
       }
 
@@ -289,11 +292,20 @@ class HomeApiImpl implements HomeRemoteDataSource {
       final data = response.data as Map<String, dynamic>;
       final results = data['results'] as List?;
 
+      Logger.debug('getSelectedAddress: results count: ${results?.length}');
+
       if (results == null || results.isEmpty) {
+        Logger.debug('getSelectedAddress: No selected address found');
         return null;
       }
 
-      return UserAddress.fromJson(results.first as Map<String, dynamic>);
+      final address = UserAddress.fromJson(
+        results.first as Map<String, dynamic>,
+      );
+      Logger.debug(
+        'getSelectedAddress: Parsed address: streetAddress1=${address.streetAddress1}, streetAddress2=${address.streetAddress2}',
+      );
+      return address;
     } on DioException catch (e) {
       // For address, 404 is acceptable (no address selected)
       if (e.response?.statusCode == 404) {

@@ -27,14 +27,6 @@ class HomeHeader extends ConsumerWidget {
     this.showMap = true,
   });
 
-  /// Truncate address to show only first few words
-  String _truncateToWords(String text, {int maxWords = 2}) {
-    if (text.isEmpty) return text;
-    final words = text.trim().split(RegExp(r'\s+'));
-    if (words.length <= maxWords) return text;
-    return '${words.take(maxWords).join(' ')}...';
-  }
-
   // --- Search Handlers ---
   // // Updated to accept BuildContext so you can navigate
   // void _handleTextSearch(BuildContext context, String query) {
@@ -202,38 +194,32 @@ class HomeHeader extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Top Line: City or "Select Location"
+                                // Display the currently selected address
                                 Text(
-                                  address != null && address!.city.isNotEmpty
-                                      ? _truncateToWords(
-                                          address!.city,
-                                          maxWords: 2,
-                                        )
+                                  address != null &&
+                                          (address!.streetAddress1.isNotEmpty ||
+                                              (address!
+                                                      .streetAddress2
+                                                      ?.isNotEmpty ??
+                                                  false))
+                                      ? [
+                                          if (address!
+                                              .streetAddress1
+                                              .isNotEmpty)
+                                            address!.streetAddress1,
+                                          if (address!
+                                                  .streetAddress2
+                                                  ?.isNotEmpty ??
+                                              false)
+                                            address!.streetAddress2,
+                                        ].join(', ')
                                       : 'Select Location',
                                   style: TextStyle(
                                     color: darkGreenColor,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13.sp,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 2.h),
-                                // Bottom Line: Street Address (truncated to 2 words)
-                                Text(
-                                  address != null &&
-                                          address!.streetAddress1.isNotEmpty
-                                      ? _truncateToWords(
-                                          address!.streetAddress1,
-                                          maxWords: 2,
-                                        )
-                                      : 'Tap to add address',
-                                  style: TextStyle(
-                                    color: darkGreenColor,
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                  maxLines: 1,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],

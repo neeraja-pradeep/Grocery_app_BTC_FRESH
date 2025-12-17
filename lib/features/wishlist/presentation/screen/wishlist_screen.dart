@@ -92,23 +92,23 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
         statusBarColor: Color(0xFFcaf5ac),
         statusBarIconBrightness: Brightness.dark,
       ),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: Text(
-            'My Wishlist',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20.sp,
-              color: Colors.black,
-            ),
-          ),
+      child: SafeArea(
+        child: Scaffold(
           backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: false,
-        ),
-        body: SafeArea(
-          child: wishlistState.when(
+          appBar: AppBar(
+            title: Text(
+              'My Wishlist',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20.sp,
+                color: Colors.black,
+              ),
+            ),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: false,
+          ),
+          body: wishlistState.when(
             initial: () => const Center(child: CircularProgressIndicator()),
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (failure, _) => _WishlistErrorView(failure: failure),
