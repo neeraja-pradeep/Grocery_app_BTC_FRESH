@@ -68,6 +68,8 @@ import '../components/product_horizontal_list.dart';
 import '../components/advertisement_card.dart';
 import '../components/category_discount_section.dart';
 import '../components/error_view.dart';
+import '../components/delivery_status_bar.dart';
+import '../../application/providers/delivery_status_provider.dart';
 
 // Other Screens (For navigation)
 import '../../../profile/presentation/screen/profile_screen.dart';
@@ -312,6 +314,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onAddressClick: _navigateToAddressSelection,
             onProfileClick: isGuest ? _navigateToLogin : _navigateToProfile,
             isGuest: isGuest,
+          ),
+        ),
+
+        // 2. Delivery Status Bar (visible when order is in progress)
+        SliverToBoxAdapter(
+          child: Consumer(
+            builder: (context, ref, child) {
+              final isActive = ref.watch(isDeliveryActiveProvider);
+              if (!isActive) return const SizedBox.shrink();
+              return const DeliveryStatusBar();
+            },
           ),
         ),
 

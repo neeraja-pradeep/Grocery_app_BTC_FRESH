@@ -7,6 +7,7 @@ import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
+import '../../../home/application/providers/delivery_status_provider.dart';
 import '../../../orders/application/providers/orders_provider.dart';
 import '../../../orders/infrastructure/data_sources/orders_api.dart';
 
@@ -19,6 +20,22 @@ class ConfirmOrderScreen extends ConsumerStatefulWidget {
 
 class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
   bool _hasShownRatingSheet = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start delivery tracking when order is confirmed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startDeliveryTracking();
+    });
+  }
+
+  void _startDeliveryTracking() {
+    // Generate a unique order ID for tracking (in production this would come from payment response)
+    final orderId = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
+    ref.read(deliveryStatusProvider.notifier).startDeliveryTracking(orderId);
+    Logger.info('Delivery tracking started for order: $orderId');
+  }
 
   Future<void> _handleBackNavigation() async {
     // Only show rating sheet once
