@@ -109,4 +109,9 @@ class ProductVariant with _$ProductVariant {
     final val = hasDiscount ? discountedPrice! : price;
     return val.toStringAsFixed(2);
   }
+
+  bool get inStock {
+    final qty = int.tryParse(currentQuantity) ?? 0;
+    return qty > 0;
+  }
 }

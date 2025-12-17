@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_provider.dart';
+import '../../../bottomnavbar/bottom_navbar.dart';
 import '../../../../core/network/socket_service.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
@@ -10,18 +11,18 @@ import '../../application/providers/checkout_line_provider.dart';
 import '../../domain/entities/checkout_line.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../../core/network/socket_models.dart';
+import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
 import '../components/cart_app_bar.dart';
 import '../components/cart_item_card.dart';
 import '../components/cart_summary.dart';
 import '../components/minimum_order_warning.dart';
 import 'checkout_screen.dart';
-import 'delivery_screen.dart';
 
 /// Cart Screen - Displays shopping cart with real API data
 ///
 /// Features:
-/// - Tab navigation (Cart items, Checkout, Delivery)
+/// - Tab navigation (Cart items, Checkout)
 /// - Real-time cart data with 30-second polling
 /// - Minimum order warning
 /// - Quantity adjustment (increment/decrement with PATCH)
@@ -47,7 +48,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addObserver(this);
 
     // cache socket service (safe to call ref.read in initState)
@@ -66,7 +67,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map<String, dynamic>) {
         final tabIndex = args['tab'] as int?;
-        if (tabIndex != null && tabIndex >= 0 && tabIndex < 3) {
+        if (tabIndex != null && tabIndex >= 0 && tabIndex < 2) {
           _tabController.animateTo(tabIndex);
         }
       }
@@ -192,7 +193,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
   }
 
   Widget _buildTabBar() {
-    final tabs = ['Cart items', 'Checkout', 'Delivery'];
+    final tabs = ['Cart items', 'Checkout'];
 
     return Container(
       color: Colors.white,
@@ -281,7 +282,6 @@ class _CartScreenState extends ConsumerState<CartScreen>
         children: [
           _buildCartItemsTabWithSummary(),
           CheckoutScreen(cartItems: mockCartItems),
-          const DeliveryScreen(),
         ],
       ),
     );
@@ -350,6 +350,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
   Widget _buildCartItemsTab() {
     final checkoutState = ref.watch(checkoutLineControllerProvider);
     final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+    final inventoryUpdates = ref.watch(inventoryUpdateNotifierProvider);
 
     // Use socket-aware total for minimum order check
     final currentTotal = _calculateTotalWithSocketPrices(
@@ -396,23 +397,41 @@ class _CartScreenState extends ConsumerState<CartScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.shopping_cart_outlined,
-              size: 64.sp,
-              color: AppColors.grey.withValues(alpha: 0.5),
+            Image.asset(
+              'assets/images/trolley.png',
+              width: 120.w,
+              height: 120.h,
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: 24.h),
             AppText(
               text: 'Your cart is empty',
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: AppColors.grey,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.loaderGreen,
             ),
-            SizedBox(height: 8.h),
-            AppText(
-              text: 'Add items to get started',
-              fontSize: 14.sp,
-              color: AppColors.grey.withValues(alpha: 0.7),
+            SizedBox(height: 32.h),
+            SizedBox(
+              width: 230.w,
+              height: 48.h,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Switch to categories tab (index 1) using bottom nav global key
+                  BottomNavigation.globalKey.currentState?.navigateToTab(1);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.green50,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  elevation: 0,
+                ),
+                child: AppText(
+                  text: 'Continue Shopping',
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
+                ),
+              ),
             ),
           ],
         ),
@@ -455,6 +474,15 @@ class _CartScreenState extends ConsumerState<CartScreen>
                         socketPriceUpdate.discountedPrice! > 0)
                   : product.hasDiscount;
 
+              // Get real-time inventory update to check stock
+              final inventoryUpdate = inventoryUpdates.getUpdate(
+                line.productVariantId,
+              );
+              final currentStock = inventoryUpdate?.currentQuantity;
+              // If we have inventory data, check if in stock; otherwise assume in stock
+              final canIncrement =
+                  currentStock == null || currentStock > line.quantity;
+
               return GestureDetector(
                 onLongPress: () => _showDeleteDialog(line.id, product.name),
                 child: CartItemCard(
@@ -469,7 +497,9 @@ class _CartScreenState extends ConsumerState<CartScreen>
                   hasDiscount: hasDiscount,
                   discountPercentage: product.discountPercentage,
                   isProcessing: checkoutState.isLineProcessing(line.id),
-                  onIncrement: () => _handleIncrement(line.id, line.quantity),
+                  onIncrement: canIncrement
+                      ? () => _handleIncrement(line.id, line.quantity)
+                      : null,
                   onDecrement: () => _handleDecrement(line.id, line.quantity),
                   onRemove: () => _showDeleteDialog(line.id, product.name),
                 ),

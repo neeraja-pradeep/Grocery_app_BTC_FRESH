@@ -63,29 +63,30 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 40.h),
-                Center(child: Image.asset('assets/title.png', width: 150.w)),
+                Center(child: Image.asset('assets/title.png', width: 110.w)),
+                SizedBox(height: 20.h),
 
                 Row(
                   children: [
                     Icon(
                       Icons.location_on,
-                      size: 35.sp,
+                      size: 25.sp,
                       color: AppColors.titleColor,
                     ),
                     Text(
                       'Address',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 35.sp,
+                        fontSize: 28.sp,
                         color: AppColors.titleColor,
                       ),
                     ),
                   ],
                 ),
 
-                SizedBox(height: 30.h),
+                SizedBox(height: 20.h),
                 const AddressTip(),
-                SizedBox(height: 30.h),
+                SizedBox(height: 20.h),
 
                 // HOUSE NUMBER
                 AddressField(
@@ -101,12 +102,12 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                   controller: areaController,
                 ),
 
-                SizedBox(height: 40.h),
+                SizedBox(height: 30.h),
 
                 Text(
                   'Save As',
                   style: TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: Colors.grey.shade600,
                   ),
                 ),
@@ -151,7 +152,7 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                   onTap: () => _handleSave(addressState),
                   child: Container(
                     width: double.infinity,
-                    height: 70.h,
+                    height: 55.h,
                     decoration: BoxDecoration(
                       color: AppColors.lightGreen,
                       borderRadius: BorderRadius.circular(10.r),
@@ -163,7 +164,7 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                             : 'Done',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 18.sp,
+                          fontSize: 16.sp,
                           color: AppColors.titleColor,
                         ),
                       ),
@@ -171,7 +172,7 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                   ),
                 ),
 
-                SizedBox(height: 30.h),
+                SizedBox(height: 20.h),
 
                 Center(
                   child: GestureDetector(
@@ -182,7 +183,7 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                       'Skip',
                       style: TextStyle(
                         decoration: TextDecoration.underline,
-                        fontSize: 20.sp,
+                        fontSize: 16.sp,
                         color: AppColors.titleColor,
                         fontWeight: FontWeight.bold,
                       ),

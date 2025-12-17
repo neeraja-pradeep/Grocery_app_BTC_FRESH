@@ -78,8 +78,8 @@ class CheckoutOrderSummary extends ConsumerWidget {
   Widget _buildApplyCouponSection(BuildContext context, WidgetRef ref) {
     final hasCoupon = appliedCoupon != null;
 
-    return GestureDetector(
-      onTap: () => _navigateToCoupons(context, ref),
+    return InkWell(
+      onTap: hasCoupon ? null : () => _navigateToCoupons(context, ref),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         child: Row(

@@ -39,6 +39,8 @@ class ApiEndpoints {
   static const String orders = '/api/order/v1/orders/';
   static String orderDetails(String orderId) =>
       '/api/order/v1/orders/$orderId/';
+  static String orderRating(String orderId) =>
+      '/api/order/v1/$orderId/ratings/';
 
   // ============================================================================
   // CHECKOUT / PAYMENT ENDPOINTS

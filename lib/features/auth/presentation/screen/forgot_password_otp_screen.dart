@@ -38,6 +38,41 @@ class _ForgotPasswordOtpScreenState
   void initState() {
     super.initState();
     _startTimer();
+    _listenToClipboard();
+  }
+
+  void _listenToClipboard() {
+    // Listen to the first field for paste events
+    _focusNodes[0].addListener(() {
+      if (_focusNodes[0].hasFocus) {
+        _checkClipboardForOtp();
+      }
+    });
+  }
+
+  Future<void> _checkClipboardForOtp() async {
+    try {
+      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+      if (clipboardData != null && clipboardData.text != null) {
+        final text = clipboardData.text!.trim();
+        // Check if clipboard contains a 6-digit number
+        if (RegExp(r'^\d{6}$').hasMatch(text)) {
+          _fillOtpFields(text);
+        }
+      }
+    } catch (e) {
+      // Ignore clipboard errors
+    }
+  }
+
+  void _fillOtpFields(String otp) {
+    for (int i = 0; i < 6 && i < otp.length; i++) {
+      _otpControllers[i].text = otp[i];
+    }
+    // Move focus to the last field
+    if (otp.length == 6) {
+      _focusNodes[5].requestFocus();
+    }
   }
 
   @override
@@ -162,6 +197,13 @@ class _ForgotPasswordOtpScreenState
   }
 
   void _onOtpFieldChanged(String value, int index) {
+    // Handle pasted full OTP code
+    if (value.length > 1) {
+      _fillOtpFields(value);
+      return;
+    }
+
+    // Handle single digit input
     if (value.length == 1 && index < 5) {
       _focusNodes[index + 1].requestFocus();
     } else if (value.isEmpty && index > 0) {
@@ -210,51 +252,59 @@ class _ForgotPasswordOtpScreenState
 
               SizedBox(height: 40.h),
 
-              // OTP Input Fields - 6 digits
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 48.w,
-                    height: 56.h,
-                    child: TextFormField(
-                      controller: _otpControllers[index],
-                      focusNode: _focusNodes[index],
-                      enabled: !_isLoading,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      maxLength: 1,
-                      style: TextStyle(
-                        fontSize: 22.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.titleColor,
-                      ),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        contentPadding: EdgeInsets.zero,
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: const BorderSide(
-                            color: AppColors.borderColor,
-                            width: 2,
+              // OTP Input Fields - 6 digits with autofill support
+              AutofillGroup(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(6, (index) {
+                    return SizedBox(
+                      width: 48.w,
+                      height: 56.h,
+                      child: TextFormField(
+                        controller: _otpControllers[index],
+                        focusNode: _focusNodes[index],
+                        enabled: !_isLoading,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        maxLength: 1,
+                        autofillHints: index == 0
+                            ? const [AutofillHints.oneTimeCode]
+                            : null,
+                        style: TextStyle(
+                          fontSize: 22.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.titleColor,
+                        ),
+                        decoration: InputDecoration(
+                          counterText: '',
+                          contentPadding: EdgeInsets.zero,
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                            borderSide: const BorderSide(
+                              color: AppColors.borderColor,
+                              width: 2,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                            borderSide: const BorderSide(
+                              color: AppColors.borderColor,
+                            ),
+                          ),
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: const BorderSide(
-                            color: AppColors.borderColor,
-                          ),
-                        ),
-                        disabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(6),
+                        ],
+                        onChanged: (value) => _onOtpFieldChanged(value, index),
                       ),
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onChanged: (value) => _onOtpFieldChanged(value, index),
-                    ),
-                  );
-                }),
+                    );
+                  }),
+                ),
               ),
 
               SizedBox(height: 30.h),

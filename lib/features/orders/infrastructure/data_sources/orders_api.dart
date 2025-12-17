@@ -73,6 +73,39 @@ class OrdersApi {
       rethrow;
     }
   }
+
+  /// Submit rating for an order
+  /// [orderId] - The ID of the order to rate
+  /// [stars] - Rating value (1-5)
+  /// [body] - Optional review text
+  Future<void> submitOrderRating({
+    required int orderId,
+    required int stars,
+    String? body,
+  }) async {
+    try {
+      final requestBody = {
+        'stars': stars,
+        if (body != null && body.isNotEmpty) 'body': body,
+      };
+
+      final response = await _apiClient.post(
+        ApiEndpoints.orderRating(orderId.toString()),
+        data: requestBody,
+      );
+
+      if (response.statusCode != 201 && response.statusCode != 200) {
+        throw Exception('Failed to submit rating');
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 403) {
+        throw Exception('You can only rate your own completed orders');
+      }
+      throw Exception('Error submitting rating: ${e.message}');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 /// Provider for OrdersApi

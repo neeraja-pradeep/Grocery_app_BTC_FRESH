@@ -33,20 +33,30 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
   void navigateToCategories(Category category) {
     setState(() {
       _selectedCategoryId = category.id;
-      _currentIndex = 0;
+      _currentIndex = 1;
     });
-    _pollingController.selectTab(0);
+    _pollingController.selectTab(1);
+  }
+
+  /// Navigate to a specific tab by index
+  void navigateToTab(int index) {
+    if (index >= 0 && index < 4) {
+      setState(() {
+        _currentIndex = index;
+      });
+      _pollingController.selectTab(index);
+    }
   }
 
   List<Widget> get _pages {
     return [
+      HomeScreen(onCategoryNavigate: navigateToCategories),
       CategoryScreen(
         key: ValueKey(
           _selectedCategoryId,
         ), // Force rebuild when category changes
         initialCategoryId: _selectedCategoryId?.toString(),
       ),
-      HomeScreen(onCategoryNavigate: navigateToCategories),
       const WishlistScreen(),
       const CartScreen(),
     ];
@@ -63,8 +73,8 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
 
     _pollingController = PollingTabController(
       tabToFeature: {
-        0: 'category_products', // Matches CategoryProductController registration
-        1: 'home',
+        0: 'category_products', // Home screen
+        1: 'home', // Category screen - Matches CategoryProductController registration
         2: 'wishlist',
         3: 'cart',
       },
@@ -109,10 +119,10 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
 
   void navigateToCategoryAndShowReview() {
     setState(() {
-      _currentIndex = 0;
+      _currentIndex = 1;
       _showReviewSheetOnCategoryLoad = true;
     });
-    _pollingController.selectTab(0);
+    _pollingController.selectTab(1);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_showReviewSheetOnCategoryLoad && mounted) {
@@ -151,6 +161,7 @@ class _BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
+      backgroundColor: Colors.white,
       currentIndex: currentIndex,
       onTap: onItemSelected,
       selectedItemColor: AppColors.green100,
@@ -161,26 +172,9 @@ class _BottomNavBar extends StatelessWidget {
       items: [
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
-            'assets/svgs/nav_bar/categories.svg',
-            height: 24,
-            width: 24,
-            colorFilter: const ColorFilter.mode(
-              AppColors.black,
-              BlendMode.srcIn,
-            ),
-          ),
-          activeIcon: Image.asset(
-            'assets/svgs/nav_bar/category_active.png',
-            height: 24,
-            width: 24,
-          ),
-          label: 'Categories',
-        ),
-        BottomNavigationBarItem(
-          icon: SvgPicture.asset(
             'assets/svgs/nav_bar/home.svg',
-            height: 24,
-            width: 24,
+            height: 20,
+            width: 20,
             colorFilter: const ColorFilter.mode(
               AppColors.black,
               BlendMode.srcIn,
@@ -188,16 +182,33 @@ class _BottomNavBar extends StatelessWidget {
           ),
           activeIcon: Image.asset(
             'assets/svgs/nav_bar/home_active.png',
-            height: 24,
-            width: 24,
+            height: 20,
+            width: 20,
           ),
           label: 'Home',
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
+            'assets/svgs/nav_bar/categories.svg',
+            height: 20,
+            width: 20,
+            colorFilter: const ColorFilter.mode(
+              AppColors.black,
+              BlendMode.srcIn,
+            ),
+          ),
+          activeIcon: Image.asset(
+            'assets/svgs/nav_bar/category_active.png',
+            height: 20,
+            width: 20,
+          ),
+          label: 'Categories',
+        ),
+        BottomNavigationBarItem(
+          icon: SvgPicture.asset(
             'assets/svgs/nav_bar/wishlist.svg',
-            height: 24,
-            width: 24,
+            height: 20,
+            width: 20,
             colorFilter: const ColorFilter.mode(
               AppColors.black,
               BlendMode.srcIn,
@@ -205,16 +216,16 @@ class _BottomNavBar extends StatelessWidget {
           ),
           activeIcon: Image.asset(
             'assets/svgs/nav_bar/wishlist_active.png',
-            height: 24,
-            width: 24,
+            height: 20,
+            width: 20,
           ),
           label: 'Wishlist',
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
             'assets/svgs/nav_bar/cart.svg',
-            height: 24,
-            width: 24,
+            height: 20,
+            width: 20,
             colorFilter: const ColorFilter.mode(
               AppColors.black,
               BlendMode.srcIn,
@@ -222,8 +233,8 @@ class _BottomNavBar extends StatelessWidget {
           ),
           activeIcon: Image.asset(
             'assets/svgs/nav_bar/cart_active.png',
-            height: 24,
-            width: 24,
+            height: 20,
+            width: 20,
           ),
           label: 'Cart',
         ),

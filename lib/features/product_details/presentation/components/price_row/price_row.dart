@@ -21,6 +21,7 @@ class PriceRow extends StatelessWidget {
     required this.onAdd,
     required this.onIncrement,
     required this.onDecrement,
+    this.isEnabled = true,
   });
 
   final String price;
@@ -29,6 +30,7 @@ class PriceRow extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
+  final bool isEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -46,11 +48,12 @@ class PriceRow extends StatelessWidget {
           width: 100.w,
           height: 44.h,
           child: quantity == 0
-              ? _AddButton(onAdd: onAdd)
+              ? _AddButton(onAdd: onAdd, isEnabled: isEnabled)
               : _QuantitySelector(
                   quantity: quantity,
                   onIncrement: onIncrement,
                   onDecrement: onDecrement,
+                  isEnabled: isEnabled,
                 ),
         ),
         // Price display with optional strikethrough original
@@ -89,26 +92,30 @@ class PriceRow extends StatelessWidget {
 
 /// Simple Add button - shown when quantity is 0
 class _AddButton extends StatelessWidget {
-  const _AddButton({required this.onAdd});
+  const _AddButton({required this.onAdd, this.isEnabled = true});
 
   final VoidCallback onAdd;
+  final bool isEnabled;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onAdd,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-        decoration: BoxDecoration(
-          color: AppColors.green50,
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        alignment: Alignment.center,
-        child: AppText(
-          text: 'Add',
-          color: AppColors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: 16.sp,
+      onTap: isEnabled ? onAdd : null,
+      child: Opacity(
+        opacity: isEnabled ? 1.0 : 0.5,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            color: isEnabled ? AppColors.green50 : AppColors.grey,
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          alignment: Alignment.center,
+          child: AppText(
+            text: 'Add',
+            color: AppColors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 16.sp,
+          ),
         ),
       ),
     );
@@ -122,11 +129,13 @@ class _QuantitySelector extends StatelessWidget {
     required this.quantity,
     required this.onIncrement,
     required this.onDecrement,
+    this.isEnabled = true,
   });
 
   final int quantity;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
+  final bool isEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -155,10 +164,17 @@ class _QuantitySelector extends StatelessWidget {
             color: AppColors.white,
           ),
         ),
-        // Increment button
+        // Increment button - disabled when out of stock
         GestureDetector(
-          onTap: onIncrement,
-          child: const Icon(Icons.add, color: AppColors.green100, size: 28),
+          onTap: isEnabled ? onIncrement : null,
+          child: Opacity(
+            opacity: isEnabled ? 1.0 : 0.5,
+            child: Icon(
+              Icons.add,
+              color: isEnabled ? AppColors.green100 : AppColors.grey,
+              size: 28,
+            ),
+          ),
         ),
       ],
     );

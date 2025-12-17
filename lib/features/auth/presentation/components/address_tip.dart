@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/colors.dart';
 
@@ -8,20 +9,20 @@ class AddressTip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      height: 80,
+      padding: EdgeInsets.all(12.w),
+      height: 60.h,
       decoration: BoxDecoration(
         color: AppColors.lightGreen,
         border: Border.all(color: AppColors.borderColor),
         borderRadius: BorderRadius.circular(10),
       ),
 
-      child: const Center(
+      child: Center(
         child: Text(
           'A Detailed address will help our delivery partner reach your doorstep easily',
 
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 12.sp,
             color: AppColors.titleColor,
             fontWeight: FontWeight.w600,
           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../app/theme/colors.dart';
+
 class AppTextField extends StatefulWidget {
   final bool isObscure;
   final String hintText;
@@ -37,12 +39,17 @@ class _AppTextFieldState extends State<AppTextField> {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      cursorColor: AppColors.lightGrey,
       controller: widget.controller,
       obscureText: _obscureText,
       keyboardType: widget.keyboardType,
       maxLength: widget.maxLength,
       inputFormatters: widget.inputFormatters,
       decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
         counterText: '', // Hide the character counter
         focusedBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: Color(0xff84C318)),

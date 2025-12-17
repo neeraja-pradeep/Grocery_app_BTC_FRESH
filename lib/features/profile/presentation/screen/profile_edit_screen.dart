@@ -50,7 +50,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.black, size: 24.sp),
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.black,
+            size: 20.sp,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -179,18 +183,20 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   ),
                 ),
                 AppSpacing.h24,
+                // Delete Account button - left aligned, shorter width, grey background
                 SizedBox(
-                  width: double.infinity,
                   height: 50.h,
-                  child: OutlinedButton(
+                  child: ElevatedButton(
                     onPressed: profileState.isDeletingAccount == true
                         ? null
                         : _handleDeleteAccount,
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.red.shade300),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.grey.withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
+                      elevation: 0,
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
                     ),
                     child: profileState.isDeletingAccount == true
                         ? SizedBox(
@@ -212,12 +218,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   ),
                 ),
                 AppSpacing.h16,
-                Center(
-                  child: Text(
-                    'Deleting your account is permanent and\ncannot be undone.',
-                    style: TextStyle(fontSize: 12.sp, color: AppColors.grey),
-                    textAlign: TextAlign.center,
-                  ),
+                Text(
+                  'Deleting your account is permanent and\ncannot be undone.',
+                  style: TextStyle(fontSize: 12.sp, color: AppColors.grey),
                 ),
                 AppSpacing.h32,
               ],
@@ -255,14 +258,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               ),
               Positioned(
                 bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: const BoxDecoration(
-                    color: AppColors.green,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.edit, size: 12.sp, color: AppColors.white),
+                right: 2,
+                child: Image.asset(
+                  'assets/svgs/profile/edit.png',
+                  height: 20.h,
+                  width: 20.w,
                 ),
               ),
             ],

@@ -61,7 +61,15 @@ class _ProductCardState extends ConsumerState<ProductCard> {
   }
 
   /// Handle add to cart with backend integration
-  Future<void> _handleAddToCart(BuildContext context) async {
+  Future<void> _handleAddToCart(BuildContext context, bool inStock) async {
+    // Check if product is in stock before adding
+    if (!inStock) {
+      if (context.mounted) {
+        AppSnackbar.warning(context, 'This product is out of stock');
+      }
+      return;
+    }
+
     // Block guests from adding to cart
     final authState = ref.read(authProvider);
     final isGuest = authState is GuestMode;
@@ -80,12 +88,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
         await ref
             .read(checkoutLineControllerProvider.notifier)
             .addToCart(productVariantId: variantId, quantity: 1);
-        if (context.mounted) {
-          AppSnackbar.success(
-            context,
-            '${widget.product.variantName} added to cart',
-          );
-        }
+        // Don't show success notification
       } on InsufficientStockException catch (e) {
         if (context.mounted) {
           AppSnackbar.warning(context, e.message);
@@ -148,12 +151,20 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     final originalPriceValue = _formatPriceValue(displayOriginalPrice);
 
     // Stock status from real-time inventory
-    final inStock = (inventoryEvent?.currentQuantity ?? 0) > 0;
-    final quantity = inventoryEvent?.currentQuantity ?? 0;
+    // If we have inventory event, use it; otherwise assume in stock
+    final currentQuantity = inventoryEvent?.currentQuantity;
+    final hasInventoryData = currentQuantity != null;
+    final inStock = !hasInventoryData || currentQuantity > 0;
+    final quantity = currentQuantity ?? 0;
+
+    // For testing: show stock status if we have real-time data
+    final showStockBadge = hasInventoryData;
 
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
+        height: 171.h,
+        width: 129.w,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(18.r),
@@ -197,8 +208,11 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                 _handleDecreaseQuantity(context, cartLineId),
                           )
                         : _AnimatedAddButton(
-                            onTap: () => _handleAddToCart(context),
-                            primaryColor: AppColors.green,
+                            onTap: () => _handleAddToCart(context, inStock),
+                            primaryColor: inStock
+                                ? AppColors.green
+                                : AppColors.grey,
+                            isEnabled: inStock,
                           ),
                   ),
                   // Real-time update indicator
@@ -311,7 +325,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                     ],
                   ),
                   // Stock status indicator - shown below price
-                  if (inventoryEvent != null) ...[
+                  if (showStockBadge) ...[
                     AppSpacing.h4,
                     Container(
                       padding: EdgeInsets.symmetric(
@@ -326,7 +340,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                       ),
                       child: AppText(
                         text: inStock
-                            ? quantity > 10
+                            ? quantity > 0
                                   ? 'In Stock'
                                   : 'Only $quantity left'
                             : 'Out of Stock',
@@ -357,7 +371,7 @@ class _ProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (image == null || image!.isEmpty) {
       return Container(
-        color: AppColors.green10,
+        color: const Color.fromARGB(189, 239, 244, 235),
         alignment: Alignment.center,
         child: const Icon(
           Icons.local_grocery_store_outlined,
@@ -439,10 +453,15 @@ String _trimTrailingZeros(String value) {
 
 /// Animated add-to-cart button with highlight effect
 class _AnimatedAddButton extends StatefulWidget {
-  const _AnimatedAddButton({required this.onTap, required this.primaryColor});
+  const _AnimatedAddButton({
+    required this.onTap,
+    required this.primaryColor,
+    this.isEnabled = true,
+  });
 
   final VoidCallback onTap;
   final Color primaryColor;
+  final bool isEnabled;
 
   @override
   State<_AnimatedAddButton> createState() => _AnimatedAddButtonState();
@@ -480,6 +499,7 @@ class _AnimatedAddButtonState extends State<_AnimatedAddButton>
   }
 
   void _handleTap() {
+    if (!widget.isEnabled) return;
     _controller.forward().then((_) {
       _controller.reverse();
     });
@@ -495,30 +515,38 @@ class _AnimatedAddButtonState extends State<_AnimatedAddButton>
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,
-            child: Container(
-              width: 29.w,
-              height: 29.w,
-              decoration: BoxDecoration(
-                color: widget.primaryColor,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.white.withValues(
-                    alpha: _glowAnimation.value * 0.8,
-                  ),
-                  width: 2.5 * _glowAnimation.value,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.primaryColor.withValues(
-                      alpha: 0.3 + (_glowAnimation.value * 0.4),
+            child: Opacity(
+              opacity: widget.isEnabled ? 1.0 : 0.5,
+              child: Container(
+                width: 29.w,
+                height: 29.w,
+                decoration: BoxDecoration(
+                  color: widget.primaryColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.white.withValues(
+                      alpha: widget.isEnabled
+                          ? _glowAnimation.value * 0.8
+                          : 0.3,
                     ),
-                    blurRadius: 4 + (_glowAnimation.value * 8),
-                    spreadRadius: _glowAnimation.value * 2,
+                    width:
+                        2.5 * (widget.isEnabled ? _glowAnimation.value : 0.5),
                   ),
-                ],
+                  boxShadow: widget.isEnabled
+                      ? [
+                          BoxShadow(
+                            color: widget.primaryColor.withValues(
+                              alpha: 0.3 + (_glowAnimation.value * 0.4),
+                            ),
+                            blurRadius: 4 + (_glowAnimation.value * 8),
+                            spreadRadius: _glowAnimation.value * 2,
+                          ),
+                        ]
+                      : [],
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.add, color: AppColors.white, size: 20),
               ),
-              alignment: Alignment.center,
-              child: const Icon(Icons.add, color: AppColors.white, size: 20),
             ),
           );
         },

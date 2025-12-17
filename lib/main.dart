@@ -54,8 +54,29 @@ class MyApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           routerConfig: router,
           theme: ThemeData(
+            useMaterial3: true,
             progressIndicatorTheme: const ProgressIndicatorThemeData(
               color: AppColors.loaderGreen,
+            ),
+            fontFamily: 'Inter',
+            textTheme: const TextTheme(
+              displayLarge: TextStyle(fontFamily: 'Poppins'),
+              displayMedium: TextStyle(fontFamily: 'Poppins'),
+              displaySmall: TextStyle(fontFamily: 'Poppins'),
+
+              headlineLarge: TextStyle(fontFamily: 'Poppins'),
+              headlineMedium: TextStyle(fontFamily: 'Poppins'),
+              headlineSmall: TextStyle(fontFamily: 'Poppins'),
+
+              titleLarge: TextStyle(fontFamily: 'Poppins'),
+
+              bodyLarge: TextStyle(),
+              bodyMedium: TextStyle(),
+              bodySmall: TextStyle(),
+
+              labelLarge: TextStyle(),
+              labelMedium: TextStyle(),
+              labelSmall: TextStyle(),
             ),
           ),
         );

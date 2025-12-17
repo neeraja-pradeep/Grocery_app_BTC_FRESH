@@ -83,6 +83,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   late final RefreshController _refreshController;
+  bool _showAllCategories = false; // Track if all categories are shown
 
   @override
   void initState() {
@@ -320,12 +321,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             child: Column(
               children: [
+                SizedBox(height: 4.h),
                 SectionHeader(
                   title: 'Shop by Category',
-                  onSeeAllClick: () => _navigateToCategoryList(),
+                  onSeeAllClick: _toggleCategoryView,
+                  seeAllText: _showAllCategories ? 'Show Less' : 'See All',
                 ),
                 CategoryGrid(
-                  categories: categories.take(8).toList(), // Show 8 on home
+                  categories: _showAllCategories
+                      ? categories
+                      : categories.take(8).toList(),
                   onCategoryClick: (category) =>
                       _navigateToCategoryProducts(category),
                 ),
@@ -563,8 +568,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   //   );
   // }
 
-  void _navigateToCategoryList() {
-    // print("_navigateToCategoryList()");
+  void _toggleCategoryView() {
+    setState(() {
+      _showAllCategories = !_showAllCategories;
+    });
+
+    Logger.info(
+      'User toggled category view',
+      data: {'show_all': _showAllCategories},
+    );
   }
 
   void _navigateToCategoryProducts(Category category) {

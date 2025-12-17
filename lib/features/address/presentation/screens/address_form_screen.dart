@@ -58,7 +58,11 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.black, size: 24.sp),
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.black,
+            size: 20.sp,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Row(

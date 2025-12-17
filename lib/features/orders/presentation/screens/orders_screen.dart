@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/colors.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../application/providers/orders_provider.dart';
 import '../../domain/entities/order_entity.dart';
 
@@ -48,7 +50,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.black, size: 24.sp),
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.black,
+            size: 20.sp,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -233,8 +239,70 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     );
   }
 
-  void _handleReorder(OrderEntity order) {
-    AppSnackbar.info(context, 'Reorder feature coming soon');
+  Future<void> _handleReorder(OrderEntity order) async {
+    if (order.orderLines.isEmpty) {
+      AppSnackbar.warning(context, 'This order has no items to reorder');
+      return;
+    }
+
+    try {
+      final checkoutLineNotifier = ref.read(
+        checkoutLineControllerProvider.notifier,
+      );
+
+      int successCount = 0;
+      int failedCount = 0;
+      final List<String> failedItems = [];
+
+      // Add each item from the order to cart
+      for (final orderLine in order.orderLines) {
+        try {
+          await checkoutLineNotifier.addToCart(
+            productVariantId: orderLine.productVariantId,
+            quantity: orderLine.quantity,
+          );
+          successCount++;
+          Logger.info(
+            'Added item to cart',
+            data: {
+              'product_variant_id': orderLine.productVariantId,
+              'quantity': orderLine.quantity,
+            },
+          );
+        } catch (e) {
+          failedCount++;
+          failedItems.add(orderLine.productName);
+          Logger.error(
+            'Failed to add item to cart: ${orderLine.productName} (variant: ${orderLine.productVariantId})',
+            error: e,
+          );
+        }
+      }
+
+      if (mounted) {
+        if (successCount > 0 && failedCount == 0) {
+          AppSnackbar.success(
+            context,
+            '$successCount item${successCount > 1 ? 's' : ''} added to cart',
+          );
+        } else if (successCount > 0 && failedCount > 0) {
+          AppSnackbar.warning(
+            context,
+            '$successCount item${successCount > 1 ? 's' : ''} added to cart, $failedCount failed',
+          );
+        } else {
+          AppSnackbar.error(
+            context,
+            'Failed to add items to cart. Please try again.',
+          );
+        }
+      }
+    } catch (e) {
+      Logger.error('Reorder failed', error: e);
+      if (mounted) {
+        AppSnackbar.error(context, 'Failed to reorder. Please try again.');
+      }
+    }
   }
 
   void _handleCall() {
@@ -396,7 +464,7 @@ class _OrderCardState extends State<_OrderCard> {
                               '$itemCount Item${itemCount > 1 ? 's' : ''}',
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: AppColors.grey,
+                                color: AppColors.black,
                               ),
                             ),
                             Container(
@@ -404,7 +472,7 @@ class _OrderCardState extends State<_OrderCard> {
                               width: 4.w,
                               height: 4.w,
                               decoration: const BoxDecoration(
-                                color: AppColors.grey,
+                                color: AppColors.black,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -412,7 +480,7 @@ class _OrderCardState extends State<_OrderCard> {
                               _statusText,
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: AppColors.grey,
+                                color: AppColors.black,
                               ),
                             ),
                           ],
@@ -434,7 +502,6 @@ class _OrderCardState extends State<_OrderCard> {
           ),
           // Expanded content
           if (_isExpanded) ...[
-            Divider(height: 1, color: Colors.grey.shade200),
             Padding(
               padding: EdgeInsets.all(16.w),
               child: widget.isActiveOrder

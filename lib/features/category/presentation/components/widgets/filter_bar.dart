@@ -29,7 +29,7 @@ class FilterBar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isLight = !isDark;
     final unselectedTextColor = isLight
-        ? AppColors.green50
+        ? AppColors.green100
         : colorScheme.onSurfaceVariant;
     final unselectedBackground = isLight
         ? Colors.white
@@ -57,7 +57,7 @@ class FilterBar extends StatelessWidget {
               width: 18.w,
               height: 18.w,
               colorFilter: isDark
-                  ? const ColorFilter.mode(AppColors.green50, BlendMode.srcIn)
+                  ? const ColorFilter.mode(AppColors.green100, BlendMode.srcIn)
                   : null,
             ),
           ),
@@ -82,7 +82,7 @@ class FilterBar extends StatelessWidget {
                       showCheckmark: false,
                       selected: isSelected,
                       onSelected: (_) => onFilterSelected(index),
-                      selectedColor: AppColors.green50,
+                      selectedColor: AppColors.green100,
                       backgroundColor: unselectedBackground,
                       labelStyle: TextStyle(
                         fontSize: 10.sp,
@@ -91,8 +91,8 @@ class FilterBar extends StatelessWidget {
                       ),
                       side: BorderSide(
                         color: isSelected
-                            ? AppColors.green50
-                            : AppColors.green50.withValues(alpha: 0.3),
+                            ? AppColors.green100
+                            : AppColors.lightGrey.withValues(alpha: 0.3),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.r),

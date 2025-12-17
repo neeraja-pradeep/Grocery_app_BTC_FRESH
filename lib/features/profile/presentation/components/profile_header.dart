@@ -47,7 +47,7 @@ class ProfileHeader extends StatelessWidget {
                   fullName,
                   style: TextStyle(
                     fontSize: 20.sp,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w900,
                     color: AppColors.black,
                   ),
                 ),
@@ -68,7 +68,11 @@ class ProfileHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(20.r),
             child: Container(
               padding: EdgeInsets.all(8.w),
-              child: Icon(Icons.edit, size: 20.sp, color: AppColors.green),
+              child: Image.asset(
+                'assets/svgs/profile/edit.png',
+                height: 20.h,
+                width: 20.w,
+              ),
             ),
           ),
         ],

@@ -39,7 +39,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.black, size: 24.sp),
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.black,
+            size: 20.sp,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -148,7 +152,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         imagePath: 'assets/svgs/profile/cupcake.png',
                         title: 'Order history',
                         titleFontSize: 14.sp,
-                        titleFontWeight: FontWeight.w600,
+                        titleFontWeight: FontWeight.w500,
                         onTap: () => context.push('/orders'),
                       ),
                       AppSpacing.h24,
@@ -205,35 +209,67 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _handleLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(
-          'Log out',
-          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
         ),
-        content: Text(
-          'Are you sure you want to log out?',
-          style: TextStyle(fontSize: 14.sp),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(fontSize: 14.sp, color: AppColors.grey),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              'Log out',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.red,
-                fontWeight: FontWeight.w600,
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          width: 280.w,
+          padding: EdgeInsets.symmetric(vertical: 16.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title
+              Text(
+                'Are you logging out?',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.black,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
+              Divider(color: AppColors.loaderGreen, thickness: 2.w),
+              // Cancel button
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                style: TextButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.black,
+                  ),
+                ),
+              ),
+              const Divider(color: AppColors.grey),
+              // Log out button
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                child: Text(
+                  'Log out',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../app/theme/colors.dart';
 
@@ -21,7 +22,7 @@ class AppButton extends StatelessWidget {
     return GestureDetector(
       onTap: isDisabled ? null : onPressed,
       child: Container(
-        height: 60,
+        height: 55.h,
         width: double.infinity,
         decoration: BoxDecoration(
           color: AppColors.borderColor,

@@ -71,20 +71,20 @@ class _SignupPasswordScreenState extends ConsumerState<SignupPasswordScreen> {
       body: Center(
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(18.w),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 40.h),
-                Center(child: Image.asset('assets/title.png', width: 130.w)),
+                SizedBox(height: 20.h),
+                Center(child: Image.asset('assets/title.png', width: 120.w)),
                 SizedBox(height: 10.h),
 
                 Text(
                   'Sign up',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 35.sp,
+                    fontSize: 28.sp,
                     color: AppColors.titleColor,
                   ),
                 ),
@@ -191,13 +191,21 @@ class _SignupPasswordScreenState extends ConsumerState<SignupPasswordScreen> {
     final password = passwordController.text.trim();
     final confirm = confirmPasswordController.text.trim();
 
-    if (password != confirm) {
-      _showError('Passwords do not match');
+    // Check if fields are empty
+    if ([password].any((e) => e.isEmpty)) {
+      _showError('All fields are required');
       return;
     }
 
-    if ([password].any((e) => e.isEmpty)) {
-      _showError('All fields are required');
+    // Check password length
+    if (password.length < 8) {
+      _showError('Password must be at least 8 characters');
+      return;
+    }
+
+    // Check if passwords match
+    if (password != confirm) {
+      _showError('Passwords do not match');
       return;
     }
 
