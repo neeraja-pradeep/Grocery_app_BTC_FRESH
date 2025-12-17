@@ -9,6 +9,7 @@ import '../screen/search_screen.dart';
 import 'location_selection_screen.dart';
 import 'profile_icon_button.dart';
 import 'search_bar.dart';
+import 'voice_search_overlay.dart';
 
 class HomeHeader extends ConsumerWidget {
   final UserAddress? address;
@@ -295,12 +296,25 @@ class HomeHeader extends ConsumerWidget {
                   MaterialPageRoute(builder: (context) => const SearchScreen()),
                 );
               },
-              // AbsorbPointer prevents the TextField inside CustomSearchBar from getting focus
-              child: AbsorbPointer(
-                child: CustomSearchBar(
-                  onTextSearch: (query) {}, // Won't be called here
-                  onVoiceSearch: () {}, // Handle separately if needed
-                ),
+              child: CustomSearchBar(
+                disableTextInput: true, // Prevent text field focus on home
+                onTextSearch: (query) {}, // Won't be called here
+                onVoiceSearch: () async {
+                  // Handle voice search from home header
+                  final recognizedText = await showVoiceSearchOverlay(context);
+                  if (recognizedText != null && recognizedText.isNotEmpty) {
+                    // Navigate to search screen with voice query
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              SearchScreen(initialQuery: recognizedText),
+                        ),
+                      );
+                    }
+                  }
+                },
               ),
             ),
           ),

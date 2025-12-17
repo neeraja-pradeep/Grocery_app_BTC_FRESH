@@ -4,15 +4,18 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/location/location_provider.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../profile/application/providers/profile_provider.dart';
 import '../../application/providers/address_provider.dart';
 import '../../domain/entities/address.dart';
+import '../../../home/presentation/components/location_selection_screen.dart';
 
 class AddressFormScreen extends ConsumerStatefulWidget {
-  const AddressFormScreen({super.key, this.address});
+  const AddressFormScreen({super.key, this.address, this.selectedLocation});
 
   final Address? address;
+  final SelectedLocation? selectedLocation;
 
   @override
   ConsumerState<AddressFormScreen> createState() => _AddressFormScreenState();
@@ -24,12 +27,20 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   late TextEditingController _apartmentController;
   String _addressType = 'home';
 
+  // Store selected location coordinates from map
+  String? _selectedLatitude;
+  String? _selectedLongitude;
+  String? _selectedAddress;
+
   bool get isEditing => widget.address != null;
 
   @override
   void initState() {
     super.initState();
     final address = widget.address;
+    final selectedLocation = widget.selectedLocation;
+
+    // Initialize form fields from existing address or empty
     _houseController = TextEditingController(
       text: address?.streetAddress1 ?? '',
     );
@@ -37,6 +48,31 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
       text: address?.streetAddress2 ?? '',
     );
     _addressType = address?.addressType ?? 'home';
+
+    // If location was selected from map, store the coordinates and address
+    if (selectedLocation != null) {
+      _selectedLatitude = selectedLocation.latitude.toStringAsFixed(6);
+      _selectedLongitude = selectedLocation.longitude.toStringAsFixed(6);
+      _selectedAddress = selectedLocation.address;
+
+      // Split the selected address between both fields
+      if (selectedLocation.address != null &&
+          selectedLocation.address!.isNotEmpty) {
+        final fullAddress = selectedLocation.address!;
+        // Split by comma to get address parts
+        final parts = fullAddress.split(',').map((e) => e.trim()).toList();
+
+        if (parts.isNotEmpty) {
+          // First part goes to house/flat field
+          _houseController.text = parts.first;
+
+          // Remaining parts go to apartment/road field
+          if (parts.length > 1) {
+            _apartmentController.text = parts.sublist(1).join(', ');
+          }
+        }
+      }
+    }
   }
 
   @override
@@ -87,6 +123,41 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Selected location banner (if available)
+              if (_selectedAddress != null) ...[
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(
+                      color: AppColors.green.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        color: AppColors.green,
+                        size: 16.sp,
+                      ),
+                      AppSpacing.w8,
+                      Expanded(
+                        child: Text(
+                          'Selected Location: $_selectedAddress',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppColors.green,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                AppSpacing.h16,
+              ],
+
               // Info banner
               Container(
                 padding: EdgeInsets.all(12.w),
@@ -273,7 +344,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
 
     // Use profile name or default values
     String firstName = 'User';
-    String lastName = '';
+    String lastName = '.'; // Backend requires non-blank last_name
 
     if (profile != null && profile.fullName.isNotEmpty) {
       final nameParts = profile.fullName.split(' ');
@@ -281,6 +352,24 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
       if (nameParts.length > 1) {
         lastName = nameParts.sublist(1).join(' ');
       }
+    }
+
+    // Get location coordinates - use selected location from map if available,
+    // otherwise get current location from provider
+    String? latitude = _selectedLatitude;
+    String? longitude = _selectedLongitude;
+
+    // If no location was selected from map, get current location
+    if (latitude == null || longitude == null) {
+      final locationState = ref.read(locationProvider);
+      locationState.mapOrNull(
+        loaded: (state) {
+          // Round to 6 decimal places (max_digits=9, decimal_places=6)
+          // Format: XXX.XXXXXX (3 digits before decimal, 6 after)
+          latitude = state.location.latitude.toStringAsFixed(6);
+          longitude = state.location.longitude.toStringAsFixed(6);
+        },
+      );
     }
 
     try {
@@ -295,6 +384,8 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
               streetAddress2: _apartmentController.text.trim().isEmpty
                   ? null
                   : _apartmentController.text.trim(),
+              latitude: latitude,
+              longitude: longitude,
               addressType: _addressType,
             );
       } else {
@@ -307,6 +398,8 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
               streetAddress2: _apartmentController.text.trim().isEmpty
                   ? null
                   : _apartmentController.text.trim(),
+              latitude: latitude,
+              longitude: longitude,
               addressType: _addressType,
             );
       }

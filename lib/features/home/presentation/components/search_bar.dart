@@ -9,10 +9,14 @@ class CustomSearchBar extends ConsumerWidget {
   final ValueChanged<String> onTextSearch;
   final VoidCallback onVoiceSearch;
 
+  /// When true, disables the text field input (useful when used as a tap target)
+  final bool disableTextInput;
+
   const CustomSearchBar({
     super.key,
     required this.onTextSearch,
     required this.onVoiceSearch,
+    this.disableTextInput = false,
   });
 
   @override
@@ -40,20 +44,23 @@ class CustomSearchBar extends ConsumerWidget {
           ),
           SizedBox(width: 8.w),
           Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search for "Rice"',
-                hintStyle: TextStyle(
-                  color: Colors.grey[400],
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w400,
+            child: AbsorbPointer(
+              absorbing: disableTextInput,
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search for "Rice"',
+                  hintStyle: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
                 ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
+                style: TextStyle(fontSize: 14.sp),
+                textInputAction: TextInputAction.search,
+                onSubmitted: onTextSearch,
               ),
-              style: TextStyle(fontSize: 14.sp),
-              textInputAction: TextInputAction.search,
-              onSubmitted: onTextSearch,
             ),
           ),
           SizedBox(width: 8.w),

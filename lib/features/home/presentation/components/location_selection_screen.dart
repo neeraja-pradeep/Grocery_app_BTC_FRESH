@@ -8,6 +8,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../core/location/location_provider.dart';
+import '../../../address/presentation/screens/address_form_screen.dart';
 
 /// Data model for selected location
 class SelectedLocation {
@@ -321,17 +322,29 @@ class _LocationSelectionScreenState
     );
   }
 
-  void _confirmSelection() {
+  Future<void> _confirmSelection() async {
     if (_selectedPosition != null) {
-      // Return the selected location to the previous screen
-      Navigator.pop(
+      // Navigate to address form screen with the selected location
+      final selectedLocation = SelectedLocation(
+        latitude: _selectedPosition!.latitude,
+        longitude: _selectedPosition!.longitude,
+        address: _selectedAddress,
+      );
+
+      // Navigate to address form to fill in additional details
+      final result = await Navigator.push<bool>(
         context,
-        SelectedLocation(
-          latitude: _selectedPosition!.latitude,
-          longitude: _selectedPosition!.longitude,
-          address: _selectedAddress,
+        MaterialPageRoute<bool>(
+          builder: (context) =>
+              AddressFormScreen(selectedLocation: selectedLocation),
         ),
       );
+
+      // If address was successfully saved, close the location selection screen
+      // and return the selected location to the caller
+      if (result == true && mounted) {
+        Navigator.pop(context, selectedLocation);
+      }
     }
   }
 
