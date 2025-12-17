@@ -119,7 +119,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF9dc08b), Color(0xFFbddec0)],
+            colors: [
+              Color.fromARGB(219, 157, 192, 139),
+              Color.fromARGB(103, 189, 222, 192),
+            ],
           ),
         ),
         child: SafeArea(

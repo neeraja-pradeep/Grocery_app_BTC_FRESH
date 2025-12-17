@@ -7,18 +7,20 @@ class SectionHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final VoidCallback? onSeeAllClick;
+  final String? seeAllText; // Custom text for the button (default: "See All")
 
   const SectionHeader({
     super.key,
     required this.title,
     this.subtitle,
     this.onSeeAllClick,
+    this.seeAllText,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -57,7 +59,7 @@ class SectionHeader extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                'See All',
+                seeAllText ?? 'See All',
                 style: TextStyle(
                   color: const Color(0xff016064),
                   fontWeight: FontWeight.w600,

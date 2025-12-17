@@ -17,7 +17,7 @@ class ProductHorizontalList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
-      height: 220, // Adjusted to match 200h + padding
+      height: 190, // Decreased from 220 to 190
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         // Vertical padding ensures the floating "+" button isn't cut off
@@ -30,7 +30,7 @@ class ProductHorizontalList extends ConsumerWidget {
             child: ProductCard(
               product: products[index],
               onTap: () => onProductClick(products[index]),
-              width: 140, // Match wishlist card width
+              width: 120, // Decreased from 140 to 120
             ),
           );
         },

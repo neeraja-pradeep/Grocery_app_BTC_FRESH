@@ -20,12 +20,10 @@ class Category with _$Category {
 
   // Custom factory to handle the actual API response structure
   factory Category.fromJson(Map<String, dynamic> json) {
-    // Logic to handle URL formatting
     final rawImageUrl = json['background_image_url']?.toString();
     String? finalImageUrl;
 
     if (rawImageUrl != null && rawImageUrl.isNotEmpty) {
-      // Add https:// if the URL doesn't start with http:// or https://
       if (!rawImageUrl.startsWith('http')) {
         finalImageUrl = 'https://$rawImageUrl';
       } else {

@@ -100,6 +100,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          Image.asset('assets/images/star.png', height: 20.h, width: 20.w),
+        ],
       ),
       body: SafeArea(
         child: LayoutBuilder(
@@ -129,7 +132,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     SizedBox(height: 12.h),
 
                     Text(
-                      'Create a new password for your account',
+                      'Please type something you’ll remember',
                       style: TextStyle(
                         fontSize: 14.sp,
                         color: Colors.grey[600],
@@ -203,7 +206,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
                     // Confirm Password Field
                     Text(
-                      'Confirm Password',
+                      'Confirm New Password',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 14.sp,
@@ -298,6 +301,24 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           _buildRequirement('Match the confirm password field'),
                         ],
                       ),
+                    ),
+                    SizedBox(height: 130.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Already have an account?'),
+                        SizedBox(width: 5.w),
+                        GestureDetector(
+                          onTap: () => goToLogin(context),
+                          child: const Text(
+                            'Log In',
+                            style: TextStyle(
+                              color: AppColors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -19,8 +19,14 @@ class CategoryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
+
+    // Calculate number of rows needed (4 items per row)
+    final rowCount = (categories.length / 4).ceil();
+    // Each row is approximately 140.h (item height + spacing)
+    final dynamicHeight = rowCount * 140.h;
+
     return Container(
-      height: categories.length > 4 ? 280.h : 140.h,
+      height: dynamicHeight,
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: GridView.builder(
         physics: const NeverScrollableScrollPhysics(),

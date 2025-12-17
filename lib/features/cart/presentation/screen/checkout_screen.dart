@@ -13,6 +13,7 @@ import '../../application/providers/payment_provider.dart';
 import '../../domain/entities/checkout_line.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
+import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
@@ -35,6 +36,9 @@ class CheckoutScreen extends ConsumerWidget {
 
     // Watch socket price updates for real-time price changes
     final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+
+    // Watch socket inventory updates for real-time stock changes
+    final inventoryUpdates = ref.watch(inventoryUpdateNotifierProvider);
 
     // Watch applied coupon
     final appliedCouponState = ref.watch(appliedCouponProvider);
@@ -87,6 +91,14 @@ class CheckoutScreen extends ConsumerWidget {
                                 socketPriceUpdate.discountedPrice! > 0)
                           : product.hasDiscount;
 
+                      // Check stock availability for increment button
+                      final inventoryUpdate = inventoryUpdates.getUpdate(
+                        line.productVariantId,
+                      );
+                      final currentStock = inventoryUpdate?.currentQuantity;
+                      final canIncrement =
+                          currentStock == null || currentStock > line.quantity;
+
                       return CartItemCard(
                         imageUrl: product.media.isNotEmpty
                             ? product.media.first
@@ -99,8 +111,10 @@ class CheckoutScreen extends ConsumerWidget {
                         hasDiscount: hasDiscount,
                         discountPercentage: product.discountPercentage,
                         isProcessing: checkoutState.isLineProcessing(line.id),
-                        onIncrement: () =>
-                            _handleIncrement(ref, line.id, line.quantity),
+                        onIncrement: canIncrement
+                            ? () =>
+                                  _handleIncrement(ref, line.id, line.quantity)
+                            : null,
                         onDecrement: () =>
                             _handleDecrement(ref, line.id, line.quantity),
                         onRemove: () =>
@@ -372,6 +386,36 @@ class CheckoutScreen extends ConsumerWidget {
         AppSnackbar.warning(context, 'Your cart is empty');
       }
       return;
+    }
+
+    // Validate all items have sufficient stock
+    final inventoryUpdates = ref.read(inventoryUpdateNotifierProvider);
+    for (final item in checkoutState.items) {
+      final inventoryUpdate = inventoryUpdates.getUpdate(item.productVariantId);
+      // Get current stock from socket update or fallback to API data
+      final currentStock =
+          inventoryUpdate?.currentQuantity ??
+          item.productVariantDetails.currentQuantity;
+
+      if (currentStock <= 0) {
+        if (context.mounted) {
+          AppSnackbar.warning(
+            context,
+            '${item.productVariantDetails.name} is out of stock. Please remove it from cart.',
+          );
+        }
+        return;
+      }
+
+      if (currentStock < item.quantity) {
+        if (context.mounted) {
+          AppSnackbar.warning(
+            context,
+            '${item.productVariantDetails.name} has only $currentStock units available. Please update quantity.',
+          );
+        }
+        return;
+      }
     }
 
     // Get checkout ID from first cart item

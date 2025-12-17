@@ -269,20 +269,20 @@ class _CategoryProductsSliver extends ConsumerWidget {
         name: 'ProductGrid',
         level: 1000,
       );
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: SizedBox(
-          height: 200,
-          child: Center(child: CircularProgressIndicator()),
+          height: 200.h,
+          child: const Center(child: CircularProgressIndicator()),
         ),
       );
     }
 
     // Error state
     if (productState.isError && !productState.hasData) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: SizedBox(
-          height: 100,
-          child: Center(
+          height: 100.h,
+          child: const Center(
             child: AppText(
               text: 'Unable to load products',
               color: AppColors.grey,

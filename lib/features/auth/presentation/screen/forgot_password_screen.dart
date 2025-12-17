@@ -69,101 +69,84 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: AppColors.titleColor,
-            size: 20.sp,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 20.h),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16.w),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 20.h),
 
-                Text(
-                  'Forgot Password',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 28.sp,
-                    color: AppColors.titleColor,
-                  ),
-                ),
-
-                SizedBox(height: 12.h),
-
-                Text(
-                  'Enter your mobile number to receive a verification code',
-                  style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
-                ),
-
-                SizedBox(height: 40.h),
-
-                Text(
-                  'Mobile Number',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14.sp,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-
-                MobileNumberField(
-                  controller: _mobileController,
-                  enabled: !_isLoading,
-                ),
-
-                SizedBox(height: 40.h),
-
-                GestureDetector(
-                  onTap: _isLoading ? null : _handleSendCode,
-                  child: AppButton(
-                    text: _isLoading ? 'Sending...' : 'Send Code',
-                    loading: _isLoading,
-                  ),
-                ),
-
-                SizedBox(height: 100.h),
-
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: 30.h),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Remember your password? ',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Text(
-                            'Sign In',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: AppColors.titleColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
+                  Text(
+                    'Forgot Password',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28.sp,
+                      color: AppColors.titleColor,
                     ),
                   ),
-                ),
-              ],
+
+                  SizedBox(height: 40.h),
+
+                  Text(
+                    'Mobile Number',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+
+                  MobileNumberField(
+                    controller: _mobileController,
+                    enabled: !_isLoading,
+                  ),
+
+                  SizedBox(height: 30.h),
+
+                  GestureDetector(
+                    onTap: _isLoading ? null : _handleSendCode,
+                    child: AppButton(
+                      text: _isLoading ? 'Sending...' : 'Send Code',
+                      loading: _isLoading,
+                    ),
+                  ),
+
+                  SizedBox(height: 60.h),
+
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 30.h),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Remember your password? ',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Text(
+                              'Sign In',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: AppColors.titleColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

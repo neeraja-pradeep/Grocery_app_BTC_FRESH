@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/colors.dart';
+
 class MobileNumberField extends StatelessWidget {
   final TextEditingController controller;
   final bool enabled;
@@ -13,18 +15,22 @@ class MobileNumberField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      cursorColor: AppColors.grey,
       decoration: InputDecoration(
         hintText: 'Mobile Number',
+        hintStyle: const TextStyle(color: AppColors.grey),
         focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Color(0xff84C318)),
+          borderSide: BorderSide(color: AppColors.secondaryGreenLogo),
         ),
         enabledBorder: OutlineInputBorder(
+          gapPadding: 2,
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xff84C318)),
+          borderSide: const BorderSide(color: AppColors.secondaryGreenLogo),
         ),
         border: OutlineInputBorder(
+          gapPadding: 2,
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xff84C318)),
+          borderSide: const BorderSide(color: AppColors.secondaryGreenLogo),
         ),
       ),
       keyboardType: TextInputType.phone,

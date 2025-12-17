@@ -37,160 +37,179 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return Scaffold(
-      body: Center(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Hero(
-                    tag: 'app-logo',
-                    child: Image.asset('assets/title.png', width: 120.w),
+      body: Padding(
+        padding: EdgeInsets.all(8.w),
+        child: Center(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 40.h),
+                  Center(
+                    child: Hero(
+                      tag: 'app-logo',
+                      child: Image.asset('assets/title.png', width: 120.w),
+                    ),
                   ),
-                ),
 
-                SizedBox(height: 10.h),
+                  SizedBox(height: 40.h),
 
-                Text(
-                  'Hi, Welcome!',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 35.sp,
-                    color: Colors.black87,
+                  Row(
+                    children: [
+                      Text(
+                        'Hi, Welcome!  ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 28.sp,
+                          color: AppColors.loaderGreen,
+                        ),
+                      ),
+                      Image.asset(
+                        'assets/images/hand.png',
+                        height: 30.h,
+                        width: 40.h,
+                      ),
+                    ],
                   ),
-                ),
 
-                SizedBox(height: 15.h),
+                  SizedBox(height: 15.h),
 
-                const Text(
-                  'User ID',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                SizedBox(height: 5.h),
+                  Text(
+                    'User ID',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 5.h),
 
-                AppTextField(
-                  controller: userNameController,
-                  hintText: 'User ID',
-                  isObscure: false,
-                  icon: null,
-                ),
+                  AppTextField(
+                    controller: userNameController,
+                    hintText: 'User ID',
+                    isObscure: false,
+                    icon: null,
+                  ),
 
-                SizedBox(height: 15.h),
+                  SizedBox(height: 15.h),
 
-                const Text(
-                  'Password',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                SizedBox(height: 5.h),
+                  Text(
+                    'Password',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 5.h),
 
-                AppTextField(
-                  controller: passwordController,
-                  hintText: 'Password',
-                  isObscure: true,
-                  icon: Icons.remove_red_eye,
-                ),
+                  AppTextField(
+                    controller: passwordController,
+                    hintText: 'Password',
+                    isObscure: true,
+                    icon: Icons.remove_red_eye,
+                  ),
 
-                SizedBox(height: 12.h),
+                  SizedBox(height: 15.h),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        SizedBox(
-                          height: 24.h,
-                          width: 24.w,
-                          child: Checkbox(
-                            value: _rememberMe,
-                            onChanged: (value) {
-                              setState(() {
-                                _rememberMe = value ?? false;
-                              });
-                            },
-                            activeColor: AppColors.borderColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.r),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          SizedBox(
+                            height: 24.h,
+                            width: 24.w,
+                            child: Checkbox(
+                              value: _rememberMe,
+                              onChanged: (value) {
+                                setState(() {
+                                  _rememberMe = value ?? false;
+                                });
+                              },
+                              activeColor: AppColors.borderColor,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'Remember Me',
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Remember Me',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () => goToForgotPassword(context),
+                        child: Text(
+                          'Forgot Password?',
                           style: TextStyle(
                             fontSize: 14.sp,
-                            color: Colors.black87,
+                            color: AppColors.darkGrey,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 25.h),
+
+                  GestureDetector(
+                    onTap: () => _handleLogin(authState),
+                    child: AppButton(
+                      text: _getButtonText(authState),
+                      loading: authState is AuthLoading,
                     ),
-                    GestureDetector(
-                      onTap: () => goToForgotPassword(context),
-                      child: Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: AppColors.titleColor,
-                          fontWeight: FontWeight.w600,
+                  ),
+
+                  SizedBox(height: 20.h),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Don't have an Account?"),
+                      SizedBox(width: 5.w),
+                      GestureDetector(
+                        onTap: () => goToSignup(context),
+                        child: const Text(
+                          'Sign Up',
+                          style: TextStyle(
+                            color: AppColors.titleColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 25.h),
-
-                GestureDetector(
-                  onTap: () => _handleLogin(authState),
-                  child: AppButton(
-                    text: _getButtonText(authState),
-                    loading: authState is AuthLoading,
+                    ],
                   ),
-                ),
 
-                SizedBox(height: 20.h),
+                  SizedBox(height: 20.h),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an Account?"),
-                    SizedBox(width: 5.w),
-                    GestureDetector(
-                      onTap: () => goToSignup(context),
-                      child: const Text(
-                        'Sign Up',
+                  Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        // Activate guest mode
+                        ref.read(authProvider.notifier).continueAsGuest();
+                        goToHome(context);
+                      },
+                      child: Text(
+                        'Skip',
                         style: TextStyle(
+                          decoration: TextDecoration.underline,
                           color: AppColors.titleColor,
                           fontWeight: FontWeight.bold,
+                          fontSize: 15.sp,
                         ),
                       ),
                     ),
-                  ],
-                ),
-
-                SizedBox(height: 20.h),
-
-                Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      // Activate guest mode
-                      ref.read(authProvider.notifier).continueAsGuest();
-                      goToHome(context);
-                    },
-                    child: Text(
-                      'Skip',
-                      style: TextStyle(
-                        decoration: TextDecoration.underline,
-                        color: AppColors.titleColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15.sp,
-                      ),
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

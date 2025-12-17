@@ -45,7 +45,7 @@ class Header extends StatelessWidget {
             AppSpacing.w16,
             const AppText.pageTitle(
               text: 'Shop By Category',
-              color: AppColors.green50,
+              color: AppColors.black,
             ),
             const Spacer(),
             GestureDetector(

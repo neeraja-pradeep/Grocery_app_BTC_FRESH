@@ -138,16 +138,16 @@ class HomeHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Add status bar spacing manually
-          SizedBox(height: 20.h),
+          SizedBox(height: 10.h),
 
           // --- 1. LOGO SECTION ---
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
             child: Row(
               children: [
                 // Wrap Image in limited box or use error builder to handle missing asset safely
                 SizedBox(
-                  height: 36.h,
+                  height: 32.h,
                   child: Image.asset(
                     'assets/title.png',
                     height: 36.h,
@@ -251,7 +251,11 @@ class HomeHeader extends ConsumerWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.login, color: darkGreenColor, size: 24.h),
+                          Icon(
+                            Icons.login_rounded,
+                            color: darkGreenColor,
+                            size: 24.h,
+                          ),
                           SizedBox(width: 8.w),
                           Text(
                             'Login',

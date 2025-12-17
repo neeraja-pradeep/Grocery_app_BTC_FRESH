@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AddressTag extends StatelessWidget {
   final String label;
@@ -19,13 +20,11 @@ class AddressTag extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 40,
-        width: 100,
+        height: 35.h,
+        width: 85.w,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          border: isSelected
-              ? Border.all(color: Colors.black)
-              : Border.all(color: Colors.grey),
+          border: Border.all(color: Colors.grey),
           borderRadius: BorderRadius.circular(30),
         ),
         child: Row(
@@ -33,14 +32,14 @@ class AddressTag extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 16,
+              size: 14,
               color: isSelected ? Colors.black : Colors.grey,
             ),
             Text(
               label,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
+                fontSize: 12,
                 color: isSelected ? Colors.black : Colors.grey,
               ),
             ),

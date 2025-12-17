@@ -191,6 +191,17 @@ class ProductSearchCard extends ConsumerWidget {
                     return;
                   }
 
+                  // Check if product is in stock
+                  if (!variant.inStock) {
+                    if (context.mounted) {
+                      AppSnackbar.warning(
+                        context,
+                        'This product is out of stock',
+                      );
+                    }
+                    return;
+                  }
+
                   try {
                     await ref
                         .read(checkoutLineControllerProvider.notifier)

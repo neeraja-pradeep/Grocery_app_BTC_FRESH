@@ -28,7 +28,7 @@ class CartItemCard extends StatelessWidget {
   final String
   pricePerKg; // This is the effective price (discounted if applicable)
   final int quantity;
-  final VoidCallback onIncrement;
+  final VoidCallback? onIncrement;
   final VoidCallback onDecrement;
   final VoidCallback? onRemove;
 
@@ -231,8 +231,12 @@ class CartItemCard extends StatelessWidget {
         ),
         SizedBox(width: 4.w),
 
-        // Increment button
-        _QuantityControlButton(icon: Icons.add, onTap: onIncrement),
+        // Increment button (disabled if onIncrement is null - out of stock)
+        _QuantityControlButton(
+          icon: Icons.add,
+          onTap: onIncrement ?? () {},
+          isDisabled: onIncrement == null,
+        ),
       ],
     );
   }

@@ -151,7 +151,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return AddressScreen(user: user);
         },
       ),
-      GoRoute(path: '/home', builder: (_, state) => const BottomNavigation()),
+      GoRoute(
+        path: '/home',
+        builder: (_, state) =>
+            BottomNavigation(key: BottomNavigation.globalKey),
+      ),
       GoRoute(path: '/cart', builder: (_, state) => const CartScreen()),
       GoRoute(path: '/orders', builder: (_, state) => const OrdersScreen()),
       GoRoute(path: '/profile', builder: (_, state) => const ProfileScreen()),

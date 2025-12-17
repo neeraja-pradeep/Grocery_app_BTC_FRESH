@@ -16,13 +16,18 @@ import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
+import '../../../orders/application/providers/orders_provider.dart';
+import '../../../orders/infrastructure/data_sources/orders_api.dart';
 import '../../../wishlist/application/providers/wishlist_provider.dart';
+import '../../../bottomnavbar/bottom_navbar.dart';
+import '../components/cart_items_section/cart_items_section.dart';
 import '../components/checkout_section/checkout_section.dart';
 import '../components/price_row/price_row.dart';
 import '../components/product_info/product_info.dart';
 import '../components/rating_section/rating_section.dart';
 
 import '../../application/providers/product_detail_providers.dart';
+import '../../application/providers/product_order_provider.dart';
 import '../../application/states/product_detail_state.dart';
 import '../../domain/entities/product_variant.dart' as product_variant;
 import '../components/expandable_section/expandable_section.dart';
@@ -71,6 +76,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
       final variantId = int.tryParse(widget.variantId) ?? 0;
       if (variantId > 0) {
         socketService.joinVariantRoom(variantId);
+      }
+
+      // Fetch completed orders for rating functionality
+      // Only fetch if user is authenticated (not in guest mode)
+      final authState = ref.read(authProvider);
+      if (authState is! GuestMode) {
+        ref.read(ordersProvider.notifier).fetchCompletedOrders();
       }
 
       // Save previous feature ONLY if it's not already 'product_detail'
@@ -145,7 +157,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
     if (state.hasError || state.status == ProductDetailStatus.empty) {
       return Scaffold(
-        appBar: _buildAppBar(context),
+        backgroundColor: AppColors.white,
         body: _buildErrorView(
           context,
           state.errorMessage ?? 'Failed to load product details',
@@ -162,7 +174,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: _buildAppBar(context),
       body: _buildBody(
         productDetail: productDetail,
         state: state,
@@ -180,37 +191,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     );
   }
 
-  /// Builds the app bar with back button
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      elevation: 0,
-      backgroundColor: AppColors.white,
-      leading: Padding(
-        padding: EdgeInsets.all(7.w),
-        child: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            height: 45.h,
-            width: 45.h,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.grey.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.arrow_back_ios_new,
-              size: 18,
-              color: AppColors.black,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Builds main scrollable body - delegates to component widgets
   Widget _buildBody({
     required product_variant.ProductVariant productDetail,
@@ -223,6 +203,12 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   }) {
     // Check wishlist status from wishlist provider
     final isInWishlist = ref.watch(isInWishlistProvider(widget.variantId));
+
+    // Stock status: prioritize Socket.IO real-time update, fallback to API data
+    final currentQuantity =
+        socketInventoryUpdate?.currentQuantity ?? productDetail.currentQuantity;
+    final inStock = currentQuantity > 0;
+    final quantity = currentQuantity;
 
     // Calculate display price and original price based on discounted_price
     // If discountedPrice exists → it's the display price, price is strikethrough
@@ -251,6 +237,31 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Back button
+            Padding(
+              padding: EdgeInsets.only(top: 8.h, bottom: 8.h),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  height: 45.h,
+                  width: 45.h,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.grey.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 18,
+                    color: AppColors.black,
+                  ),
+                ),
+              ),
+            ),
+
             // Product image section
             ProductImageSection(
               imageUrl: productDetail.imageUrl,
@@ -263,6 +274,46 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
               isInWishlist: isInWishlist,
               onWishlistToggle: _handleWishlistToggle,
             ),
+
+            // Stock status indicator - only show if low stock or out of stock
+            if (!inStock || quantity <= 10) ...[
+              AppSpacing.h8,
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: inStock
+                      ? Colors.orange.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: inStock
+                        ? Colors.orange.withValues(alpha: 0.3)
+                        : Colors.red.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      inStock ? Icons.warning : Icons.cancel,
+                      color: inStock ? Colors.orange : Colors.red,
+                      size: 18.sp,
+                    ),
+                    SizedBox(width: 6.w),
+                    AppText(
+                      text: inStock ? 'Only $quantity left' : 'Out of Stock',
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: inStock
+                          ? Colors.orange.shade700
+                          : Colors.red.shade700,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             AppSpacing.h16,
 
             // Price and add to cart row - directly updates cart
@@ -270,9 +321,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
               price: displayPrice,
               originalPrice: originalPrice,
               quantity: cartQuantity,
-              onAdd: () => _handleAddToCart(variantId),
+              onAdd: () => _handleAddToCart(variantId, inStock),
               onIncrement: () => _handleIncrement(cartLineId),
               onDecrement: () => _handleDecrement(cartLineId),
+              isEnabled: inStock,
             ),
             AppSpacing.h16,
 
@@ -304,10 +356,32 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
             // Rating and reviews section
             if (productDetail.rating != null)
-              RatingSection(
-                rating: productDetail.rating!,
-                reviewCount: productDetail.reviewCount,
+              Consumer(
+                builder: (context, ref, child) {
+                  // Check if user has a completed order with this product
+                  final completedOrder = ref.watch(
+                    productCompletedOrderProvider(variantId),
+                  );
+
+                  return RatingSection(
+                    rating: productDetail.rating!,
+                    reviewCount: productDetail.reviewCount,
+                    orderId: completedOrder?.orderId,
+                    deliveryDate: completedOrder?.deliveryDate,
+                    onRatingSubmit: (rating, orderId) =>
+                        _handleRatingSubmit(rating, orderId),
+                  );
+                },
               ),
+
+            // Cart items section with quantity controls
+            CartItemsSection(
+              onIncrement: (cartLineId) => _handleIncrement(cartLineId),
+              onDecrement: (cartLineId) => _handleDecrement(cartLineId),
+            ),
+
+            // Add bottom padding for bottom sheet
+            SizedBox(height: 100.h),
           ],
         ),
       ),
@@ -345,8 +419,16 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   }
 
   /// Handle Add button tap - adds 1 item to cart
-  Future<void> _handleAddToCart(int variantId) async {
+  Future<void> _handleAddToCart(int variantId, bool inStock) async {
     if (variantId <= 0) return;
+
+    // Check if product is in stock before adding
+    if (!inStock) {
+      if (mounted) {
+        AppSnackbar.warning(context, 'This product is out of stock');
+      }
+      return;
+    }
 
     // Block guests from adding to cart
     final authState = ref.read(authProvider);
@@ -461,7 +543,34 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
   /// Handle navigate to checkout
   void _handleNavigateToCheckout() {
-    context.push('/cart');
+    // Navigate to home route first (to ensure navbar is visible)
+    context.go('/home');
+    // Then switch to cart tab (index 3)
+    BottomNavigation.globalKey.currentState?.navigateToTab(3);
+  }
+
+  /// Handle rating submission
+  Future<void> _handleRatingSubmit(int rating, int orderId) async {
+    Logger.info('Rating submitted: $rating stars for order $orderId');
+
+    try {
+      // Submit rating via API
+      await ref
+          .read(ordersApiProvider)
+          .submitOrderRating(orderId: orderId, stars: rating);
+
+      if (mounted) {
+        AppSnackbar.success(context, 'Thank you for your rating!');
+      }
+    } catch (e) {
+      Logger.error('Failed to submit rating: $e', error: e);
+      if (mounted) {
+        final errorMessage = e.toString().contains('403')
+            ? 'You can only rate your own completed orders'
+            : 'Failed to submit rating. Please try again.';
+        AppSnackbar.error(context, errorMessage);
+      }
+    }
   }
 
   /// Build error view with user-friendly message

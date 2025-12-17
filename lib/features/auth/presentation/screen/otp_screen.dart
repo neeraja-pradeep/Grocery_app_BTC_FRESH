@@ -36,139 +36,155 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
     });
 
     return Scaffold(
-      body: Center(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.only(
-              left: 16.w,
-              right: 16.w,
-              top: 16.h,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Center(
-                    child: Hero(
-                      tag: 'app-logo',
-                      child: Image.asset('assets/title.png', width: 120.w),
+      body: Padding(
+        padding: EdgeInsets.all(8.w),
+        child: Center(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 16.w,
+                right: 16.w,
+                top: 16.h,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(height: 60.h),
+                    Center(
+                      child: Hero(
+                        tag: 'app-logo',
+                        child: Image.asset('assets/title.png', width: 120.w),
+                      ),
                     ),
-                  ),
 
-                  SizedBox(height: 10.h),
+                    SizedBox(height: 40.h),
 
-                  Text(
-                    'Hi, Welcome!',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 35.sp,
-                      color: const Color.fromARGB(255, 85, 89, 90),
+                    Row(
+                      children: [
+                        Text(
+                          'Hi, Welcome!',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 28.sp,
+                            color: AppColors.loaderGreen,
+                          ),
+                        ),
+                        Image.asset(
+                          'assets/images/hand.png',
+                          height: 30.h,
+                          width: 40.h,
+                        ),
+                      ],
                     ),
-                  ),
 
-                  SizedBox(height: 15.h),
+                    SizedBox(height: 15.h),
 
-                  const Text(
-                    'Mobile Number',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  SizedBox(height: 5.h),
-
-                  MobileNumberField(
-                    controller: numberController,
-                    enabled: true,
-                  ),
-
-                  SizedBox(height: 25.h),
-
-                  if (showOtpField) ...[
                     const Text(
-                      'Enter OTP',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      'Mobile Number',
+                      style: TextStyle(fontWeight: FontWeight.w400),
                     ),
                     SizedBox(height: 5.h),
 
-                    OtpField(controller: otpController, enabled: true),
-                    SizedBox(height: 20.h),
-                  ],
-
-                  // MAIN BUTTON
-                  GestureDetector(
-                    onTap: () => _handleButtonPress(authState),
-                    child: AppButton(
-                      text: _getButtonText(authState),
-                      loading: _isProcessing(authState),
+                    MobileNumberField(
+                      controller: numberController,
+                      enabled: true,
                     ),
-                  ),
 
-                  SizedBox(height: 30.h),
+                    SizedBox(height: 10.h),
 
-                  GestureDetector(
-                    onTap: () => goToLogin(context),
-                    child: Container(
-                      height: 60.h,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 225, 249, 182),
-                        borderRadius: BorderRadius.circular(10.r),
+                    if (showOtpField) ...[
+                      const Text(
+                        'Enter OTP',
+                        style: TextStyle(fontWeight: FontWeight.w500),
                       ),
-                      child: Center(
-                        child: Text(
-                          'Sign In With Password',
-                          style: TextStyle(
-                            fontSize: 17.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.titleColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                      SizedBox(height: 5.h),
 
-                  SizedBox(height: 20.h),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Don't have an Account?"),
-                      SizedBox(width: 5.w),
-                      GestureDetector(
-                        onTap: () => goToSignup(context),
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.titleColor,
-                          ),
-                        ),
-                      ),
+                      OtpField(controller: otpController, enabled: true),
+                      SizedBox(height: 20.h),
                     ],
-                  ),
 
-                  SizedBox(height: 20.h),
+                    // MAIN BUTTON
+                    GestureDetector(
+                      onTap: () => _handleButtonPress(authState),
+                      child: AppButton(
+                        text: _getButtonText(authState),
+                        loading: _isProcessing(authState),
+                      ),
+                    ),
 
-                  Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        // Activate guest mode
-                        ref.read(authProvider.notifier).continueAsGuest();
-                        goToHome(context);
-                      },
-                      child: Text(
-                        'Skip',
-                        style: TextStyle(
-                          decoration: TextDecoration.underline,
-                          color: AppColors.titleColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.sp,
+                    SizedBox(height: 10.h),
+
+                    GestureDetector(
+                      onTap: () => goToLogin(context),
+                      child: Container(
+                        height: 60.h,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGreen,
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Sign In With Password',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.titleColor,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+
+                    SizedBox(height: 20.h),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Don't have an Account?",
+                          style: TextStyle(color: AppColors.darkGrey),
+                        ),
+                        SizedBox(width: 5.w),
+                        GestureDetector(
+                          onTap: () => goToSignup(context),
+                          child: const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.titleColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 20.h),
+
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          // Activate guest mode
+                          ref.read(authProvider.notifier).continueAsGuest();
+                          goToHome(context);
+                        },
+                        child: Text(
+                          'Skip',
+                          style: TextStyle(
+                            decoration: TextDecoration.underline,
+                            color: AppColors.titleColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15.sp,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

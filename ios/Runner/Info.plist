@@ -52,10 +52,5 @@
 	<string>This app needs access to your location to show nearby stores and provide delivery services.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app needs access to your location to show nearby stores and provide delivery services.</string>
-	<!-- Microphone permission for Voice Search -->
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs access to your microphone for voice search to find products.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app needs speech recognition to convert your voice to text for product search.</string>
 </dict>
 </plist>
