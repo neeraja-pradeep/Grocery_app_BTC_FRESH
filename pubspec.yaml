@@ -53,6 +53,9 @@ dependencies:
   # Speech Recognition
   speech_to_text: ^7.0.0
 
+  # URL Launcher
+  url_launcher: ^6.2.5
+
   # Utils
   equatable: ^2.0.5 # Added for value-based equality in entities
   go_router: ^17.0.0

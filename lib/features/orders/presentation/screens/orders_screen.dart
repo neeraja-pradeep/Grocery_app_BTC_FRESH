@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/logger.dart';
@@ -239,10 +240,18 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     );
   }
 
+  /// Reorders items from a previous order
+  /// Adds each product to cart with quantity of 1
+  /// Skips unavailable items (stock validation handled by API)
   Future<void> _handleReorder(OrderEntity order) async {
     if (order.orderLines.isEmpty) {
       AppSnackbar.warning(context, 'This order has no items to reorder');
       return;
+    }
+
+    // Show loading indicator
+    if (mounted) {
+      AppSnackbar.info(context, 'Adding items to cart...');
     }
 
     try {
@@ -252,26 +261,40 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
 
       int successCount = 0;
       int failedCount = 0;
-      final List<String> failedItems = [];
+      final List<String> unavailableItems = [];
 
-      // Add each item from the order to cart
+      // Add each item from the order to cart one by one
+      // Default quantity is 1 per product as per requirement
       for (final orderLine in order.orderLines) {
+        // Skip items with invalid product variant ID
+        if (orderLine.productVariantId <= 0) {
+          failedCount++;
+          unavailableItems.add(orderLine.productName);
+          Logger.warning(
+            'Skipping item with invalid variant ID: ${orderLine.productName} (${orderLine.productVariantId})',
+          );
+          continue;
+        }
+
         try {
+          // Add with quantity 1 (default as per requirement)
           await checkoutLineNotifier.addToCart(
             productVariantId: orderLine.productVariantId,
-            quantity: orderLine.quantity,
+            quantity: 1,
           );
           successCount++;
           Logger.info(
-            'Added item to cart',
+            'Added item to cart for reorder',
             data: {
               'product_variant_id': orderLine.productVariantId,
-              'quantity': orderLine.quantity,
+              'product_name': orderLine.productName,
+              'quantity': 1,
             },
           );
         } catch (e) {
+          // Item failed to add (likely out of stock or unavailable)
           failedCount++;
-          failedItems.add(orderLine.productName);
+          unavailableItems.add(orderLine.productName);
           Logger.error(
             'Failed to add item to cart: ${orderLine.productName} (variant: ${orderLine.productVariantId})',
             error: e,
@@ -279,21 +302,25 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         }
       }
 
+      // Show result to user
       if (mounted) {
         if (successCount > 0 && failedCount == 0) {
+          // All items added successfully
           AppSnackbar.success(
             context,
             '$successCount item${successCount > 1 ? 's' : ''} added to cart',
           );
         } else if (successCount > 0 && failedCount > 0) {
+          // Some items added, some failed (likely out of stock)
           AppSnackbar.warning(
             context,
-            '$successCount item${successCount > 1 ? 's' : ''} added to cart, $failedCount failed',
+            '$successCount added, $failedCount unavailable',
           );
         } else {
+          // All items failed
           AppSnackbar.error(
             context,
-            'Failed to add items to cart. Please try again.',
+            'Items are currently unavailable. Please try again later.',
           );
         }
       }
@@ -305,8 +332,36 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     }
   }
 
-  void _handleCall() {
-    AppSnackbar.info(context, 'Calling support...');
+  /// Opens the phone dialer with the support number
+  /// Does not auto-start the call - just populates the dialer
+  Future<void> _handleCall() async {
+    const String supportNumber = '+918089262564';
+    final Uri phoneUri = Uri(scheme: 'tel', path: supportNumber);
+
+    try {
+      // Check if the device can handle the tel: scheme
+      if (await canLaunchUrl(phoneUri)) {
+        await launchUrl(phoneUri);
+        Logger.info('Phone dialer opened: $supportNumber');
+      } else {
+        // Device cannot handle phone calls (e.g., tablet without phone capability)
+        if (mounted) {
+          AppSnackbar.error(
+            context,
+            'Unable to open phone dialer. Please call $supportNumber manually.',
+          );
+        }
+        Logger.warning('Cannot launch phone dialer: $supportNumber');
+      }
+    } catch (e) {
+      Logger.error('Failed to open phone dialer', error: e);
+      if (mounted) {
+        AppSnackbar.error(
+          context,
+          'Failed to open phone dialer. Please try again.',
+        );
+      }
+    }
   }
 
   void _handleWriteReview(OrderEntity order) {
