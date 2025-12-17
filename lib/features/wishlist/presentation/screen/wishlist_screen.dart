@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/network/socket_provider.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../home/application/providers/home_provider.dart';
 import '../../../home/domain/entities/product_variant.dart';
@@ -15,11 +16,75 @@ import '../../../home/presentation/components/product_card.dart';
 import '../../application/providers/wishlist_provider.dart';
 import '../../domain/entities/wishlist_item.dart';
 
-class WishlistScreen extends ConsumerWidget {
+class WishlistScreen extends ConsumerStatefulWidget {
   const WishlistScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WishlistScreen> createState() => _WishlistScreenState();
+}
+
+class _WishlistScreenState extends ConsumerState<WishlistScreen> {
+  final Set<int> _joinedRooms = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Join socket rooms after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _joinWishlistItemRooms();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _leaveAllRooms();
+    super.dispose();
+  }
+
+  /// Join socket rooms for all wishlist items to receive real-time price updates
+  void _joinWishlistItemRooms() {
+    final wishlistState = ref.read(wishlistProvider);
+
+    wishlistState.maybeWhen(
+      loaded: (items, _) {
+        final socketService = ref.read(socketServiceProvider);
+        for (final item in items) {
+          final variantId = int.tryParse(item.productId) ?? 0;
+          if (variantId > 0 && !_joinedRooms.contains(variantId)) {
+            socketService.joinVariantRoom(variantId);
+            _joinedRooms.add(variantId);
+          }
+        }
+      },
+      refreshing: (items) {
+        final socketService = ref.read(socketServiceProvider);
+        for (final item in items) {
+          final variantId = int.tryParse(item.productId) ?? 0;
+          if (variantId > 0 && !_joinedRooms.contains(variantId)) {
+            socketService.joinVariantRoom(variantId);
+            _joinedRooms.add(variantId);
+          }
+        }
+      },
+      orElse: () {},
+    );
+  }
+
+  /// Leave all joined rooms
+  void _leaveAllRooms() {
+    if (_joinedRooms.isEmpty) return;
+
+    final socketService = ref.read(socketServiceProvider);
+    for (final variantId in _joinedRooms) {
+      socketService.leaveVariantRoom(variantId);
+    }
+    _joinedRooms.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final wishlistState = ref.watch(wishlistProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(

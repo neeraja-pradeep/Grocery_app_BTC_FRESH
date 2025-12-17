@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/logger.dart';
@@ -41,7 +42,7 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
     // Only show rating sheet once
     if (_hasShownRatingSheet) {
       if (mounted) {
-        Navigator.pop(context);
+        context.go('/home');
       }
       return;
     }
@@ -88,9 +89,9 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
       Logger.error('Failed to fetch latest order for rating: $e', error: e);
     }
 
-    // Navigate back after showing rating sheet (or if it failed)
+    // Navigate to home after showing rating sheet (or if it failed)
     if (mounted) {
-      Navigator.pop(context);
+      context.go('/home');
     }
   }
 

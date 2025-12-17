@@ -81,6 +81,9 @@ class _$DeliveryStatusStateCopyWithImpl<$Res, $Val extends DeliveryStatusState>
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of DeliveryStatusState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -99,6 +102,9 @@ class __$$HiddenImplCopyWithImpl<$Res>
     _$HiddenImpl _value,
     $Res Function(_$HiddenImpl) _then,
   ) : super(_value, _then);
+
+  /// Create a copy of DeliveryStatusState
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -219,6 +225,8 @@ class __$$ActiveImplCopyWithImpl<$Res>
     $Res Function(_$ActiveImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of DeliveryStatusState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -280,7 +288,9 @@ class _$ActiveImpl implements _Active {
   @override
   int get hashCode => Object.hash(runtimeType, stage, startedAt, orderId);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of DeliveryStatusState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ActiveImplCopyWith<_$ActiveImpl> get copyWith =>
@@ -372,7 +382,10 @@ abstract class _Active implements DeliveryStatusState {
   DeliveryStage get stage;
   DateTime get startedAt;
   String get orderId;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of DeliveryStatusState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ActiveImplCopyWith<_$ActiveImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -396,6 +409,8 @@ class __$$CompletedImplCopyWithImpl<$Res>
     $Res Function(_$CompletedImpl) _then,
   ) : super(_value, _then);
 
+  /// Create a copy of DeliveryStatusState
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({Object? orderId = null}) {
@@ -434,7 +449,9 @@ class _$CompletedImpl implements _Completed {
   @override
   int get hashCode => Object.hash(runtimeType, orderId);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of DeliveryStatusState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CompletedImplCopyWith<_$CompletedImpl> get copyWith =>
@@ -520,7 +537,10 @@ abstract class _Completed implements DeliveryStatusState {
   const factory _Completed({required final String orderId}) = _$CompletedImpl;
 
   String get orderId;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of DeliveryStatusState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CompletedImplCopyWith<_$CompletedImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

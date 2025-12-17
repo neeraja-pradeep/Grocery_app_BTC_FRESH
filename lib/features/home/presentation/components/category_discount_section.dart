@@ -1,8 +1,17 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/network/socket_provider.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
+import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
+import '../../../category/application/providers/inventory_update_notifier.dart';
+import '../../../category/application/providers/price_update_notifier.dart';
 import '../../domain/entities/category_discount_group.dart';
 import '../../domain/entities/product_variant.dart';
 
@@ -80,7 +89,7 @@ class CategoryDiscountSection extends StatelessWidget {
   }
 }
 
-class MegaOfferProductCard extends StatelessWidget {
+class MegaOfferProductCard extends ConsumerStatefulWidget {
   final ProductVariant product;
   final VoidCallback onTap;
   final VoidCallback onAddToCart;
@@ -93,17 +102,58 @@ class MegaOfferProductCard extends StatelessWidget {
   });
 
   @override
+  ConsumerState<MegaOfferProductCard> createState() =>
+      _MegaOfferProductCardState();
+}
+
+class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
+  @override
+  void initState() {
+    super.initState();
+    // Join Socket.IO room for this product variant
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(socketServiceProvider).joinVariantRoom(widget.product.id);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final product = widget.product;
+
+    // Watch real-time Socket.IO updates
+    final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+    final inventoryUpdates = ref.watch(inventoryUpdateNotifierProvider);
+
+    // Get real-time price and inventory updates
+    final priceEvent = priceUpdates.getUpdate(product.id);
+    final inventoryEvent = inventoryUpdates.getUpdate(product.id);
+
+    // Determine display prices: use Socket.IO real-time if available
+    final double displayPrice =
+        priceEvent?.newPrice ??
+        (product.hasDiscount ? product.discountedPrice! : product.price);
+    final double? originalPrice =
+        priceEvent?.oldPrice ?? (product.hasDiscount ? product.price : null);
+
+    // Stock status from real-time inventory
+    final currentQuantity = inventoryEvent?.currentQuantity;
+    final inStock = currentQuantity != null
+        ? currentQuantity > 0
+        : product.inStock;
+
     final String? imageUrl = product.mainImageUrl;
-    final bool hasDiscount = product.hasDiscount;
+    final bool hasDiscount =
+        originalPrice != null && originalPrice > displayPrice;
 
     // Format discount text
     final String discountPercentage = hasDiscount
-        ? '${(((product.price - (product.discountedPrice ?? product.price)) / product.price) * 100).round()}%'
+        ? '${(((originalPrice - displayPrice) / originalPrice) * 100).round()}%'
         : '';
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         // Removed border to match the clean look of the image
         decoration: BoxDecoration(
@@ -191,8 +241,61 @@ class MegaOfferProductCard extends StatelessWidget {
                     bottom: 4,
                     right: 4,
                     child: GestureDetector(
-                      onTap: () {
-                        onAddToCart();
+                      onTap: () async {
+                        // Check if product is in stock
+                        if (!inStock) {
+                          if (context.mounted) {
+                            AppSnackbar.warning(
+                              context,
+                              'This product is out of stock',
+                            );
+                          }
+                          return;
+                        }
+
+                        // Block guests from adding to cart
+                        final authState = ref.read(authProvider);
+                        final isGuest = authState is GuestMode;
+
+                        if (isGuest) {
+                          if (context.mounted) {
+                            AppSnackbar.info(
+                              context,
+                              'Please login to add items to cart',
+                            );
+                          }
+                          return;
+                        }
+
+                        // Add to cart via API
+                        try {
+                          await ref
+                              .read(checkoutLineControllerProvider.notifier)
+                              .addToCart(
+                                productVariantId: product.id,
+                                quantity: 1,
+                              );
+                          if (context.mounted) {
+                            AppSnackbar.success(
+                              context,
+                              '${product.name} added to cart',
+                            );
+                          }
+                        } on InsufficientStockException catch (e) {
+                          if (context.mounted) {
+                            AppSnackbar.warning(context, e.message);
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            AppSnackbar.error(
+                              context,
+                              'Unable to add item to cart',
+                            );
+                          }
+                        }
+
+                        // Also call the parent callback
+                        widget.onAddToCart();
                       },
                       child: Container(
                         width: 28,
@@ -233,12 +336,9 @@ class MegaOfferProductCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Current Price (Green) - No Rs symbol
+                        // Current Price (Green) - No Rs symbol (real-time)
                         Text(
-                          hasDiscount
-                              ? product.discountedPrice?.toStringAsFixed(2) ??
-                                    ''
-                              : product.price.toStringAsFixed(2),
+                          displayPrice.toStringAsFixed(2),
                           style: TextStyle(
                             fontSize: 13.sp,
                             fontWeight: FontWeight.w600,
@@ -247,16 +347,21 @@ class MegaOfferProductCard extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 4.w),
-                        // Old Price (Strikethrough) - No Rs symbol
+                        // Old Price (Strikethrough) - No Rs symbol (real-time)
                         if (hasDiscount)
                           Text(
-                            product.price.toStringAsFixed(2),
+                            originalPrice.toStringAsFixed(2),
                             style: TextStyle(
                               fontSize: 10.sp,
                               decoration: TextDecoration.lineThrough,
                               color: Colors.grey[400],
                             ),
                           ),
+                        // Real-time update indicator
+                        if (priceEvent != null || inventoryEvent != null) ...[
+                          SizedBox(width: 4.w),
+                          Icon(Icons.circle, size: 6.sp, color: Colors.blue),
+                        ],
                       ],
                     ),
 

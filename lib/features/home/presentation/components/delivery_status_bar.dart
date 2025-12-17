@@ -10,11 +10,11 @@ import '../../application/states/delivery_status_state.dart';
 /// A delivery status bar widget that displays order tracking status.
 ///
 /// Shows:
-/// - Estimated time badge (green pill)
-/// - Status text
-/// - Navigation arrow
+/// - Estimated time badge (green gradient pill with time)
+/// - Status text (bold title + subtitle)
+/// - Navigation arrow (teal circle with arrow)
 ///
-/// UI matches the provided design with green accent color.
+/// UI matches the Figma design.
 class DeliveryStatusBar extends ConsumerWidget {
   const DeliveryStatusBar({super.key});
 
@@ -22,8 +22,8 @@ class DeliveryStatusBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final deliveryStatus = ref.watch(deliveryStatusProvider);
 
-    return deliveryStatus.map(
-      hidden: (_) => const SizedBox.shrink(),
+    // Parent widget handles visibility, so we can directly render based on state
+    return deliveryStatus.maybeMap(
       active: (activeState) => _buildStatusBar(
         context,
         ref,
@@ -36,6 +36,8 @@ class DeliveryStatusBar extends ConsumerWidget {
         stage: DeliveryStage.orderCompleted,
         isCompleted: true,
       ),
+      // Fallback to empty in case parent doesn't filter correctly
+      orElse: () => const SizedBox.shrink(),
     );
   }
 
@@ -45,18 +47,17 @@ class DeliveryStatusBar extends ConsumerWidget {
     required DeliveryStage stage,
     required bool isCompleted,
   }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+    return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -70,22 +71,18 @@ class DeliveryStatusBar extends ConsumerWidget {
           },
           borderRadius: BorderRadius.circular(12.r),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
             child: Row(
               children: [
-                // Time badge
-                _buildTimeBadge(stage, isCompleted),
+                // Time badge with gradient
+                _buildTimeBadge(stage),
                 SizedBox(width: 12.w),
 
                 // Status text
                 Expanded(child: _buildStatusText(stage)),
 
-                // Arrow icon
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16.sp,
-                  color: const Color(0xFF016064),
-                ),
+                // Arrow button
+                _buildArrowButton(),
               ],
             ),
           ),
@@ -94,25 +91,46 @@ class DeliveryStatusBar extends ConsumerWidget {
     );
   }
 
-  Widget _buildTimeBadge(DeliveryStage stage, bool isCompleted) {
+  Widget _buildTimeBadge(DeliveryStage stage) {
     final isDelivered = stage == DeliveryStage.orderCompleted;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: isDelivered
-            ? const Color(0xFF4CAF50) // Bright green for delivered
-            : const Color(0xFF016064), // Teal for in-progress
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Text(
-        stage.estimatedTime,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w600,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDelivered
+              ? [const Color(0xFF4CAF50), const Color(0xFF2E7D32)]
+              : [const Color(0xFF8BC34A), const Color(0xFF4CAF50)],
         ),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            isDelivered ? '' : '10',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: isDelivered ? 10.sp : 16.sp,
+              fontWeight: FontWeight.w700,
+              height: 1,
+            ),
+          ),
+          if (!isDelivered)
+            Text(
+              'mins',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ),
+            ),
+          if (isDelivered)
+            Icon(Icons.check_circle, color: Colors.white, size: 20.sp),
+        ],
       ),
     );
   }
@@ -132,24 +150,27 @@ class DeliveryStatusBar extends ConsumerWidget {
         ),
         SizedBox(height: 2.h),
         Text(
-          _getSubtitle(stage),
-          style: TextStyle(fontSize: 11.sp, color: const Color(0xFF666666)),
+          'Delivery person will contact you soon..',
+          style: TextStyle(fontSize: 11.sp, color: const Color(0xFF888888)),
         ),
       ],
     );
   }
 
-  String _getSubtitle(DeliveryStage stage) {
-    switch (stage) {
-      case DeliveryStage.orderGettingPacked:
-        return 'Your order is being prepared';
-      case DeliveryStage.orderPacked:
-        return 'Ready for pickup by delivery partner';
-      case DeliveryStage.outForDelivery:
-        return 'On the way to your location';
-      case DeliveryStage.orderCompleted:
-        return 'Thank you for ordering!';
-    }
+  Widget _buildArrowButton() {
+    return Container(
+      width: 32.w,
+      height: 32.h,
+      decoration: const BoxDecoration(
+        color: Color(0xFF016064),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.arrow_forward_ios_rounded,
+        size: 14.sp,
+        color: Colors.white,
+      ),
+    );
   }
 }
 
