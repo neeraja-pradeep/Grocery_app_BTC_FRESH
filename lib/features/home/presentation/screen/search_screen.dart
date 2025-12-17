@@ -120,8 +120,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color.fromARGB(219, 157, 192, 139),
-              Color.fromARGB(103, 189, 222, 192),
+              Color.fromRGBO(223, 248, 205, 1.0),
+              Color.fromRGBO(247, 253, 243, 1.0),
             ],
           ),
         ),

@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../home/application/providers/home_provider.dart';
 import '../../application/providers/address_provider.dart';
 import 'address_form_screen.dart';
 
@@ -339,6 +340,10 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
       await ref
           .read(profileAddressControllerProvider.notifier)
           .selectAddress(id);
+
+      // Reload address in home provider to update home screen
+      await ref.read(homeProvider.notifier).reloadAddress();
+
       if (mounted) {
         AppSnackbar.success(context, 'Address selected successfully');
       }

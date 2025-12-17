@@ -623,9 +623,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context,
       MaterialPageRoute(builder: (_) => const AddressListScreen()),
     ).then((_) {
-      // Refresh home data after returning from address selection
-      // to update the displayed address
-      ref.read(homeProvider.notifier).refresh();
+      // Clear cache and refresh to ensure fresh address is fetched
+      ref.read(homeProvider.notifier).clearCacheAndRefresh();
     });
   }
 

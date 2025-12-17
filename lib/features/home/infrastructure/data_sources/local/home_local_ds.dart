@@ -367,11 +367,8 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
   @override
   Future<void> clearAllHomeCache() async {
     final b = await box;
-    // We delete everything EXCEPT the user address
-    final keysToDelete = b.keys.where((key) {
-      return key.toString() != HiveKeys.userSelectedAddress;
-    });
-    await b.deleteAll(keysToDelete);
+    // Clear ALL home cache including selected address
+    await b.clear();
   }
 }
 
