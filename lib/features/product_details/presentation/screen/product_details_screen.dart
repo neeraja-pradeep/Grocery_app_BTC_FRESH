@@ -358,6 +358,19 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             if (productDetail.rating != null)
               Consumer(
                 builder: (context, ref, child) {
+                  // Check if user is in guest mode
+                  final authState = ref.watch(authProvider);
+                  final isGuest = authState is GuestMode;
+
+                  // For guests: show rating but disable expansion
+                  if (isGuest) {
+                    return RatingSection(
+                      rating: productDetail.rating!,
+                      reviewCount: productDetail.reviewCount,
+                      allowExpansion: false,
+                    );
+                  }
+
                   // Check if user has a completed order with this product
                   final completedOrder = ref.watch(
                     productCompletedOrderProvider(variantId),
@@ -374,10 +387,22 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 },
               ),
 
-            // Cart items section with quantity controls
-            CartItemsSection(
-              onIncrement: (cartLineId) => _handleIncrement(cartLineId),
-              onDecrement: (cartLineId) => _handleDecrement(cartLineId),
+            // Cart items section with quantity controls - only show for authenticated users
+            Consumer(
+              builder: (context, ref, child) {
+                final authState = ref.watch(authProvider);
+                final isGuest = authState is GuestMode;
+
+                // Don't show cart items for guests
+                if (isGuest) {
+                  return const SizedBox.shrink();
+                }
+
+                return CartItemsSection(
+                  onIncrement: (cartLineId) => _handleIncrement(cartLineId),
+                  onDecrement: (cartLineId) => _handleDecrement(cartLineId),
+                );
+              },
             ),
 
             // Add bottom padding for bottom sheet

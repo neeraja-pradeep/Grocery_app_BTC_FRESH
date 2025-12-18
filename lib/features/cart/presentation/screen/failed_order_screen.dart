@@ -6,7 +6,31 @@ import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
 
 class FailedOrderScreen extends StatelessWidget {
-  const FailedOrderScreen({super.key});
+  final String? errorMessage;
+  final bool isReservationExpired;
+
+  const FailedOrderScreen({
+    super.key,
+    this.errorMessage,
+    this.isReservationExpired = false,
+  });
+
+  String get _title {
+    if (isReservationExpired) {
+      return 'Session Expired';
+    }
+    return 'Oops! Order Failed';
+  }
+
+  String get _subtitle {
+    if (isReservationExpired) {
+      return 'Your cart reservation expired. If payment was deducted, it will be refunded automatically within 5-7 business days.';
+    }
+    if (errorMessage != null && errorMessage!.isNotEmpty) {
+      return errorMessage!;
+    }
+    return 'Something went terribly wrong.';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +56,7 @@ class FailedOrderScreen extends StatelessWidget {
                 SizedBox(height: 40.h),
 
                 AppText(
-                  text: 'Oops! Order Failed',
+                  text: _title,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.black,
@@ -40,12 +64,15 @@ class FailedOrderScreen extends StatelessWidget {
 
                 SizedBox(height: 12.h),
 
-                AppText(
-                  text: 'Something went terribly wrong.',
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.lightGrey,
-                  textAlign: TextAlign.center,
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: AppText(
+                    text: _subtitle,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.lightGrey,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
 
                 const Spacer(),

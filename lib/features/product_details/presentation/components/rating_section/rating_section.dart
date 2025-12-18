@@ -21,6 +21,7 @@ class RatingSection extends StatefulWidget {
     this.orderId,
     this.deliveryDate,
     this.onRatingSubmit,
+    this.allowExpansion = true,
   });
 
   final double rating;
@@ -29,6 +30,8 @@ class RatingSection extends StatefulWidget {
   final void Function(int rating, int orderId)? onRatingSubmit;
   final String?
   deliveryDate; // Delivery date to show in bottom sheet (null for post-payment rating)
+  final bool
+  allowExpansion; // Whether to allow expansion (false for guest mode)
 
   @override
   State<RatingSection> createState() => _RatingSectionState();
@@ -39,6 +42,9 @@ class _RatingSectionState extends State<RatingSection> {
   int _userRating = 0;
 
   void _toggleExpanded() {
+    // Don't allow expansion if disabled (guest mode)
+    if (!widget.allowExpansion) return;
+
     setState(() {
       _isExpanded = !_isExpanded;
     });
@@ -112,17 +118,19 @@ class _RatingSectionState extends State<RatingSection> {
                     color: AppColors.grey,
                   ),
                 ],
-                AppSpacing.w8,
-                // Dropdown arrow
-                AnimatedRotation(
-                  turns: _isExpanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.grey,
-                    size: 20.sp,
+                // Dropdown arrow - only show if expansion is allowed
+                if (widget.allowExpansion) ...[
+                  AppSpacing.w8,
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: AppColors.grey,
+                      size: 20.sp,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

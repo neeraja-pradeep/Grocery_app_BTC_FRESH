@@ -58,14 +58,27 @@ class NetworkException implements Exception {
         break;
 
       case DioExceptionType.badResponse:
+        // Try to extract error message from response body
+        String? bodyMessage;
+        if (body is Map) {
+          final rawMsg = body['message'] ?? body['error'] ?? body['detail'];
+          if (rawMsg is String && rawMsg.isNotEmpty) {
+            bodyMessage = rawMsg;
+          }
+        }
+
         if (statusCode != null && statusCode >= 500) {
-          message = 'Server error ($statusCode). Please try again later.';
+          message =
+              bodyMessage ??
+              'Server error ($statusCode). Please try again later.';
           errorType = NetworkErrorType.serverError;
         } else if (statusCode != null && statusCode >= 400) {
-          message = 'Request failed ($statusCode). Please check your input.';
+          message =
+              bodyMessage ??
+              'Request failed ($statusCode). Please check your input.';
           errorType = NetworkErrorType.clientError;
         } else {
-          message = 'Request failed with status $statusCode';
+          message = bodyMessage ?? 'Request failed with status $statusCode';
           errorType = NetworkErrorType.unknown;
         }
         break;
@@ -133,8 +146,11 @@ Failure mapDioError(Object e) {
     // Read error message safely
     String? msg;
     if (data is Map) {
-      // Check for standard error keys first
-      msg = data['message'] ?? data['error'] ?? data['detail'];
+      // Check for standard error keys first - ensure it's a String
+      final rawMsg = data['message'] ?? data['error'] ?? data['detail'];
+      if (rawMsg is String) {
+        msg = rawMsg;
+      }
 
       // If no standard message, parse validation errors like {"username": ["error"]}
       if (msg == null) {
@@ -143,6 +159,15 @@ Failure mapDioError(Object e) {
           if (value is List && value.isNotEmpty) {
             // Extract first error message from each field
             errors.add(value.first.toString());
+          } else if (value is String) {
+            // Handle direct string error messages
+            errors.add(value);
+          } else if (value is Map) {
+            // Handle nested error objects
+            final nestedMsg = value['message'] ?? value['error'];
+            if (nestedMsg != null) {
+              errors.add(nestedMsg.toString());
+            }
           }
         });
         if (errors.isNotEmpty) {

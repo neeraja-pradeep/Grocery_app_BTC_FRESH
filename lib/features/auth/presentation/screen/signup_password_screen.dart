@@ -68,6 +68,18 @@ class _SignupPasswordScreenState extends ConsumerState<SignupPasswordScreen> {
       }
     });
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: AppColors.titleColor,
+            size: 20.sp,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: Center(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -76,7 +88,6 @@ class _SignupPasswordScreenState extends ConsumerState<SignupPasswordScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 20.h),
                 Center(child: Image.asset('assets/title.png', width: 120.w)),
                 SizedBox(height: 10.h),
 

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/network/api_client.dart';
@@ -80,6 +82,10 @@ class OrderDataSource {
       data: {'address_id': addressId},
     );
 
+    developer.log('========== PAYMENT INITIATE RAW RESPONSE ==========');
+    developer.log('Response: ${response.data}');
+    developer.log('===================================================');
+
     return CheckoutResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -97,6 +103,10 @@ class OrderDataSource {
         'razorpay_signature': razorpaySignature,
       },
     );
+
+    developer.log('========== PAYMENT VERIFY RAW RESPONSE ==========');
+    developer.log('Response: ${response.data}');
+    developer.log('=================================================');
 
     return PaymentVerifyResponse.fromJson(
       response.data as Map<String, dynamic>,

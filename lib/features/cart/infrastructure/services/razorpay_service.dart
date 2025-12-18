@@ -89,6 +89,15 @@ class RazorpayService {
 
     _onComplete = onComplete;
 
+    // Format phone number - Razorpay expects 10-digit Indian number without +91 prefix
+    String? formattedPhone = customerPhone;
+    if (formattedPhone != null) {
+      // Remove +91 or 91 prefix if present
+      formattedPhone = formattedPhone.replaceAll(RegExp(r'^\+?91'), '');
+      // Remove any spaces or dashes
+      formattedPhone = formattedPhone.replaceAll(RegExp(r'[\s\-]'), '');
+    }
+
     final options = <String, dynamic>{
       'key': RazorpayConfig.keyId,
       'amount': amount,
@@ -99,12 +108,26 @@ class RazorpayService {
       'prefill': {
         if (customerName != null) 'name': customerName,
         if (customerEmail != null) 'email': customerEmail,
-        if (customerPhone != null) 'contact': customerPhone,
+        if (formattedPhone != null && formattedPhone.isNotEmpty)
+          'contact': formattedPhone,
       },
       'theme': {
         'color': '#8BC34A', // Green theme matching app
       },
     };
+
+    // Debug log the options being sent to Razorpay
+    developer.log('========== RAZORPAY OPTIONS ==========');
+    developer.log('Key: ${RazorpayConfig.keyId}');
+    developer.log('Amount: $amount');
+    developer.log('Currency: $currency');
+    developer.log('Order ID: $razorpayOrderId');
+    developer.log('Customer Name: $customerName');
+    developer.log('Customer Email: $customerEmail');
+    developer.log('Customer Phone (original): $customerPhone');
+    developer.log('Customer Phone (formatted): $formattedPhone');
+    developer.log('Full Options: $options');
+    developer.log('=======================================');
 
     try {
       _razorpay!.open(options);
