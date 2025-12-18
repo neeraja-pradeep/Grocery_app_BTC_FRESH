@@ -5,12 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/logger.dart';
-import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
-import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../../../home/application/providers/delivery_status_provider.dart';
 import '../../../orders/application/providers/orders_provider.dart';
-import '../../../orders/infrastructure/data_sources/orders_api.dart';
 
 class ConfirmOrderScreen extends ConsumerStatefulWidget {
   const ConfirmOrderScreen({super.key});
@@ -20,7 +17,6 @@ class ConfirmOrderScreen extends ConsumerStatefulWidget {
 }
 
 class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
-  bool _hasShownRatingSheet = false;
   int? _latestOrderId;
 
   @override
@@ -74,61 +70,8 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
   }
 
   Future<void> _handleBackNavigation() async {
-    // Only show rating sheet once
-    if (_hasShownRatingSheet) {
-      if (mounted) {
-        context.go('/home');
-      }
-      return;
-    }
-
-    _hasShownRatingSheet = true;
-
-    // Use the order ID we already fetched, or fetch completed orders
-    try {
-      int? orderIdForRating = _latestOrderId;
-
-      if (orderIdForRating == null) {
-        // Fallback: fetch completed orders
-        await ref.read(ordersProvider.notifier).fetchCompletedOrders();
-        final ordersState = ref.read(ordersProvider);
-
-        if (ordersState.completedOrders.isNotEmpty) {
-          orderIdForRating = ordersState.completedOrders.first.id;
-        }
-      }
-
-      if (orderIdForRating != null && mounted) {
-        // Show rating bottom sheet
-        final rating = await ReviewBottomSheet.show(
-          context,
-          orderTitle: 'Rate Your Order',
-          orderSubtitle: 'Order #$orderIdForRating',
-        );
-
-        // If user provided a rating, submit it
-        if (rating != null && rating > 0 && mounted) {
-          try {
-            await ref
-                .read(ordersApiProvider)
-                .submitOrderRating(orderId: orderIdForRating, stars: rating);
-
-            if (mounted) {
-              AppSnackbar.success(context, 'Thank you for your rating!');
-            }
-          } catch (e) {
-            Logger.error('Failed to submit rating: $e', error: e);
-            if (mounted) {
-              AppSnackbar.error(context, 'Failed to submit rating');
-            }
-          }
-        }
-      }
-    } catch (e) {
-      Logger.error('Failed to fetch latest order for rating: $e', error: e);
-    }
-
-    // Navigate to home after showing rating sheet (or if it failed)
+    // Navigate directly to home without showing rating sheet
+    // Rating will be shown only when delivery status becomes "delivered"
     if (mounted) {
       context.go('/home');
     }

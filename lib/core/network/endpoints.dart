@@ -21,6 +21,11 @@ class ApiEndpoints {
   static const String profile = '/api/auth/v1/profile/';
 
   // ============================================================================
+  // ADMIN ENDPOINTS
+  // ============================================================================
+  static const String adminPhone = '/api/accounts/v1/admin/phone/';
+
+  // ============================================================================
   // CATEGORY ENDPOINTS
   // ============================================================================
   static const String categories = 'api/products/v1/category/';

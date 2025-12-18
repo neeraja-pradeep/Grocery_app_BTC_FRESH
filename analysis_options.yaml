@@ -17,6 +17,7 @@ analyzer:
     depend_on_referenced_packages: error
     implementation_imports: error
     library_private_types_in_public_api: error
+    unused_field: ignore
 
 linter:
   rules:

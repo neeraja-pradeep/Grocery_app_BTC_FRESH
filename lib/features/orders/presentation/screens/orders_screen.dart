@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/theme/colors.dart';
+import '../../../../core/application/providers/admin_phone_provider.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
@@ -332,10 +333,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     }
   }
 
-  /// Opens the phone dialer with the support number
+  /// Opens the phone dialer with the support number fetched from API
+  /// Falls back to default number if API call fails
   /// Does not auto-start the call - just populates the dialer
   Future<void> _handleCall() async {
-    const String supportNumber = '+918089262564';
+    // Fetch admin phone from API (with caching and fallback)
+    final supportNumber = await ref
+        .read(adminPhoneProvider.notifier)
+        .getPhoneNumber();
+
     final Uri phoneUri = Uri(scheme: 'tel', path: supportNumber);
 
     try {
