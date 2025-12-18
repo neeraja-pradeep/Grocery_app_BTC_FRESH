@@ -3,20 +3,32 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'delivery.freezed.dart';
 
 /// Delivery status values from backend API
-enum DeliveryApiStatus { atPickup, pickedUp, outForDelivery, delivered, failed }
+enum DeliveryApiStatus {
+  pending,
+  assigned,
+  atPickup,
+  pickedUp,
+  outForDelivery,
+  delivered,
+  failed,
+}
 
 /// Extension to get display text and UI properties for each status
 extension DeliveryApiStatusExtension on DeliveryApiStatus {
   String get displayText {
     switch (this) {
+      case DeliveryApiStatus.pending:
+        return 'Order accepted';
+      case DeliveryApiStatus.assigned:
+        return 'Order accepted';
       case DeliveryApiStatus.atPickup:
-        return 'Order is getting packed!';
+        return 'Order is getting packed';
       case DeliveryApiStatus.pickedUp:
-        return 'Order is packed!';
+        return 'Order picked up';
       case DeliveryApiStatus.outForDelivery:
         return 'Out for delivery';
       case DeliveryApiStatus.delivered:
-        return 'Order delivered';
+        return 'Delivered successfully';
       case DeliveryApiStatus.failed:
         return 'Delivery failed';
     }
@@ -25,6 +37,10 @@ extension DeliveryApiStatusExtension on DeliveryApiStatus {
   /// Dummy estimated time for UI display (10 min intervals as per requirement)
   String get estimatedTime {
     switch (this) {
+      case DeliveryApiStatus.pending:
+        return '40 mins';
+      case DeliveryApiStatus.assigned:
+        return '40 mins';
       case DeliveryApiStatus.atPickup:
         return '30 mins';
       case DeliveryApiStatus.pickedUp:
@@ -45,6 +61,10 @@ extension DeliveryApiStatusExtension on DeliveryApiStatus {
   /// Convert from API string to enum
   static DeliveryApiStatus fromString(String status) {
     switch (status.toLowerCase()) {
+      case 'pending':
+        return DeliveryApiStatus.pending;
+      case 'assigned':
+        return DeliveryApiStatus.assigned;
       case 'at_pickup':
         return DeliveryApiStatus.atPickup;
       case 'picked_up':
@@ -56,7 +76,7 @@ extension DeliveryApiStatusExtension on DeliveryApiStatus {
       case 'failed':
         return DeliveryApiStatus.failed;
       default:
-        return DeliveryApiStatus.atPickup;
+        return DeliveryApiStatus.pending;
     }
   }
 }

@@ -66,8 +66,13 @@ class ApiEndpoints {
   // ============================================================================
   // DELIVERY ENDPOINTS
   // ============================================================================
-  static String deliveryStatus(int orderId) =>
-      '/api/delivery/v1/deliveries/$orderId/';
+  /// List deliveries by order ID
+  static String deliveriesByOrder(int orderId) =>
+      '/api/delivery/v1/deliveries/?order=$orderId';
+
+  /// Get delivery details by delivery ID
+  static String deliveryDetails(int deliveryId) =>
+      '/api/delivery/v1/deliveries/$deliveryId/';
 }
 
 // Alias for backward compatibility

@@ -2,9 +2,11 @@
 
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/logger.dart';
+import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../../domain/entities/delivery.dart';
 import '../../infrastructure/data_sources/remote/delivery_api.dart';
 import '../states/delivery_status_state.dart';
@@ -16,19 +18,30 @@ import '../states/delivery_status_state.dart';
 /// - Polls for status updates every 30 seconds
 /// - Handles all delivery states: active, completed, failed
 /// - Shows status bar after successful order payment
+/// - Shows feedback popup when delivery is completed
 class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   final DeliveryApi _deliveryApi;
   Timer? _pollingTimer;
+  BuildContext? _context;
+  bool _feedbackShown = false;
   static const Duration _pollingInterval = Duration(seconds: 30);
   static const Duration _completedHideDelay = Duration(seconds: 10);
 
   DeliveryStatusNotifier(this._deliveryApi)
     : super(const DeliveryStatusState.hidden());
 
+  /// Set the BuildContext for showing feedback popup
+  void setContext(BuildContext context) {
+    _context = context;
+  }
+
   /// Start tracking delivery after successful payment
   /// [orderId] - The order ID from the payment response
   void startDeliveryTracking(int orderId) {
     Logger.info('Starting delivery tracking for order: $orderId');
+
+    // Reset feedback flag for new order
+    _feedbackShown = false;
 
     // Cancel any existing polling
     _pollingTimer?.cancel();
@@ -81,6 +94,8 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
         // Stop polling and auto-hide after delay
         _stopPolling();
         _scheduleAutoHide();
+        // Show feedback popup (only once per delivery)
+        _showFeedbackPopup();
         Logger.info('Delivery completed for order: $orderId');
         break;
 
@@ -98,7 +113,7 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
         break;
 
       default:
-        // Active states: at_pickup, picked_up, out_for_delivery
+        // Active states: assigned, at_pickup, picked_up, out_for_delivery
         state = DeliveryStatusState.active(
           orderId: orderId,
           status: delivery.status,
@@ -108,6 +123,32 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
           'Delivery status update for order: $orderId - ${delivery.status.name}',
         );
     }
+  }
+
+  /// Show feedback popup when delivery is completed
+  void _showFeedbackPopup() {
+    // Only show once per delivery and if context is available
+    if (_feedbackShown || _context == null || !_context!.mounted) {
+      return;
+    }
+
+    _feedbackShown = true;
+
+    // Show feedback popup after a short delay
+    Future.delayed(const Duration(seconds: 1), () {
+      if (_context != null && _context!.mounted) {
+        ReviewBottomSheet.show(
+          _context!,
+          orderTitle: 'Rate Your Order',
+          orderSubtitle: 'Delivered successfully',
+        ).then((rating) {
+          if (rating != null) {
+            Logger.info('User rated order: $rating stars');
+            // TODO: Send rating to backend if needed
+          }
+        });
+      }
+    });
   }
 
   /// Start polling for delivery status updates

@@ -17,11 +17,27 @@ import '../../domain/entities/delivery.dart';
 /// - Failed status with failure reason
 ///
 /// All status values come from the backend API controlled by admin.
-class DeliveryStatusBar extends ConsumerWidget {
+class DeliveryStatusBar extends ConsumerStatefulWidget {
   const DeliveryStatusBar({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DeliveryStatusBar> createState() => _DeliveryStatusBarState();
+}
+
+class _DeliveryStatusBarState extends ConsumerState<DeliveryStatusBar> {
+  @override
+  void initState() {
+    super.initState();
+    // Set context after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(deliveryStatusProvider.notifier).setContext(context);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final deliveryState = ref.watch(deliveryStatusProvider);
 
     return deliveryState.map(
@@ -67,7 +83,7 @@ class DeliveryStatusBar extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Processing your order...',
+                  'Waiting for store to accept your order',
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
