@@ -18,6 +18,8 @@ class CategoryProductDto {
     this.thumbnailUrl,
     this.categoryId,
     this.defaultVariantId,
+    this.currentQuantity,
+    this.status,
   });
 
   final String id;
@@ -35,6 +37,8 @@ class CategoryProductDto {
   final String? thumbnailUrl;
   final String? categoryId;
   final String? defaultVariantId;
+  final int? currentQuantity;
+  final bool? status;
 
   factory CategoryProductDto.fromProduct({
     required Map<String, dynamic> product,
@@ -171,6 +175,29 @@ class CategoryProductDto {
     final description =
         product['description_plaintext']?.toString() ?? product['description'];
 
+    // Parse stock information from variant or product
+    int? currentQuantity;
+    final quantityValue =
+        variant?['current_quantity'] ?? product['current_quantity'];
+    if (quantityValue is int) {
+      currentQuantity = quantityValue;
+    } else if (quantityValue is String) {
+      currentQuantity = int.tryParse(quantityValue);
+    } else if (quantityValue is num) {
+      currentQuantity = quantityValue.toInt();
+    }
+
+    // Parse status field
+    bool? status;
+    final statusValue = variant?['status'] ?? product['status'];
+    if (statusValue is bool) {
+      status = statusValue;
+    } else if (statusValue is int) {
+      status = statusValue == 1;
+    } else if (statusValue is String) {
+      status = statusValue.toLowerCase() == 'true' || statusValue == '1';
+    }
+
     return CategoryProductDto(
       id: productId,
       name: rawName.toString(),
@@ -187,6 +214,8 @@ class CategoryProductDto {
       thumbnailUrl: thumbnailUrl,
       categoryId: categoryId,
       defaultVariantId: defaultVariantId,
+      currentQuantity: currentQuantity,
+      status: status,
     );
   }
 
@@ -230,6 +259,28 @@ class CategoryProductDto {
           json['mrp']?.toString();
     }
 
+    // Parse stock information
+    int? currentQuantity;
+    final quantityValue = json['currentQuantity'] ?? json['current_quantity'];
+    if (quantityValue is int) {
+      currentQuantity = quantityValue;
+    } else if (quantityValue is String) {
+      currentQuantity = int.tryParse(quantityValue);
+    } else if (quantityValue is num) {
+      currentQuantity = quantityValue.toInt();
+    }
+
+    // Parse status field
+    bool? status;
+    final statusValue = json['status'];
+    if (statusValue is bool) {
+      status = statusValue;
+    } else if (statusValue is int) {
+      status = statusValue == 1;
+    } else if (statusValue is String) {
+      status = statusValue.toLowerCase() == 'true' || statusValue == '1';
+    }
+
     return CategoryProductDto(
       id: rawId.toString(),
       name: rawName.toString(),
@@ -251,6 +302,8 @@ class CategoryProductDto {
       defaultVariantId:
           json['defaultVariantId']?.toString() ??
           json['default_variant_id']?.toString(),
+      currentQuantity: currentQuantity,
+      status: status,
     );
   }
 
@@ -270,6 +323,8 @@ class CategoryProductDto {
     if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
     if (categoryId != null) 'categoryId': categoryId,
     if (defaultVariantId != null) 'defaultVariantId': defaultVariantId,
+    if (currentQuantity != null) 'currentQuantity': currentQuantity,
+    if (status != null) 'status': status,
   };
 
   CategoryProduct toDomain() => CategoryProduct(
@@ -288,6 +343,8 @@ class CategoryProductDto {
     thumbnailUrl: thumbnailUrl,
     categoryId: categoryId,
     defaultVariantId: defaultVariantId,
+    currentQuantity: currentQuantity,
+    status: status,
   );
 
   static List<CategoryProductDto> listFromJson(

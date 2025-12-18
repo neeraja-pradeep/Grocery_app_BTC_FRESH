@@ -67,7 +67,7 @@ import '../components/category_grid.dart';
 import '../components/delivery_status_bar.dart';
 import '../components/error_view.dart';
 import '../components/home_header.dart';
-import '../components/product_horizontal_list.dart';
+import '../components/product_card.dart';
 import '../components/section_header.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -82,6 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   late final RefreshController _refreshController;
   bool _showAllCategories = false; // Track if all categories are shown
+  bool _showAllBestDeals = false; // Track if all best deals are shown
 
   @override
   void initState() {
@@ -378,7 +379,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: Colors.white,
               child: SectionHeader(
                 title: 'Best Deals',
-                onSeeAllClick: () => _navigateToBestDeals(),
+                onSeeAllClick: _toggleBestDealsView,
+                seeAllText: _showAllBestDeals ? 'See Less' : 'See All',
               ),
             ),
           ),
@@ -386,10 +388,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           SliverToBoxAdapter(
             child: Container(
               color: Colors.white,
-              child: ProductHorizontalList(
-                products: bestDeals,
-                onProductClick: (product) => _navigateToProductDetails(product),
-              ),
+              child: _buildBestDealsGrid(bestDeals),
             ),
           ),
         ],
@@ -624,9 +623,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     widget.onCategoryNavigate(category);
   }
 
-  void _navigateToBestDeals() {
-    Logger.info('User navigated to best deals');
-    Navigator.pushNamed(context, '/best-deals');
+  void _toggleBestDealsView() {
+    setState(() {
+      _showAllBestDeals = !_showAllBestDeals;
+    });
+
+    Logger.info(
+      'User toggled best deals view',
+      data: {'show_all': _showAllBestDeals},
+    );
+  }
+
+  Widget _buildBestDealsGrid(List<ProductVariant> bestDeals) {
+    // Number of products per row
+    const int productsPerRow = 3;
+    // Show only 1 row (3 products) initially, all rows when expanded
+    final int itemsToShow = _showAllBestDeals
+        ? bestDeals.length
+        : productsPerRow;
+    final displayProducts = bestDeals.take(itemsToShow).toList();
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: productsPerRow,
+          crossAxisSpacing: 12.w,
+          mainAxisSpacing: 12.h,
+          childAspectRatio: 0.65,
+        ),
+        itemCount: displayProducts.length,
+        itemBuilder: (context, index) {
+          return ProductCard(
+            product: displayProducts[index],
+            onTap: () => _navigateToProductDetails(displayProducts[index]),
+          );
+        },
+      ),
+    );
   }
 
   void _navigateToProductDetails(ProductVariant product) {

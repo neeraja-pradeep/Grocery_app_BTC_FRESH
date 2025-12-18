@@ -180,15 +180,21 @@ class HomeHeader extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (!isGuest) ...[
-                  // Location Icon (only for authenticated users)
-                  Icon(Icons.location_on, color: darkGreenColor, size: 30.h),
-                  SizedBox(width: 12.w),
-                  // Address Details (only for authenticated users)
+                  // Location area - entire section is tappable (except profile icon)
                   Expanded(
                     child: GestureDetector(
                       onTap: () => _navigateToLocationSelection(context, ref),
+                      behavior: HitTestBehavior.opaque,
                       child: Row(
                         children: [
+                          // Location Icon
+                          Icon(
+                            Icons.location_on,
+                            color: darkGreenColor,
+                            size: 30.h,
+                          ),
+                          SizedBox(width: 12.w),
+                          // Address Details
                           Expanded(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -257,13 +263,15 @@ class HomeHeader extends ConsumerWidget {
                   ),
                 ],
 
-                if (!isGuest)
+                if (!isGuest) ...[
+                  SizedBox(width: 12.w),
                   // Profile Icon (only for authenticated users)
                   SizedBox(
                     width: 40.h,
                     height: 40.h,
                     child: ProfileIconButton(onProfileTap: onProfileClick),
                   ),
+                ],
               ],
             ),
           ),

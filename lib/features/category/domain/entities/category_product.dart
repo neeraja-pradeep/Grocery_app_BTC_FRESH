@@ -15,6 +15,8 @@ class CategoryProduct {
     this.thumbnailUrl,
     this.categoryId,
     this.defaultVariantId,
+    this.currentQuantity,
+    this.status,
   });
 
   final String id;
@@ -32,4 +34,20 @@ class CategoryProduct {
   final String? thumbnailUrl;
   final String? categoryId;
   final String? defaultVariantId;
+  final int? currentQuantity;
+  final bool? status;
+
+  /// Check if product is in stock based on API data
+  bool get inStock {
+    // If we have currentQuantity, check if > 0
+    if (currentQuantity != null) {
+      return currentQuantity! > 0;
+    }
+    // If we have status field, use it
+    if (status != null) {
+      return status!;
+    }
+    // Default to true if no stock info (backend will validate)
+    return true;
+  }
 }
