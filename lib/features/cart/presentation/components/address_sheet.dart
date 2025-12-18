@@ -185,8 +185,8 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
         final isSelected = _selectedAddressId == address.id;
 
         return GestureDetector(
-          onTap: () {
-            // Update local selection (no API call needed)
+          onTap: () async {
+            // Update local selection immediately for UI responsiveness
             setState(() {
               _selectedAddressId = address.id;
             });
@@ -198,6 +198,12 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
 
             // Close the bottom sheet
             Navigator.pop(context);
+
+            // Persist selection to backend (fire-and-forget)
+            // This ensures the backend knows which address is selected for checkout
+            ref
+                .read(addressControllerProvider.notifier)
+                .selectAddress(address.id);
           },
           child: Container(
             padding: EdgeInsets.all(16.w),

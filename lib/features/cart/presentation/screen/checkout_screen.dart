@@ -11,6 +11,7 @@ import '../../application/providers/address_providers.dart';
 import '../../application/providers/applied_coupon_provider.dart';
 import '../../application/providers/checkout_line_provider.dart';
 import '../../application/providers/payment_provider.dart';
+import '../../../profile/application/providers/profile_provider.dart';
 import '../../domain/entities/checkout_line.dart';
 import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
@@ -424,6 +425,10 @@ class CheckoutScreen extends ConsumerWidget {
     final appliedCouponState = ref.read(appliedCouponProvider);
     final couponId = appliedCouponState.appliedCoupon?.id;
 
+    // Get user profile for email and phone
+    final profileState = ref.read(profileControllerProvider);
+    final profile = profileState.profile;
+
     // Initiate payment
     ref
         .read(paymentControllerProvider.notifier)
@@ -432,6 +437,8 @@ class CheckoutScreen extends ConsumerWidget {
           checkoutId: checkoutId,
           couponId: couponId,
           customerName: selectedAddress.fullName,
+          customerEmail: profile?.email,
+          customerPhone: profile?.mobileNumber,
           onSuccess: () {
             // Refresh cart to clear it after successful payment
             ref.read(checkoutLineControllerProvider.notifier).refresh();
