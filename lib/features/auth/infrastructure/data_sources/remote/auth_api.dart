@@ -175,6 +175,12 @@ class AuthApi {
     required String lastName,
     required String streetAddress,
     required String addressType,
+    String? streetAddress2,
+    String? latitude,
+    String? longitude,
+    String? city,
+    String? state,
+    String? postalCode,
   }) async {
     try {
       final res = await _dio.post(
@@ -183,7 +189,12 @@ class AuthApi {
           'first_name': firstName,
           'last_name': lastName,
           'street_address1': streetAddress,
-
+          if (streetAddress2 != null) 'street_address2': streetAddress2,
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+          if (city != null) 'city': city,
+          if (state != null) 'state': state,
+          if (postalCode != null) 'postal_code': postalCode,
           'address_type': addressType,
           'selected': true,
         },

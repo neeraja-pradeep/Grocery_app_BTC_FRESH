@@ -198,6 +198,12 @@ class AuthRepositoryImpl implements AuthRepository {
     required String lastName,
     required String streetAddress,
     required String addressType,
+    String? streetAddress2,
+    String? latitude,
+    String? longitude,
+    String? city,
+    String? state,
+    String? postalCode,
   }) async {
     try {
       final address = await remote.sendAddress(
@@ -205,6 +211,12 @@ class AuthRepositoryImpl implements AuthRepository {
         lastName: lastName,
         streetAddress: streetAddress,
         addressType: addressType,
+        streetAddress2: streetAddress2,
+        latitude: latitude,
+        longitude: longitude,
+        city: city,
+        state: state,
+        postalCode: postalCode,
       );
 
       await local.saveAddress(address);

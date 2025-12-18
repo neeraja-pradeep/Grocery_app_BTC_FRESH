@@ -37,10 +37,14 @@ class LocationSelectionScreen extends ConsumerStatefulWidget {
   final LatLng? initialLocation;
   final VoidCallback? onBackWithoutSelection;
 
+  /// If true, returns SelectedLocation directly without navigating to AddressFormScreen
+  final bool returnLocationOnly;
+
   const LocationSelectionScreen({
     super.key,
     this.initialLocation,
     this.onBackWithoutSelection,
+    this.returnLocationOnly = false,
   });
 
   @override
@@ -58,6 +62,10 @@ class _LocationSelectionScreenState
   // Map state
   LatLng? _selectedPosition;
   String? _selectedAddress;
+  String? _selectedCity;
+  String? _selectedState;
+  String? _selectedPostalCode;
+  String? _selectedCountry;
   bool _isLoadingAddress = false;
   bool _isSearching = false;
   List<_SearchResult> _searchResults = [];
@@ -184,6 +192,10 @@ class _LocationSelectionScreenState
         final address = _formatAddress(place);
         setState(() {
           _selectedAddress = address;
+          _selectedCity = place.locality;
+          _selectedState = place.administrativeArea;
+          _selectedPostalCode = place.postalCode;
+          _selectedCountry = place.country;
           _isLoadingAddress = false;
         });
       }
@@ -191,6 +203,10 @@ class _LocationSelectionScreenState
       if (mounted) {
         setState(() {
           _selectedAddress = 'Unable to get address';
+          _selectedCity = null;
+          _selectedState = null;
+          _selectedPostalCode = null;
+          _selectedCountry = null;
           _isLoadingAddress = false;
         });
       }
@@ -324,12 +340,22 @@ class _LocationSelectionScreenState
 
   Future<void> _confirmSelection() async {
     if (_selectedPosition != null) {
-      // Navigate to address form screen with the selected location
+      // Create the selected location with all extracted data
       final selectedLocation = SelectedLocation(
         latitude: _selectedPosition!.latitude,
         longitude: _selectedPosition!.longitude,
         address: _selectedAddress,
+        city: _selectedCity,
+        state: _selectedState,
+        postalCode: _selectedPostalCode,
+        country: _selectedCountry,
       );
+
+      // If returnLocationOnly mode, just return the location without navigating
+      if (widget.returnLocationOnly) {
+        Navigator.pop(context, selectedLocation);
+        return;
+      }
 
       // Navigate to address form to fill in additional details
       final result = await Navigator.push<bool>(

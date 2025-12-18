@@ -33,6 +33,12 @@ abstract class AuthRepository {
     required String lastName,
     required String streetAddress,
     required String addressType,
+    String? streetAddress2,
+    String? latitude,
+    String? longitude,
+    String? city,
+    String? state,
+    String? postalCode,
   });
 
   Future<Cookie?> getCurrentSession();
