@@ -150,15 +150,18 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     final priceValue = _formatPriceValue(displayPrice);
     final originalPriceValue = _formatPriceValue(displayOriginalPrice);
 
-    // Stock status from real-time inventory
-    // If we have inventory event, use it; otherwise assume in stock
-    final currentQuantity = inventoryEvent?.currentQuantity;
-    final hasInventoryData = currentQuantity != null;
-    final inStock = !hasInventoryData || currentQuantity > 0;
+    // Stock status: prefer real-time Socket.IO data, fallback to API data
+    final socketQuantity = inventoryEvent?.currentQuantity;
+    final hasSocketData = socketQuantity != null;
+    // Use socket data if available, otherwise use API data from product entity
+    final currentQuantity = socketQuantity ?? widget.product.currentQuantity;
+    // Check stock: socket data > API data > default to product.inStock
+    final inStock = hasSocketData ? socketQuantity > 0 : widget.product.inStock;
     final quantity = currentQuantity ?? 0;
 
-    // For testing: show stock status if we have real-time data
-    final showStockBadge = hasInventoryData;
+    // Show stock badge if we have real-time socket data or API stock data
+    final showStockBadge =
+        hasSocketData || widget.product.currentQuantity != null;
 
     return GestureDetector(
       onTap: widget.onTap,

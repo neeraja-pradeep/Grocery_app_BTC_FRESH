@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/network/socket_provider.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../auth/application/providers/auth_provider.dart';
+import '../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
 import '../../../auth/application/states/auth_state.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../category/application/providers/inventory_update_notifier.dart';
@@ -304,6 +305,10 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                         context,
                         '${product.name} added to cart',
                       );
+                    }
+                  } on InsufficientStockException catch (e) {
+                    if (context.mounted) {
+                      AppSnackbar.warning(context, e.message);
                     }
                   } catch (e) {
                     if (context.mounted) {
