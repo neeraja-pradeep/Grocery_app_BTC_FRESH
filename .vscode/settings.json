@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "C:/Users/anjel/grocery_app/linux"
+    "cmake.sourceDirectory": "C:/Users/anjel/grocery_app/linux",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

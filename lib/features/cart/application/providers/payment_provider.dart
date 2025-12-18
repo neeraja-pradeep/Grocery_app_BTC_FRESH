@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/network_exceptions.dart';
 import '../../infrastructure/data_sources/remote/order_data_source.dart';
 import '../../infrastructure/services/razorpay_service.dart';
 
@@ -107,15 +108,12 @@ class PaymentController extends StateNotifier<PaymentState> {
         addressId: addressId,
       );
 
-      developer.log('========== CHECKOUT RESPONSE ==========');
+      developer.log('========== RAZORPAY CHECKOUT DEBUG ==========');
       developer.log('Razorpay Order ID: ${checkoutResponse.razorpayOrderId}');
-      developer.log('Backend Order ID: ${checkoutResponse.orderId}');
-      developer.log('Amount: ${checkoutResponse.amount} paise');
+      developer.log('Amount (in paise): ${checkoutResponse.amount}');
       developer.log('Currency: ${checkoutResponse.currency}');
-      developer.log(
-        'WARNING: If you see "Payment resumption" message, the backend is reusing an old order!',
-      );
-      developer.log('=======================================');
+      developer.log('App Order ID: ${checkoutResponse.orderId}');
+      developer.log('============================================');
 
       // Step 2: Open Razorpay payment
       state = state.copyWith(
@@ -151,11 +149,15 @@ class PaymentController extends StateNotifier<PaymentState> {
       );
     } catch (e) {
       developer.log('Payment Error: $e');
+
+      // Extract error message from NetworkException or fallback to toString
+      final errorMessage = e is NetworkException ? e.message : e.toString();
+
       state = state.copyWith(
         status: PaymentStatus.failed,
-        errorMessage: e.toString(),
+        errorMessage: errorMessage,
       );
-      onFailure(e.toString());
+      onFailure(errorMessage);
     }
   }
 
@@ -197,11 +199,33 @@ class PaymentController extends StateNotifier<PaymentState> {
       }
     } catch (e) {
       developer.log('Verify Payment Error: $e');
+
+      // Extract meaningful error message from NetworkException or fallback
+      String errorMessage = 'Payment verification failed';
+
+      if (e is NetworkException) {
+        // Use the message directly from NetworkException (extracted from API response)
+        errorMessage = e.message;
+        developer.log('NetworkException message: ${e.message}');
+        developer.log('NetworkException body: ${e.body}');
+      } else {
+        final errorStr = e.toString();
+        // Check for specific error patterns from backend
+        if (errorStr.contains('Reservation expired') ||
+            errorStr.contains('not found')) {
+          errorMessage = 'Reservation expired or not found';
+        } else if (errorStr.contains('signature')) {
+          errorMessage = 'Payment signature verification failed';
+        } else if (errorStr.contains('Amount mismatch')) {
+          errorMessage = 'Amount mismatch';
+        }
+      }
+
       state = state.copyWith(
         status: PaymentStatus.failed,
-        errorMessage: e.toString(),
+        errorMessage: errorMessage,
       );
-      onFailure(e.toString());
+      onFailure(errorMessage);
     }
   }
 }

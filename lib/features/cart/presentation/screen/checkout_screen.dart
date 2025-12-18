@@ -7,6 +7,8 @@ import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_models.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
 import '../../application/providers/address_providers.dart';
 import '../../application/providers/applied_coupon_provider.dart';
 import '../../application/providers/checkout_line_provider.dart';
@@ -429,18 +431,21 @@ class CheckoutScreen extends ConsumerWidget {
     final profileState = ref.read(profileControllerProvider);
     final profile = profileState.profile;
 
-    // Fetch profile if not loaded yet
-    if (profile == null) {
-      try {
-        await ref.read(profileControllerProvider.notifier).fetchProfile();
-      } catch (e) {
-        // Profile fetch failed, continue with payment without email/phone
+    // Get phone from profile, fallback to auth user's phone
+    String? customerPhone = profile?.mobileNumber;
+    String? customerEmail = profile?.email;
+
+    // Fallback: get from auth state if profile doesn't have phone
+    if (customerPhone == null || customerPhone.isEmpty) {
+      final authState = ref.read(authProvider);
+      if (authState is Authenticated) {
+        customerPhone = authState.user.phoneNumber;
+        // Also get email if not available from profile
+        if (customerEmail == null || customerEmail.isEmpty) {
+          customerEmail = authState.user.email;
+        }
       }
     }
-
-    // Get updated profile after fetch
-    final updatedProfileState = ref.read(profileControllerProvider);
-    final updatedProfile = updatedProfileState.profile;
 
     // Initiate payment
     ref
@@ -450,8 +455,8 @@ class CheckoutScreen extends ConsumerWidget {
           checkoutId: checkoutId,
           couponId: couponId,
           customerName: selectedAddress.fullName,
-          customerEmail: updatedProfile?.email,
-          customerPhone: updatedProfile?.mobileNumber,
+          customerEmail: customerEmail,
+          customerPhone: customerPhone,
           onSuccess: () {
             // Refresh cart to clear it after successful payment
             ref.read(checkoutLineControllerProvider.notifier).refresh();
@@ -465,7 +470,18 @@ class CheckoutScreen extends ConsumerWidget {
           onFailure: (error) {
             // Navigate to failed order screen using go_router
             if (context.mounted) {
-              context.push('/order-failed');
+              // Check if it's a reservation expired error
+              final isReservationExpired =
+                  error.toLowerCase().contains('reservation expired') ||
+                  error.toLowerCase().contains('reservation not found');
+
+              context.push(
+                '/order-failed',
+                extra: {
+                  'error': error,
+                  'isReservationExpired': isReservationExpired,
+                },
+              );
             }
           },
         );

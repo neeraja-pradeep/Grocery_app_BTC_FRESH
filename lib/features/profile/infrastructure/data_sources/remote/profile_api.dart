@@ -65,16 +65,18 @@ class ProfileApi {
   Future<ProfileDto> updateProfile({
     required String fullName,
     required String phoneNumber,
+    String? email,
   }) async {
     // Split fullName into first_name and last_name
     final nameParts = ProfileDto.splitFullName(fullName);
 
     final response = await _client.patch<Map<String, dynamic>>(
-      'api/auth/profile/',
+      'api/auth/v1/profile/',
       data: <String, dynamic>{
         'first_name': nameParts['first_name'],
         'last_name': nameParts['last_name'],
         'phone_number': phoneNumber,
+        if (email != null && email.isNotEmpty) 'email': email,
       },
     );
 

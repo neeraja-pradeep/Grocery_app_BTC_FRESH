@@ -115,14 +115,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/sign-pass',
         builder: (context, state) {
-          final data = state.extra as Map<String, String>;
+          final rawData = state.extra;
+          if (rawData == null || rawData is! Map) {
+            // Redirect to signup if data is missing
+            return const SignupScreen();
+          }
+
+          // Safely cast to Map<String, dynamic> first, then extract strings
+          final data = rawData as Map<String, dynamic>;
 
           return SignupPasswordScreen(
-            username: data['username']!,
-            email: data['email']!,
-            first: data['first']!,
-            last: data['last']!,
-            number: data['number']!,
+            username: data['username']?.toString() ?? '',
+            email: data['email']?.toString() ?? '',
+            first: data['first']?.toString() ?? '',
+            last: data['last']?.toString() ?? '',
+            number: data['number']?.toString() ?? '',
           );
         },
       ),
@@ -167,7 +174,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/order-failed',
-        builder: (_, state) => const FailedOrderScreen(),
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Map<String, dynamic>) {
+            return FailedOrderScreen(
+              errorMessage: extra['error']?.toString(),
+              isReservationExpired: extra['isReservationExpired'] == true,
+            );
+          }
+          return const FailedOrderScreen();
+        },
       ),
       GoRoute(path: '/profile', builder: (_, state) => const ProfileScreen()),
       GoRoute(
@@ -197,10 +213,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reset-password',
         builder: (context, state) {
-          final data = state.extra as Map<String, String>;
+          final rawData = state.extra;
+          if (rawData == null || rawData is! Map) {
+            // Redirect to forgot password if data is missing
+            return const ForgotPasswordScreen();
+          }
+
+          final data = rawData as Map<String, dynamic>;
           return ResetPasswordScreen(
-            mobileNumber: data['mobileNumber']!,
-            otp: data['otp']!,
+            mobileNumber: data['mobileNumber']?.toString() ?? '',
+            otp: data['otp']?.toString() ?? '',
           );
         },
       ),

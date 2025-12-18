@@ -38,20 +38,18 @@ android {
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
-        }
-    }
+    // signingConfigs {
+    //     create("release") {
+    //         keyAlias = keystoreProperties["keyAlias"] as String
+    //         keyPassword = keystoreProperties["keyPassword"] as String
+    //         storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+    //         storePassword = keystoreProperties["storePassword"] as String
+    //     }
+    // }
     
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            //signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -63,6 +61,16 @@ android {
 flutter {
     source = "../.."
 }
+
 dependencies {
     implementation("com.google.android.material:material:1.13.0")
+
+    // Fix for Razorpay grey screen issue - pin to compatible version
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.razorpay" && requested.name == "checkout") {
+                useVersion("1.6.39")
+            }
+        }
+    }
 }

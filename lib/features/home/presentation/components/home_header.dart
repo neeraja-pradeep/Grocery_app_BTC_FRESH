@@ -243,17 +243,19 @@ class HomeHeader extends ConsumerWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.login_rounded,
-                            color: darkGreenColor,
-                            size: 24.h,
+                          Image.asset(
+                            'assets/login.png',
+                            height: 24.h,
+                            width: 24.w,
                           ),
                           SizedBox(width: 8.w),
                           Text(
-                            'Login',
+                            'LOGIN',
                             style: TextStyle(
+                              fontFamily: 'Poppins',
                               color: darkGreenColor,
-                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.6,
+                              fontWeight: FontWeight.w900,
                               fontSize: 16.sp,
                             ),
                           ),
