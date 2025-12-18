@@ -47,20 +47,29 @@ class RazorpayPaymentResult {
 class RazorpayService {
   Razorpay? _razorpay;
   void Function(RazorpayPaymentResult)? _onComplete;
+  bool _isPaymentInProgress = false;
 
   /// Initialize Razorpay instance
   void init() {
+    if (_razorpay != null) {
+      developer.log('Razorpay already initialized, skipping...');
+      return;
+    }
+    developer.log('Initializing Razorpay...');
     _razorpay = Razorpay();
     _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    developer.log('Razorpay initialized successfully');
   }
 
   /// Clean up Razorpay instance
   void dispose() {
+    developer.log('Disposing Razorpay service...');
     _razorpay?.clear();
     _razorpay = null;
     _onComplete = null;
+    _isPaymentInProgress = false;
   }
 
   /// Open Razorpay payment checkout
@@ -83,10 +92,17 @@ class RazorpayService {
     String description = 'Grocery Order Payment',
     required void Function(RazorpayPaymentResult) onComplete,
   }) {
+    // Prevent multiple simultaneous payment attempts
+    if (_isPaymentInProgress) {
+      developer.log('Payment already in progress, ignoring duplicate call');
+      return;
+    }
+
     if (_razorpay == null) {
       init();
     }
 
+    _isPaymentInProgress = true;
     _onComplete = onComplete;
 
     final options = <String, dynamic>{
@@ -107,11 +123,21 @@ class RazorpayService {
     };
 
     try {
-      developer.log('Opening Razorpay with options: $options');
+      developer.log('========== OPENING RAZORPAY ==========');
+      developer.log('Order ID: $razorpayOrderId');
+      developer.log('Amount: $amount paise');
+      developer.log('Customer: $customerName');
+      developer.log('Email: $customerEmail');
+      developer.log('Phone: $customerPhone');
+      developer.log('Options: $options');
+      developer.log('======================================');
+
       _razorpay!.open(options);
       developer.log('Razorpay open() called successfully');
-    } catch (e) {
+    } catch (e, stackTrace) {
       developer.log('Razorpay Error: $e');
+      developer.log('Stack trace: $stackTrace');
+      _isPaymentInProgress = false;
       _onComplete?.call(
         RazorpayPaymentResult.failure(
           errorCode: 'OPEN_ERROR',
@@ -123,6 +149,7 @@ class RazorpayService {
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) {
     developer.log('Payment Success: ${response.paymentId}');
+    _isPaymentInProgress = false;
     _onComplete?.call(
       RazorpayPaymentResult.success(
         paymentId: response.paymentId ?? '',
@@ -134,6 +161,7 @@ class RazorpayService {
 
   void _handlePaymentError(PaymentFailureResponse response) {
     developer.log('Payment Error: ${response.code} - ${response.message}');
+    _isPaymentInProgress = false;
 
     // Check if user cancelled
     if (response.code == Razorpay.PAYMENT_CANCELLED) {
@@ -152,5 +180,6 @@ class RazorpayService {
     developer.log('External Wallet: ${response.walletName}');
     // External wallet selected - payment will continue in wallet app
     // The success/failure will come through the respective handlers
+    // Don't reset _isPaymentInProgress here as payment continues in external wallet
   }
 }
