@@ -16,6 +16,8 @@
         android:name="com.razorpay.CheckoutActivity"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         android:exported="false"
+        android:hardwareAccelerated="true"
+        android:configChanges="orientation|screenSize"
         tools:replace="android:theme" />
 
         <activity

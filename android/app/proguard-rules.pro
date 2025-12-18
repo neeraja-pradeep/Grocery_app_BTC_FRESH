@@ -45,6 +45,20 @@
 # Keep all methods in Razorpay plugin
 -keep class io.flutter.plugins.razorpay.** { *; }
 
+# Keep Razorpay activities
+-keep class com.razorpay.CheckoutActivity { *; }
+-keep class com.razorpay.AnalyticsUtil { *; }
+-keep class com.razorpay.ExternalWalletSelectionActivity { *; }
+
+# Keep WebView JavaScript interface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
+# Keep Razorpay WebView classes
+-keep class com.razorpay.CheckoutBridge { *; }
+-keep class com.razorpay.RzpJavascriptInterface { *; }
+
 # ========== Networking Libraries ==========
 # OkHttp (used by Razorpay and Dio)
 -dontwarn okhttp3.**

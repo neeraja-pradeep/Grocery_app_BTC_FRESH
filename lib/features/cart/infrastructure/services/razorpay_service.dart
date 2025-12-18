@@ -107,7 +107,9 @@ class RazorpayService {
     };
 
     try {
+      developer.log('Opening Razorpay with options: $options');
       _razorpay!.open(options);
+      developer.log('Razorpay open() called successfully');
     } catch (e) {
       developer.log('Razorpay Error: $e');
       _onComplete?.call(
