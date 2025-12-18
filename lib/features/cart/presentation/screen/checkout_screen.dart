@@ -429,6 +429,19 @@ class CheckoutScreen extends ConsumerWidget {
     final profileState = ref.read(profileControllerProvider);
     final profile = profileState.profile;
 
+    // Fetch profile if not loaded yet
+    if (profile == null) {
+      try {
+        await ref.read(profileControllerProvider.notifier).fetchProfile();
+      } catch (e) {
+        // Profile fetch failed, continue with payment without email/phone
+      }
+    }
+
+    // Get updated profile after fetch
+    final updatedProfileState = ref.read(profileControllerProvider);
+    final updatedProfile = updatedProfileState.profile;
+
     // Initiate payment
     ref
         .read(paymentControllerProvider.notifier)
@@ -437,8 +450,8 @@ class CheckoutScreen extends ConsumerWidget {
           checkoutId: checkoutId,
           couponId: couponId,
           customerName: selectedAddress.fullName,
-          customerEmail: profile?.email,
-          customerPhone: profile?.mobileNumber,
+          customerEmail: updatedProfile?.email,
+          customerPhone: updatedProfile?.mobileNumber,
           onSuccess: () {
             // Refresh cart to clear it after successful payment
             ref.read(checkoutLineControllerProvider.notifier).refresh();
