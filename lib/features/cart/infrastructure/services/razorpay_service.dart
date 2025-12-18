@@ -160,17 +160,30 @@ class RazorpayService {
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
-    developer.log('Payment Error: ${response.code} - ${response.message}');
+    developer.log('========== PAYMENT ERROR ==========');
+    developer.log('Error Code: ${response.code}');
+    developer.log('Error Message: ${response.message}');
+    developer.log('===================================');
     _isPaymentInProgress = false;
 
     // Check if user cancelled
     if (response.code == Razorpay.PAYMENT_CANCELLED) {
       _onComplete?.call(RazorpayPaymentResult.cancelled());
     } else {
+      // Provide more helpful error messages
+      String errorMessage = response.message ?? 'Payment failed';
+
+      // Check for common error scenarios
+      if (errorMessage.toLowerCase().contains('order') &&
+          errorMessage.toLowerCase().contains('already')) {
+        errorMessage =
+            'This order has already been used. Please try placing a new order.';
+      }
+
       _onComplete?.call(
         RazorpayPaymentResult.failure(
           errorCode: response.code?.toString() ?? 'UNKNOWN',
-          errorMessage: response.message ?? 'Payment failed',
+          errorMessage: errorMessage,
         ),
       );
     }

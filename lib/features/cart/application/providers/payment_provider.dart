@@ -107,10 +107,15 @@ class PaymentController extends StateNotifier<PaymentState> {
         addressId: addressId,
       );
 
+      developer.log('========== CHECKOUT RESPONSE ==========');
+      developer.log('Razorpay Order ID: ${checkoutResponse.razorpayOrderId}');
+      developer.log('Backend Order ID: ${checkoutResponse.orderId}');
+      developer.log('Amount: ${checkoutResponse.amount} paise');
+      developer.log('Currency: ${checkoutResponse.currency}');
       developer.log(
-        'Checkout Response: Order ID: ${checkoutResponse.razorpayOrderId}',
+        'WARNING: If you see "Payment resumption" message, the backend is reusing an old order!',
       );
-      developer.log('Amount: ${checkoutResponse.amount}');
+      developer.log('=======================================');
 
       // Step 2: Open Razorpay payment
       state = state.copyWith(
