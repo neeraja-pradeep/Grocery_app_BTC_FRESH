@@ -5,14 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/network/socket_provider.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../auth/application/providers/auth_provider.dart';
 import '../../../auth/application/states/auth_state.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../../category/application/providers/inventory_update_notifier.dart';
+import '../../../category/application/providers/price_update_notifier.dart';
 import '../../../wishlist/application/providers/wishlist_provider.dart';
 import '../../domain/entities/product_variant.dart';
 
-class ProductCard extends ConsumerWidget {
+class ProductCard extends ConsumerStatefulWidget {
   final ProductVariant product;
   final VoidCallback onTap;
   final double width;
@@ -25,13 +28,47 @@ class ProductCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final String? imageUrl = product.mainImageUrl;
+  ConsumerState<ProductCard> createState() => _ProductCardState();
+}
 
-    // // Debug: Print product info
-    // print('ProductCard - Product: ${product.name}');
-    // print('ProductCard - Media count: ${product.media.length}');
-    // print('ProductCard - Image URL: $imageUrl');
+class _ProductCardState extends ConsumerState<ProductCard> {
+  @override
+  void initState() {
+    super.initState();
+    // Join Socket.IO room for this product variant
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(socketServiceProvider).joinVariantRoom(widget.product.id);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final product = widget.product;
+
+    // Watch real-time Socket.IO updates
+    final priceUpdates = ref.watch(priceUpdateNotifierProvider);
+    final inventoryUpdates = ref.watch(inventoryUpdateNotifierProvider);
+
+    // Get real-time price and inventory updates
+    final priceEvent = priceUpdates.getUpdate(product.id);
+    final inventoryEvent = inventoryUpdates.getUpdate(product.id);
+
+    // Determine display prices: use Socket.IO real-time if available
+    final double displayPrice =
+        priceEvent?.newPrice ??
+        (product.hasDiscount ? product.discountedPrice! : product.price);
+    final double? originalPrice =
+        priceEvent?.oldPrice ?? (product.hasDiscount ? product.price : null);
+
+    // Stock status from real-time inventory
+    final currentQuantity = inventoryEvent?.currentQuantity;
+    final inStock = currentQuantity != null
+        ? currentQuantity > 0
+        : product.inStock;
+
+    final String? imageUrl = product.mainImageUrl;
 
     // Colors extracted from your reference image
     const Color borderColor = Color(0xFF8cc727);
@@ -44,9 +81,9 @@ class ProductCard extends ConsumerWidget {
       children: [
         // --- Main Card Content ---
         GestureDetector(
-          onTap: onTap,
+          onTap: widget.onTap,
           child: Container(
-            width: width.w,
+            width: widget.width.w,
             decoration: BoxDecoration(
               color: cardBgColor, // Everything else is green
               borderRadius: BorderRadius.circular(12.r),
@@ -134,21 +171,29 @@ class ProductCard extends ConsumerWidget {
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
-                                  '₹${product.hasDiscount ? product.discountedPrice?.toStringAsFixed(0) : product.price.toStringAsFixed(0)}', // Current Price
+                                  '₹${displayPrice.toStringAsFixed(0)}', // Current Price (real-time)
                                   style: TextStyle(
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.bold,
                                     color: priceColor,
                                   ),
                                 ),
-                                if (product.hasDiscount)
+                                if (originalPrice != null && originalPrice > 0)
                                   Text(
-                                    '₹${product.price.toStringAsFixed(0)}', // Old Price
+                                    '₹${originalPrice.toStringAsFixed(0)}', // Old Price (real-time)
                                     style: TextStyle(
                                       fontSize: 11.sp,
                                       decoration: TextDecoration.lineThrough,
                                       color: Colors.grey,
                                     ),
+                                  ),
+                                // Real-time update indicator
+                                if (priceEvent != null ||
+                                    inventoryEvent != null)
+                                  Icon(
+                                    Icons.circle,
+                                    size: 8.sp,
+                                    color: Colors.blue,
                                   ),
                               ],
                             ),
@@ -239,8 +284,8 @@ class ProductCard extends ConsumerWidget {
                     return;
                   }
 
-                  // Check if product is in stock
-                  if (!product.inStock) {
+                  // Check if product is in stock (use real-time data)
+                  if (!inStock) {
                     if (context.mounted) {
                       AppSnackbar.warning(
                         context,

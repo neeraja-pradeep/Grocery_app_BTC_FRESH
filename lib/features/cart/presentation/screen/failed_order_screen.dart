@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
@@ -52,7 +53,7 @@ class FailedOrderScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      context.go('/cart');
                     },
                     style: ButtonStyles.greenButton,
                     child: AppText(
@@ -71,7 +72,7 @@ class FailedOrderScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      context.go('/home');
                     },
                     style: ButtonStyles.greyButton,
                     child: AppText(

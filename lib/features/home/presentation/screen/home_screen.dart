@@ -45,33 +45,30 @@ import 'package:pull_to_refresh/pull_to_refresh.dart'; // Requires pull_to_refre
 
 // Core & Domain
 import '../../../../core/error/failure.dart';
-import '../../../../core/utils/logger.dart';
 import '../../../../core/location/location_provider.dart';
+import '../../../../core/utils/logger.dart';
+// Components
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../../address/presentation/screens/address_list_screen.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
+import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../application/providers/delivery_status_provider.dart';
+// Application Layer
+import '../../application/providers/home_provider.dart';
+import '../../application/states/home_state.dart';
 import '../../domain/entities/banner.dart' as entities;
 import '../../domain/entities/category.dart';
 import '../../domain/entities/product_variant.dart';
 import '../../domain/entities/user_address.dart';
-
-// Application Layer
-import '../../application/providers/home_provider.dart';
-import '../../application/states/home_state.dart';
-import '../../../cart/application/providers/checkout_line_provider.dart';
-import '../../../auth/application/providers/auth_provider.dart';
-import '../../../auth/application/states/auth_state.dart';
-
-// Components
-import '../../../../core/widgets/app_snackbar.dart';
-import '../components/home_header.dart';
-import '../components/section_header.dart';
-import '../components/category_grid.dart';
-import '../components/product_horizontal_list.dart';
 import '../components/advertisement_card.dart';
 import '../components/category_discount_section.dart';
+import '../components/category_grid.dart';
+import '../components/delivery_status_bar.dart';
 import '../components/error_view.dart';
-
-// Other Screens (For navigation)
-import '../../../profile/presentation/screen/profile_screen.dart';
-import '../../../address/presentation/screens/address_list_screen.dart';
+import '../components/home_header.dart';
+import '../components/product_horizontal_list.dart';
+import '../components/section_header.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final ValueChanged<Category> onCategoryNavigate;
@@ -168,118 +165,147 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           0xFFcaf5ac,
         ), // Green header color for rounded corner effect
         body: SafeArea(
-          child: SmartRefresher(
-            key: const Key('home_screen_refresher'), // Widget key for testing
-            controller: _refreshController,
-            onRefresh: _handleRefresh,
-            enablePullDown: true,
-            enablePullUp: false, // Disable pull up to load more for now
-            header: const WaterDropMaterialHeader(
-              backgroundColor: Colors.green,
-              color: Colors.white,
-            ),
-            child: Semantics(
-              label: 'Home screen content',
-              child: homeState.when(
-                initial: () => CustomScrollView(
-                  key: const Key('home_loading_initial'),
-                  slivers: [
-                    SliverFillRemaining(
-                      child: Center(
-                        child: Semantics(
-                          label: 'Loading home screen content',
-                          child: const CircularProgressIndicator(),
-                        ),
-                      ),
-                    ),
-                  ],
+          child: Stack(
+            children: [
+              // Main scrollable content
+              SmartRefresher(
+                key: const Key(
+                  'home_screen_refresher',
+                ), // Widget key for testing
+                controller: _refreshController,
+                onRefresh: _handleRefresh,
+                enablePullDown: true,
+                enablePullUp: false, // Disable pull up to load more for now
+                header: const WaterDropMaterialHeader(
+                  backgroundColor: Colors.green,
+                  color: Colors.white,
                 ),
-                loading: () => CustomScrollView(
-                  key: const Key('home_loading'),
-                  slivers: [
-                    SliverFillRemaining(
-                      child: Center(
-                        child: Semantics(
-                          label: 'Loading home screen content',
-                          child: const CircularProgressIndicator(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Success State
-                loaded:
-                    (
-                      categories,
-                      address,
-                      deals,
-                      discounts,
-                      ad,
-                      catLoad,
-                      dealLoad,
-                      discLoad,
-                    ) {
-                      // Analytics: Track successful load
-                      Logger.info(
-                        'Home screen loaded successfully',
-                        data: {
-                          'categories_count': categories.length,
-                          'deals_count': deals.length,
-                          'discount_groups_count': discounts.length,
-                          'has_address': address != null,
-                          'has_ad': ad != null,
-                        },
-                      );
-
-                      return _buildScrollContent(
-                        categories: categories,
-                        selectedAddress: address,
-                        bestDeals: deals,
-                        discountGroups: discounts,
-                        activeAd: ad,
-                        isGuest: isGuest,
-                      );
-                    },
-
-                // Refreshing State (Show content with loading indicator)
-                refreshing: (categories, address, deals, discounts, ad) {
-                  return Stack(
-                    children: [
-                      _buildScrollContent(
-                        categories: categories,
-                        selectedAddress: address,
-                        bestDeals: deals,
-                        discountGroups: discounts,
-                        activeAd: ad,
-                        isRefreshing: true,
-                        isGuest: isGuest,
-                      ),
-                      // Optional: Show a subtle loading indicator at the top
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: SizedBox(
-                          height: 2.h,
-                          child: const LinearProgressIndicator(
-                            backgroundColor: Colors.transparent,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.green,
+                child: Semantics(
+                  label: 'Home screen content',
+                  child: homeState.when(
+                    initial: () => CustomScrollView(
+                      key: const Key('home_loading_initial'),
+                      slivers: [
+                        SliverFillRemaining(
+                          child: Center(
+                            child: Semantics(
+                              label: 'Loading home screen content',
+                              child: const CircularProgressIndicator(),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    ),
+                    loading: () => CustomScrollView(
+                      key: const Key('home_loading'),
+                      slivers: [
+                        SliverFillRemaining(
+                          child: Center(
+                            child: Semantics(
+                              label: 'Loading home screen content',
+                              child: const CircularProgressIndicator(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
-                // Error State
-                error: (failure, previousState) {
-                  return _buildErrorContent(failure, previousState, isGuest);
-                },
+                    // Success State
+                    loaded:
+                        (
+                          categories,
+                          address,
+                          deals,
+                          discounts,
+                          ad,
+                          catLoad,
+                          dealLoad,
+                          discLoad,
+                        ) {
+                          // Analytics: Track successful load
+                          Logger.info(
+                            'Home screen loaded successfully',
+                            data: {
+                              'categories_count': categories.length,
+                              'deals_count': deals.length,
+                              'discount_groups_count': discounts.length,
+                              'has_address': address != null,
+                              'has_ad': ad != null,
+                            },
+                          );
+
+                          return _buildScrollContent(
+                            categories: categories,
+                            selectedAddress: address,
+                            bestDeals: deals,
+                            discountGroups: discounts,
+                            activeAd: ad,
+                            isGuest: isGuest,
+                          );
+                        },
+
+                    // Refreshing State (Show content with loading indicator)
+                    refreshing: (categories, address, deals, discounts, ad) {
+                      return Stack(
+                        children: [
+                          _buildScrollContent(
+                            categories: categories,
+                            selectedAddress: address,
+                            bestDeals: deals,
+                            discountGroups: discounts,
+                            activeAd: ad,
+                            isRefreshing: true,
+                            isGuest: isGuest,
+                          ),
+                          // Optional: Show a subtle loading indicator at the top
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: SizedBox(
+                              height: 2.h,
+                              child: const LinearProgressIndicator(
+                                backgroundColor: Colors.transparent,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.green,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+
+                    // Error State
+                    error: (failure, previousState) {
+                      return _buildErrorContent(
+                        failure,
+                        previousState,
+                        isGuest,
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
+
+              // Floating Delivery Status Bar at bottom (above bottom nav bar)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 8.h, // Slight padding from bottom
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final deliveryState = ref.watch(deliveryStatusProvider);
+                    return deliveryState.maybeWhen(
+                      active: (stage, startedAt, orderId) =>
+                          const DeliveryStatusBar(),
+                      completed: (orderId) => const DeliveryStatusBar(),
+                      orElse: () => const SizedBox.shrink(),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -315,7 +341,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
 
-        // 3. Shop by Category Section - with rounded top corners
+        // 2. Shop by Category Section - with rounded top corners
         SliverToBoxAdapter(
           child: Container(
             decoration: BoxDecoration(
@@ -629,10 +655,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _navigateToProfile() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ProfileScreen()),
-    );
+    context.push('/profile');
   }
 
   void _navigateToLogin() {

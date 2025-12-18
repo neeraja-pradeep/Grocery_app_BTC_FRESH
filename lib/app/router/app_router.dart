@@ -17,6 +17,9 @@ import '../../features/auth/presentation/screen/signup_screen.dart';
 import '../../features/auth/presentation/screen/splash_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
 import '../../features/cart/presentation/screen/cart_screen.dart';
+import '../../features/cart/presentation/screen/confirm_order_screen.dart';
+import '../../features/cart/presentation/screen/failed_order_screen.dart';
+import '../../features/address/presentation/screens/address_list_screen.dart';
 import '../../features/home/presentation/screen/categories_with_sidebar_screen.dart';
 import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/product_details/presentation/screen/product_details_screen.dart';
@@ -158,7 +161,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/cart', builder: (_, state) => const CartScreen()),
       GoRoute(path: '/orders', builder: (_, state) => const OrdersScreen()),
+      GoRoute(
+        path: '/order-success',
+        builder: (_, state) => const ConfirmOrderScreen(),
+      ),
+      GoRoute(
+        path: '/order-failed',
+        builder: (_, state) => const FailedOrderScreen(),
+      ),
       GoRoute(path: '/profile', builder: (_, state) => const ProfileScreen()),
+      GoRoute(
+        path: '/address-list',
+        builder: (_, state) => const AddressListScreen(),
+      ),
       GoRoute(
         path: '/product-details/:variantId',
         builder: (context, state) {

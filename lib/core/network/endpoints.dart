@@ -47,8 +47,8 @@ class ApiEndpoints {
   // ============================================================================
   static String applyCoupon(int checkoutId) =>
       'api/order/v1/checkouts/$checkoutId/';
-  static const String paymentInitiate = 'api/order/v1/payment/initiate/';
-  static const String paymentVerify = 'api/order/v1/payment/verify/';
+  static const String paymentInitiate = '/api/order/v1/checkout/';
+  static const String paymentVerify = '/api/order/v1/payment/verify/';
 
   // ============================================================================
   // CART (CHECKOUT LINES) ENDPOINTS

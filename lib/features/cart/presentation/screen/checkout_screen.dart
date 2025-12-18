@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/network/socket_models.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -17,8 +18,6 @@ import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../components/address_sheet.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
-import 'confirm_order_screen.dart';
-import 'failed_order_screen.dart';
 
 /// Checkout screen - displays cart items and order summary with selected address
 /// Now uses checkoutLineControllerProvider directly for real-time sync
@@ -438,21 +437,15 @@ class CheckoutScreen extends ConsumerWidget {
             ref.read(checkoutLineControllerProvider.notifier).refresh();
             // Clear applied coupon after successful payment
             ref.read(appliedCouponProvider.notifier).removeCoupon();
-            // Navigate to order confirmation screen
+            // Navigate to order confirmation screen using go_router
             if (context.mounted) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const ConfirmOrderScreen()),
-              );
+              context.go('/order-success');
             }
           },
           onFailure: (error) {
-            // Navigate to failed order screen
+            // Navigate to failed order screen using go_router
             if (context.mounted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const FailedOrderScreen()),
-              );
+              context.push('/order-failed');
             }
           },
         );

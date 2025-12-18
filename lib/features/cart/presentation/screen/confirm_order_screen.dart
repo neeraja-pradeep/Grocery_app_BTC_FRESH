@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
+import '../../../home/application/providers/delivery_status_provider.dart';
 import '../../../orders/application/providers/orders_provider.dart';
 import '../../../orders/infrastructure/data_sources/orders_api.dart';
 
@@ -20,11 +22,27 @@ class ConfirmOrderScreen extends ConsumerStatefulWidget {
 class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
   bool _hasShownRatingSheet = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Start delivery tracking when order is confirmed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startDeliveryTracking();
+    });
+  }
+
+  void _startDeliveryTracking() {
+    // Generate a unique order ID for tracking (in production this would come from payment response)
+    final orderId = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
+    ref.read(deliveryStatusProvider.notifier).startDeliveryTracking(orderId);
+    Logger.info('Delivery tracking started for order: $orderId');
+  }
+
   Future<void> _handleBackNavigation() async {
     // Only show rating sheet once
     if (_hasShownRatingSheet) {
       if (mounted) {
-        Navigator.pop(context);
+        context.go('/home');
       }
       return;
     }
@@ -71,9 +89,9 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
       Logger.error('Failed to fetch latest order for rating: $e', error: e);
     }
 
-    // Navigate back after showing rating sheet (or if it failed)
+    // Navigate to home after showing rating sheet (or if it failed)
     if (mounted) {
-      Navigator.pop(context);
+      context.go('/home');
     }
   }
 
