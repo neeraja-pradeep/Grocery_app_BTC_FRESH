@@ -20,7 +20,6 @@ import '../../../orders/application/providers/orders_provider.dart';
 import '../../../orders/infrastructure/data_sources/orders_api.dart';
 import '../../../wishlist/application/providers/wishlist_provider.dart';
 import '../../../bottomnavbar/bottom_navbar.dart';
-import '../components/cart_items_section/cart_items_section.dart';
 import '../components/checkout_section/checkout_section.dart';
 import '../components/price_row/price_row.dart';
 import '../components/product_info/product_info.dart';
@@ -386,24 +385,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                   );
                 },
               ),
-
-            // Cart items section with quantity controls - only show for authenticated users
-            Consumer(
-              builder: (context, ref, child) {
-                final authState = ref.watch(authProvider);
-                final isGuest = authState is GuestMode;
-
-                // Don't show cart items for guests
-                if (isGuest) {
-                  return const SizedBox.shrink();
-                }
-
-                return CartItemsSection(
-                  onIncrement: (cartLineId) => _handleIncrement(cartLineId),
-                  onDecrement: (cartLineId) => _handleDecrement(cartLineId),
-                );
-              },
-            ),
 
             // Add bottom padding for bottom sheet
             SizedBox(height: 100.h),

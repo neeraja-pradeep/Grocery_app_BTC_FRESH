@@ -12,11 +12,7 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">
-        <activity
-        android:name="com.razorpay.CheckoutActivity"
-        android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-        android:exported="false"
-        tools:replace="android:theme" />
+        <!-- Razorpay CheckoutActivity is now auto-registered by the SDK -->
 
         <activity
             android:name=".MainActivity"

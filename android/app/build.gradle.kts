@@ -15,16 +15,16 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.example.new_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // Latest Android 16 SDK
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -32,8 +32,8 @@ android {
         applicationId = "com.example.new_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 24  // Updated for better Razorpay & modern Android compatibility
+        targetSdk = 36  // Latest Android 16
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -64,13 +64,4 @@ flutter {
 
 dependencies {
     implementation("com.google.android.material:material:1.13.0")
-
-    // Fix for Razorpay grey screen issue - pin to compatible version
-    configurations.all {
-        resolutionStrategy.eachDependency {
-            if (requested.group == "com.razorpay" && requested.name == "checkout") {
-                useVersion("1.6.39")
-            }
-        }
-    }
 }

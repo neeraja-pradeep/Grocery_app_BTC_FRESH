@@ -8,6 +8,7 @@ import '../../core/polling/polling_tab_controller.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../auth/application/providers/auth_provider.dart';
 import '../auth/application/states/auth_state.dart';
+import '../cart/application/providers/checkout_line_provider.dart';
 import '../category/presentation/screen/category_screen.dart';
 import '../cart/presentation/screen/cart_screen.dart';
 import '../category/presentation/components/widgets/review_bottom_sheet.dart';
@@ -147,7 +148,7 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
   }
 }
 
-class _BottomNavBar extends StatelessWidget {
+class _BottomNavBar extends ConsumerWidget {
   const _BottomNavBar({
     required this.colorScheme,
     required this.currentIndex,
@@ -159,7 +160,15 @@ class _BottomNavBar extends StatelessWidget {
   final ValueChanged<int> onItemSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch cart state to get item count
+    final cartState = ref.watch(checkoutLineControllerProvider);
+    final authState = ref.watch(authProvider);
+    final isAuthenticated = authState is! GuestMode;
+
+    // Get total number of items in cart (only for authenticated users)
+    final cartItemCount = isAuthenticated ? cartState.items.length : 0;
+
     return BottomNavigationBar(
       backgroundColor: Colors.white,
       currentIndex: currentIndex,
@@ -222,7 +231,23 @@ class _BottomNavBar extends StatelessWidget {
           label: 'Wishlist',
         ),
         BottomNavigationBarItem(
-          icon: SvgPicture.asset(
+          icon: _buildCartIcon(isActive: false, itemCount: cartItemCount),
+          activeIcon: _buildCartIcon(isActive: true, itemCount: cartItemCount),
+          label: 'Cart',
+        ),
+      ],
+    );
+  }
+
+  /// Builds cart icon with optional badge showing item count
+  Widget _buildCartIcon({required bool isActive, required int itemCount}) {
+    final icon = isActive
+        ? Image.asset(
+            'assets/svgs/nav_bar/cart_active.png',
+            height: 20,
+            width: 20,
+          )
+        : SvgPicture.asset(
             'assets/svgs/nav_bar/cart.svg',
             height: 20,
             width: 20,
@@ -230,13 +255,38 @@ class _BottomNavBar extends StatelessWidget {
               AppColors.black,
               BlendMode.srcIn,
             ),
+          );
+
+    // If no items, just return the icon
+    if (itemCount <= 0) {
+      return icon;
+    }
+
+    // Return icon with badge
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        icon,
+        Positioned(
+          right: -8,
+          top: -4,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: AppColors.red,
+              shape: BoxShape.circle,
+            ),
+            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+            child: Text(
+              itemCount > 99 ? '99+' : itemCount.toString(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
-          activeIcon: Image.asset(
-            'assets/svgs/nav_bar/cart_active.png',
-            height: 20,
-            width: 20,
-          ),
-          label: 'Cart',
         ),
       ],
     );

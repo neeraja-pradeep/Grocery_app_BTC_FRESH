@@ -22,22 +22,34 @@ class AddressEntry extends _$AddressEntry {
     required String lastName,
     required String streetAddress,
     required AddressType addressType,
+    String? streetAddress2,
+    String? latitude,
+    String? longitude,
+    String? city,
+    String? state,
+    String? postalCode,
   }) async {
-    state = AddressSaving();
+    this.state = AddressSaving();
 
     final result = await _repository.addAddress(
       firstName: firstName,
       lastName: lastName,
       streetAddress: streetAddress,
       addressType: addressType.name, // backend expects string
+      streetAddress2: streetAddress2,
+      latitude: latitude,
+      longitude: longitude,
+      city: city,
+      state: state,
+      postalCode: postalCode,
     );
 
     result.fold(
       (failure) {
-        state = AddressError(failure);
+        this.state = AddressError(failure);
       },
       (address) {
-        state = AddressSaved(address);
+        this.state = AddressSaved(address);
       },
     );
   }
