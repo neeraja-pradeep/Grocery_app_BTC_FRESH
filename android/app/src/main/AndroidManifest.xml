@@ -17,8 +17,8 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         android:exported="false"
         android:hardwareAccelerated="true"
-        android:configChanges="orientation|screenSize"
-        tools:replace="android:theme" />
+        android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+        tools:replace="android:theme,android:configChanges" />
 
         <activity
             android:name=".MainActivity"
