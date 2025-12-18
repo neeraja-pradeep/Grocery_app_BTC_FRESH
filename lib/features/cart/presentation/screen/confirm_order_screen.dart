@@ -21,21 +21,56 @@ class ConfirmOrderScreen extends ConsumerStatefulWidget {
 
 class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
   bool _hasShownRatingSheet = false;
+  int? _latestOrderId;
 
   @override
   void initState() {
     super.initState();
-    // Start delivery tracking when order is confirmed
+    // Fetch latest order and start delivery tracking when order is confirmed
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startDeliveryTracking();
+      _fetchLatestOrderAndStartTracking();
     });
   }
 
-  void _startDeliveryTracking() {
-    // Generate a unique order ID for tracking (in production this would come from payment response)
-    final orderId = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
-    ref.read(deliveryStatusProvider.notifier).startDeliveryTracking(orderId);
-    Logger.info('Delivery tracking started for order: $orderId');
+  /// Fetch the latest order from API and start delivery tracking
+  Future<void> _fetchLatestOrderAndStartTracking() async {
+    try {
+      // Fetch active/pending orders to get the most recent one
+      await ref.read(ordersProvider.notifier).fetchActiveOrders();
+      final ordersState = ref.read(ordersProvider);
+
+      // Get the most recent active order
+      if (ordersState.activeOrders.isNotEmpty) {
+        final latestOrder = ordersState.activeOrders.first;
+        _latestOrderId = latestOrder.id;
+
+        // Start delivery tracking with the real order ID
+        ref
+            .read(deliveryStatusProvider.notifier)
+            .startDeliveryTracking(latestOrder.id);
+        Logger.info('Delivery tracking started for order: ${latestOrder.id}');
+      } else {
+        // Fallback: Try fetching pending orders
+        await ref.read(ordersProvider.notifier).fetchPendingOrders();
+        final pendingState = ref.read(ordersProvider);
+
+        if (pendingState.pendingOrders.isNotEmpty) {
+          final latestOrder = pendingState.pendingOrders.first;
+          _latestOrderId = latestOrder.id;
+
+          ref
+              .read(deliveryStatusProvider.notifier)
+              .startDeliveryTracking(latestOrder.id);
+          Logger.info(
+            'Delivery tracking started for pending order: ${latestOrder.id}',
+          );
+        } else {
+          Logger.warning('No active or pending orders found for tracking');
+        }
+      }
+    } catch (e) {
+      Logger.error('Failed to fetch latest order for tracking: $e', error: e);
+    }
   }
 
   Future<void> _handleBackNavigation() async {
@@ -49,38 +84,42 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
 
     _hasShownRatingSheet = true;
 
-    // Fetch the latest order to get the order ID
+    // Use the order ID we already fetched, or fetch completed orders
     try {
-      await ref.read(ordersProvider.notifier).fetchCompletedOrders();
-      final ordersState = ref.read(ordersProvider);
+      int? orderIdForRating = _latestOrderId;
 
-      // Get the most recent order (first in the list)
-      if (ordersState.completedOrders.isNotEmpty) {
-        final latestOrder = ordersState.completedOrders.first;
+      if (orderIdForRating == null) {
+        // Fallback: fetch completed orders
+        await ref.read(ordersProvider.notifier).fetchCompletedOrders();
+        final ordersState = ref.read(ordersProvider);
 
+        if (ordersState.completedOrders.isNotEmpty) {
+          orderIdForRating = ordersState.completedOrders.first.id;
+        }
+      }
+
+      if (orderIdForRating != null && mounted) {
         // Show rating bottom sheet
-        if (mounted) {
-          final rating = await ReviewBottomSheet.show(
-            context,
-            orderTitle: 'Rate Your Order',
-            orderSubtitle: 'Order #${latestOrder.id}',
-          );
+        final rating = await ReviewBottomSheet.show(
+          context,
+          orderTitle: 'Rate Your Order',
+          orderSubtitle: 'Order #$orderIdForRating',
+        );
 
-          // If user provided a rating, submit it
-          if (rating != null && rating > 0 && mounted) {
-            try {
-              await ref
-                  .read(ordersApiProvider)
-                  .submitOrderRating(orderId: latestOrder.id, stars: rating);
+        // If user provided a rating, submit it
+        if (rating != null && rating > 0 && mounted) {
+          try {
+            await ref
+                .read(ordersApiProvider)
+                .submitOrderRating(orderId: orderIdForRating, stars: rating);
 
-              if (mounted) {
-                AppSnackbar.success(context, 'Thank you for your rating!');
-              }
-            } catch (e) {
-              Logger.error('Failed to submit rating: $e', error: e);
-              if (mounted) {
-                AppSnackbar.error(context, 'Failed to submit rating');
-              }
+            if (mounted) {
+              AppSnackbar.success(context, 'Thank you for your rating!');
+            }
+          } catch (e) {
+            Logger.error('Failed to submit rating: $e', error: e);
+            if (mounted) {
+              AppSnackbar.error(context, 'Failed to submit rating');
             }
           }
         }

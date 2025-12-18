@@ -62,6 +62,12 @@ class ApiEndpoints {
   // ============================================================================
   static const String wishlist = '/api/order/v1/wishlist/';
   static String wishlistById(String id) => '/api/order/v1/wishlist/$id/';
+
+  // ============================================================================
+  // DELIVERY ENDPOINTS
+  // ============================================================================
+  static String deliveryStatus(int orderId) =>
+      '/api/delivery/v1/deliveries/$orderId/';
 }
 
 // Alias for backward compatibility

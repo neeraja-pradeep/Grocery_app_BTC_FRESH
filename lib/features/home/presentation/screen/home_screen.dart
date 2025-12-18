@@ -296,13 +296,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 bottom: 8.h, // Slight padding from bottom
                 child: Consumer(
                   builder: (context, ref, child) {
-                    final deliveryState = ref.watch(deliveryStatusProvider);
-                    return deliveryState.maybeWhen(
-                      active: (stage, startedAt, orderId) =>
-                          const DeliveryStatusBar(),
-                      completed: (orderId) => const DeliveryStatusBar(),
-                      orElse: () => const SizedBox.shrink(),
-                    );
+                    final isVisible = ref.watch(isDeliveryVisibleProvider);
+                    if (!isVisible) return const SizedBox.shrink();
+                    return const DeliveryStatusBar();
                   },
                 ),
               ),

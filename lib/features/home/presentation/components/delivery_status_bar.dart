@@ -6,53 +6,332 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../application/providers/delivery_status_provider.dart';
 import '../../application/states/delivery_status_state.dart';
+import '../../domain/entities/delivery.dart';
 
-/// A delivery status bar widget that displays order tracking status.
+/// A delivery status bar widget that displays order tracking status from backend.
 ///
 /// Shows:
-/// - Estimated time badge (green gradient pill with time)
-/// - Status text (bold title + subtitle)
-/// - Navigation arrow (teal circle with arrow)
+/// - Loading state while fetching delivery info
+/// - Active status with estimated time badge
+/// - Completed status with success indicator
+/// - Failed status with failure reason
 ///
-/// UI matches the Figma design.
+/// All status values come from the backend API controlled by admin.
 class DeliveryStatusBar extends ConsumerWidget {
   const DeliveryStatusBar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final deliveryStatus = ref.watch(deliveryStatusProvider);
+    final deliveryState = ref.watch(deliveryStatusProvider);
 
-    // Parent widget handles visibility, so we can directly render based on state
-    return deliveryStatus.maybeMap(
-      active: (activeState) => _buildStatusBar(
-        context,
-        ref,
-        stage: activeState.stage,
-        isCompleted: false,
-      ),
-      completed: (completedState) => _buildStatusBar(
-        context,
-        ref,
-        stage: DeliveryStage.orderCompleted,
-        isCompleted: true,
-      ),
-      // Fallback to empty in case parent doesn't filter correctly
-      orElse: () => const SizedBox.shrink(),
+    return deliveryState.map(
+      hidden: (_) => const SizedBox.shrink(),
+      loading: (state) => _buildLoadingBar(context, state.orderId),
+      active: (state) => _buildActiveBar(context, ref, state),
+      completed: (state) => _buildCompletedBar(context, ref, state),
+      failed: (state) => _buildFailedBar(context, ref, state),
+      error: (state) => _buildErrorBar(context, ref, state),
     );
   }
 
-  Widget _buildStatusBar(
+  /// Build loading state bar
+  Widget _buildLoadingBar(BuildContext context, int orderId) {
+    return _buildContainer(
+      child: Row(
+        children: [
+          // Loading indicator
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF8BC34A), Color(0xFF4CAF50)],
+              ),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: SizedBox(
+              width: 20.w,
+              height: 20.h,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          // Status text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Processing your order...',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1A1A1A),
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'Order #$orderId',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: const Color(0xFF888888),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build active delivery status bar
+  Widget _buildActiveBar(
     BuildContext context,
-    WidgetRef ref, {
-    required DeliveryStage stage,
-    required bool isCompleted,
+    WidgetRef ref,
+    DeliveryStatusActive state,
+  ) {
+    final status = state.status;
+
+    return _buildContainer(
+      onTap: () {
+        // Navigate to order tracking screen
+        // For now, just refresh the status
+        ref.read(deliveryStatusProvider.notifier).refresh();
+      },
+      child: Row(
+        children: [
+          // Time badge with gradient
+          _buildTimeBadge(status),
+          SizedBox(width: 12.w),
+          // Status text
+          Expanded(child: _buildStatusText(status)),
+          // Arrow button
+          _buildArrowButton(),
+        ],
+      ),
+    );
+  }
+
+  /// Build completed delivery status bar
+  Widget _buildCompletedBar(
+    BuildContext context,
+    WidgetRef ref,
+    DeliveryStatusCompleted state,
+  ) {
+    final delivery = state.delivery;
+
+    return _buildContainer(
+      onTap: () {
+        // Dismiss the bar
+        ref.read(deliveryStatusProvider.notifier).hide();
+      },
+      child: Row(
+        children: [
+          // Success badge
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+              ),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(Icons.check_circle, color: Colors.white, size: 24.sp),
+          ),
+          SizedBox(width: 12.w),
+          // Status text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Order delivered!',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF2E7D32),
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  delivery.notes ?? 'Thank you for your order',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: const Color(0xFF888888),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          // Close button
+          _buildCloseButton(ref),
+        ],
+      ),
+    );
+  }
+
+  /// Build failed delivery status bar
+  Widget _buildFailedBar(
+    BuildContext context,
+    WidgetRef ref,
+    DeliveryStatusFailed state,
+  ) {
+    final failureReason =
+        state.failureReason ?? 'Delivery could not be completed';
+
+    return _buildContainer(
+      backgroundColor: const Color(0xFFFFF3F3),
+      borderColor: const Color(0xFFFFCDD2),
+      onTap: () {
+        // Show detailed failure info or navigate to order details
+      },
+      child: Row(
+        children: [
+          // Failure badge
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFE57373), Color(0xFFD32F2F)],
+              ),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(Icons.error_outline, color: Colors.white, size: 24.sp),
+          ),
+          SizedBox(width: 12.w),
+          // Status text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Delivery failed',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFD32F2F),
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  failureReason,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: const Color(0xFF888888),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          // Dismiss button
+          GestureDetector(
+            onTap: () =>
+                ref.read(deliveryStatusProvider.notifier).dismissFailure(),
+            child: Container(
+              width: 32.w,
+              height: 32.h,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD32F2F),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.close, size: 16.sp, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build error state bar
+  Widget _buildErrorBar(
+    BuildContext context,
+    WidgetRef ref,
+    DeliveryStatusError state,
+  ) {
+    return _buildContainer(
+      backgroundColor: const Color(0xFFFFF8E1),
+      borderColor: const Color(0xFFFFE082),
+      onTap: () {
+        // Retry fetching status
+        ref.read(deliveryStatusProvider.notifier).refresh();
+      },
+      child: Row(
+        children: [
+          // Warning icon
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFA000),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.white,
+              size: 24.sp,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          // Error text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Unable to fetch status',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1A1A1A),
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'Tap to retry',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: const Color(0xFF888888),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Retry button
+          Icon(Icons.refresh, size: 24.sp, color: const Color(0xFFFFA000)),
+        ],
+      ),
+    );
+  }
+
+  /// Build container with common styling
+  Widget _buildContainer({
+    required Widget child,
+    VoidCallback? onTap,
+    Color backgroundColor = Colors.white,
+    Color borderColor = const Color(0xFFE0E0E0),
   }) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+        border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -64,35 +343,20 @@ class DeliveryStatusBar extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            // Navigate to order details or tracking screen
-            // For now, just advance to next stage for demo
-            ref.read(deliveryStatusProvider.notifier).advanceToNextStage();
-          },
+          onTap: onTap,
           borderRadius: BorderRadius.circular(12.r),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-            child: Row(
-              children: [
-                // Time badge with gradient
-                _buildTimeBadge(stage),
-                SizedBox(width: 12.w),
-
-                // Status text
-                Expanded(child: _buildStatusText(stage)),
-
-                // Arrow button
-                _buildArrowButton(),
-              ],
-            ),
+            child: child,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTimeBadge(DeliveryStage stage) {
-    final isDelivered = stage == DeliveryStage.orderCompleted;
+  /// Build time badge with gradient
+  Widget _buildTimeBadge(DeliveryApiStatus status) {
+    final isDelivered = status == DeliveryApiStatus.delivered;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
@@ -109,16 +373,16 @@ class DeliveryStatusBar extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            isDelivered ? '' : '10',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: isDelivered ? 10.sp : 16.sp,
-              fontWeight: FontWeight.w700,
-              height: 1,
+          if (!isDelivered) ...[
+            Text(
+              '10',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w700,
+                height: 1,
+              ),
             ),
-          ),
-          if (!isDelivered)
             Text(
               'mins',
               style: TextStyle(
@@ -128,20 +392,21 @@ class DeliveryStatusBar extends ConsumerWidget {
                 height: 1.2,
               ),
             ),
-          if (isDelivered)
+          ] else
             Icon(Icons.check_circle, color: Colors.white, size: 20.sp),
         ],
       ),
     );
   }
 
-  Widget _buildStatusText(DeliveryStage stage) {
+  /// Build status text
+  Widget _buildStatusText(DeliveryApiStatus status) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          stage.displayText,
+          status.displayText,
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
@@ -157,6 +422,7 @@ class DeliveryStatusBar extends ConsumerWidget {
     );
   }
 
+  /// Build arrow button
   Widget _buildArrowButton() {
     return Container(
       width: 32.w,
@@ -172,64 +438,19 @@ class DeliveryStatusBar extends ConsumerWidget {
       ),
     );
   }
-}
 
-/// A compact version for tight spaces
-class DeliveryStatusBarCompact extends ConsumerWidget {
-  const DeliveryStatusBarCompact({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final deliveryStatus = ref.watch(deliveryStatusProvider);
-
-    return deliveryStatus.map(
-      hidden: (_) => const SizedBox.shrink(),
-      active: (activeState) => _buildCompactBar(activeState.stage),
-      completed: (_) => _buildCompactBar(DeliveryStage.orderCompleted),
-    );
-  }
-
-  Widget _buildCompactBar(DeliveryStage stage) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: const Color(0xFF016064),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Text(
-              stage.estimatedTime,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          Text(
-            stage.displayText,
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF1A1A1A),
-            ),
-          ),
-          SizedBox(width: 4.w),
-          Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 12.sp,
-            color: const Color(0xFF016064),
-          ),
-        ],
+  /// Build close button
+  Widget _buildCloseButton(WidgetRef ref) {
+    return GestureDetector(
+      onTap: () => ref.read(deliveryStatusProvider.notifier).hide(),
+      child: Container(
+        width: 32.w,
+        height: 32.h,
+        decoration: const BoxDecoration(
+          color: Color(0xFF4CAF50),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(Icons.close, size: 16.sp, color: Colors.white),
       ),
     );
   }

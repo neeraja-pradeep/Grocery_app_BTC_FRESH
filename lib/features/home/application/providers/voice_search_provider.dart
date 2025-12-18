@@ -37,14 +37,17 @@ class VoiceSearchNotifier extends StateNotifier<VoiceSearchState> {
     // Check microphone permission first
     final permissionStatus = await Permission.microphone.status;
 
-    if (permissionStatus.isDenied) {
+    // If denied or not yet requested, ask for permission
+    if (permissionStatus.isDenied || permissionStatus.isRestricted) {
       final result = await Permission.microphone.request();
+
       if (result.isDenied || result.isPermanentlyDenied) {
         state = const VoiceSearchState.permissionDenied();
         return;
       }
     }
 
+    // If permanently denied, user needs to enable it in settings
     if (permissionStatus.isPermanentlyDenied) {
       state = const VoiceSearchState.permissionDenied();
       return;
