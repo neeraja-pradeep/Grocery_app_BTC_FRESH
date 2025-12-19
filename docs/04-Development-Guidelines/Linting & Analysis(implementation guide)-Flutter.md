@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 **What is “Linting & Analysis”?**  
 Linting means automated code quality checking — a process that analyzes your Dart and Flutter code for:
 
@@ -191,7 +190,6 @@ Inside your Main App folder:
 dart run custom\_lint
 
 and you’ll see all rule violations printed with the same format.  
-=======
 **What is “Linting & Analysis”?**  
 Linting means automated code quality checking — a process that analyzes your Dart and Flutter code for:
 

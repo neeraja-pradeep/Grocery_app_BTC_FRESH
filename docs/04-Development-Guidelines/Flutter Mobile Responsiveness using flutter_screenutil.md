@@ -1,4 +1,3 @@
-<<<<<<< HEAD
   
 **Flutter Mobile Responsiveness using flutter\_screenutil**
 
@@ -281,7 +280,6 @@ void main() {
 
    
 
-=======
   
 **Flutter Mobile Responsiveness using flutter\_screenutil**
 
