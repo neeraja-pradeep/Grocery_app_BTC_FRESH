@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/endpoints.dart';
+import '../../../../core/utils/logger.dart';
 import '../../domain/entities/order_entity.dart';
 
 /// Data source for orders API calls
@@ -110,6 +111,10 @@ class OrdersApi {
   /// [orderId] - The ID of the order to rate
   /// [stars] - Rating value (1-5)
   /// [body] - Optional review text
+  ///
+  /// Automatically handles both creating new ratings (POST) and updating
+  /// existing ratings (PATCH). If POST returns 400 "already have a rating",
+  /// it will automatically retry with PATCH.
   Future<void> submitOrderRating({
     required int orderId,
     required int stars,
@@ -121,13 +126,51 @@ class OrdersApi {
         if (body != null && body.isNotEmpty) 'body': body,
       };
 
-      final response = await _apiClient.post(
-        ApiEndpoints.orderRating(orderId.toString()),
-        data: requestBody,
-      );
+      // Try POST first (for first-time rating)
+      try {
+        final response = await _apiClient.post(
+          ApiEndpoints.orderRating(orderId.toString()),
+          data: requestBody,
+        );
 
-      if (response.statusCode != 201 && response.statusCode != 200) {
-        throw Exception('Failed to submit rating');
+        if (response.statusCode != 201 && response.statusCode != 200) {
+          throw Exception('Failed to submit rating');
+        }
+      } on DioException catch (postError) {
+        // If 400 with "already have a rating" error, retry with PATCH
+        if (postError.response?.statusCode == 400) {
+          final errorData = postError.response?.data;
+          String errorMessage = '';
+
+          // Handle both string and map response formats
+          if (errorData is String) {
+            errorMessage = errorData.toLowerCase();
+          } else if (errorData is Map<String, dynamic>) {
+            errorMessage = errorData.toString().toLowerCase();
+          }
+
+          // Log the actual error for debugging
+          Logger.warning('Rating POST returned 400. Error data: $errorData');
+
+          // Check for common variations of "already rated" error
+          if (errorMessage.contains('already have a rating') ||
+              errorMessage.contains('already rated') ||
+              errorMessage.contains('rating already exists')) {
+            Logger.info('Detected existing rating, retrying with PATCH...');
+            // Retry with PATCH to update existing rating
+            final patchResponse = await _apiClient.patch(
+              ApiEndpoints.orderRating(orderId.toString()),
+              data: requestBody,
+            );
+
+            if (patchResponse.statusCode != 200) {
+              throw Exception('Failed to update rating');
+            }
+            return; // Successfully updated
+          }
+        }
+        // Re-throw if not the specific "already have a rating" error
+        rethrow;
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 403) {

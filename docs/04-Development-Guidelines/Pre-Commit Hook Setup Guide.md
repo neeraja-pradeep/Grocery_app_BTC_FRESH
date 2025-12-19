@@ -1,4 +1,3 @@
-<<<<<<< HEAD
  **Pre-Commit Hook Setup Guide**
 
 **Objective**
@@ -624,7 +623,6 @@ git config \--global \--add safe.directory "C:/Users/LENOVO/nexotech/Temple\_App
 **Verification**  
  Run your commit again — the warning will disappear.
 
-=======
  **Pre-Commit Hook Setup Guide**
 
 **Objective**

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # **Flutter Coding Standards & Guidelines (Project-Wide)**
 
 ## **1\. Project Architecture**
@@ -270,7 +269,6 @@ Avoid expensive rebuilds:
 
 [Detailed implementation guide (Strictly implement this in your project)](https://docs.google.com/document/d/16YrLXdCqIlWWBdKVcWYWf2-J6fMXkovnGlH9k6AdK3U/edit?tab=t.0)
 
-=======
 # **Flutter Coding Standards & Guidelines (Project-Wide)**
 
 ## **1\. Project Architecture**

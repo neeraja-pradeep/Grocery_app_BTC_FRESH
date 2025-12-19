@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 We do the complete code QA and audit via claude code. So here are the prompts which we used for the code auditing. This may be of multiple parts. Analyse this to generate the codes that passes the below tests:
 
 Prompt 1
@@ -247,7 +246,6 @@ Start audit now.
 Prompt 5
 ----------
 Comming soon
-=======
 We do the complete code QA and audit via claude code. So here are the prompts which we used for the code auditing. This may be of multiple parts. Analyse this to generate the codes that passes the below tests:
 
 Prompt 1
