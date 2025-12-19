@@ -472,7 +472,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 }
 
-class _OrderCard extends StatefulWidget {
+class _OrderCard extends ConsumerStatefulWidget {
   final OrderEntity order;
   final bool isActiveOrder;
   final VoidCallback onReorder;
@@ -488,12 +488,30 @@ class _OrderCard extends StatefulWidget {
   });
 
   @override
-  State<_OrderCard> createState() => _OrderCardState();
+  ConsumerState<_OrderCard> createState() => _OrderCardState();
 }
 
-class _OrderCardState extends State<_OrderCard> {
+class _OrderCardState extends ConsumerState<_OrderCard> {
   bool _isExpanded = false;
   int _rating = 0;
+  bool _isEditingRating = false;
+  final TextEditingController _reviewController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize rating from order data if it exists
+    if (widget.order.rating != null) {
+      _rating = widget.order.rating!.stars;
+      _reviewController.text = widget.order.rating?.body ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
 
   String get _statusText {
     final status = widget.order.status.toLowerCase();
@@ -733,11 +751,16 @@ class _OrderCardState extends State<_OrderCard> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Star rating
+            // Star rating - interactive
             Row(
               children: List.generate(5, (index) {
                 return GestureDetector(
-                  onTap: () => setState(() => _rating = index + 1),
+                  onTap: () {
+                    setState(() {
+                      _rating = index + 1;
+                      _isEditingRating = true;
+                    });
+                  },
                   child: Padding(
                     padding: EdgeInsets.only(right: 4.w),
                     child: Icon(
@@ -749,15 +772,23 @@ class _OrderCardState extends State<_OrderCard> {
                 );
               }),
             ),
-            // Write a review
+            // Edit/Update review text
             GestureDetector(
-              onTap: widget.onWriteReview,
+              onTap: () {
+                setState(() {
+                  _isEditingRating = !_isEditingRating;
+                });
+              },
               child: Text(
-                'Write a review',
+                _isEditingRating
+                    ? 'Cancel'
+                    : (widget.order.rating != null
+                          ? 'Edit Review'
+                          : 'Write a review'),
                 style: TextStyle(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.green,
+                  color: _isEditingRating ? AppColors.grey : AppColors.green,
                 ),
               ),
             ),
@@ -771,6 +802,77 @@ class _OrderCardState extends State<_OrderCard> {
             style: TextStyle(fontSize: 10.sp, color: AppColors.grey),
           ),
         ),
+
+        // Inline review editor (shown when editing)
+        if (_isEditingRating) ...[
+          SizedBox(height: 12.h),
+          TextField(
+            controller: _reviewController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Share your experience... (optional)',
+              hintStyle: TextStyle(fontSize: 12.sp, color: AppColors.grey),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: const BorderSide(color: AppColors.green),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide(
+                  color: AppColors.green.withValues(alpha: 0.3),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: const BorderSide(color: AppColors.green),
+              ),
+              contentPadding: EdgeInsets.all(12.w),
+            ),
+            style: TextStyle(fontSize: 12.sp),
+          ),
+          SizedBox(height: 12.h),
+          // Save rating button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _rating > 0 ? _saveRating : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.green,
+                disabledBackgroundColor: AppColors.grey,
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                widget.order.rating != null ? 'Update Rating' : 'Submit Rating',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          ),
+        ] else if (widget.order.rating?.body != null &&
+            widget.order.rating!.body!.isNotEmpty) ...[
+          // Show existing review text when not editing
+          SizedBox(height: 8.h),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: AppColors.green60.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Text(
+              widget.order.rating!.body!,
+              style: TextStyle(fontSize: 12.sp, color: AppColors.black),
+            ),
+          ),
+        ],
+
         SizedBox(height: 16.h),
         // Reorder button
         SizedBox(
@@ -796,5 +898,59 @@ class _OrderCardState extends State<_OrderCard> {
         ),
       ],
     );
+  }
+
+  /// Save or update rating
+  Future<void> _saveRating() async {
+    if (_rating == 0) {
+      return;
+    }
+
+    try {
+      // Show loading
+      if (mounted) {
+        AppSnackbar.info(context, 'Submitting rating...');
+      }
+
+      // Submit rating with review text
+      await ref
+          .read(ordersApiProvider)
+          .submitOrderRating(
+            orderId: widget.order.id,
+            stars: _rating,
+            body: _reviewController.text.trim().isNotEmpty
+                ? _reviewController.text.trim()
+                : null,
+            ratingId: widget.order.rating?.id,
+          );
+
+      Logger.info(
+        'Order rating submitted: $_rating stars for order ${widget.order.id}',
+      );
+
+      // Close editing mode
+      if (mounted) {
+        setState(() {
+          _isEditingRating = false;
+        });
+
+        // Show success message
+        AppSnackbar.success(context, 'Thank you for your rating!');
+
+        // Refresh orders to show updated rating
+        ref.read(ordersProvider.notifier).fetchCompletedOrders();
+      }
+    } catch (e) {
+      Logger.error('Failed to submit order rating', error: e);
+
+      // Show error message
+      if (mounted) {
+        final errorMessage = e.toString().contains('only rate your own')
+            ? 'You can only rate your own completed orders'
+            : 'Failed to submit rating. Please try again later.';
+
+        AppSnackbar.error(context, errorMessage);
+      }
+    }
   }
 }
