@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/logger.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
+import '../../../orders/infrastructure/data_sources/orders_api.dart';
 import '../../domain/entities/delivery.dart';
 import '../../infrastructure/data_sources/remote/delivery_api.dart';
 import '../states/delivery_status_state.dart';
@@ -19,15 +21,17 @@ import '../states/delivery_status_state.dart';
 /// - Handles all delivery states: active, completed, failed
 /// - Shows status bar after successful order payment
 /// - Shows feedback popup when delivery is completed
+/// - Submits order rating to backend after user rates
 class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   final DeliveryApi _deliveryApi;
+  final OrdersApi _ordersApi;
   Timer? _pollingTimer;
   BuildContext? _context;
   bool _feedbackShown = false;
   static const Duration _pollingInterval = Duration(seconds: 30);
   static const Duration _completedHideDelay = Duration(seconds: 10);
 
-  DeliveryStatusNotifier(this._deliveryApi)
+  DeliveryStatusNotifier(this._deliveryApi, this._ordersApi)
     : super(const DeliveryStatusState.hidden());
 
   /// Set the BuildContext for showing feedback popup
@@ -133,22 +137,51 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
     }
 
     _feedbackShown = true;
+    final currentOrderId = state.orderId;
 
     // Show feedback popup after a short delay
     Future.delayed(const Duration(seconds: 1), () {
-      if (_context != null && _context!.mounted) {
+      if (_context != null && _context!.mounted && currentOrderId != null) {
         ReviewBottomSheet.show(
           _context!,
           orderTitle: 'Rate Your Order',
           orderSubtitle: 'Delivered successfully',
-        ).then((rating) {
-          if (rating != null) {
+        ).then((rating) async {
+          if (rating != null && rating > 0) {
             Logger.info('User rated order: $rating stars');
-            // TODO: Send rating to backend if needed
+
+            // Submit rating to backend
+            await _submitRating(currentOrderId, rating);
           }
         });
       }
     });
+  }
+
+  /// Submit order rating to backend
+  Future<void> _submitRating(int orderId, int stars) async {
+    try {
+      await _ordersApi.submitOrderRating(orderId: orderId, stars: stars);
+
+      Logger.info(
+        'Order rating submitted successfully: $stars stars for order $orderId',
+      );
+
+      // Show success message
+      if (_context != null && _context!.mounted) {
+        AppSnackbar.success(_context!, 'Thank you for your rating!');
+      }
+    } catch (e) {
+      Logger.error('Failed to submit order rating', error: e);
+
+      // Show error message to user
+      if (_context != null && _context!.mounted) {
+        AppSnackbar.error(
+          _context!,
+          'Failed to submit rating. Please try again later.',
+        );
+      }
+    }
   }
 
   /// Start polling for delivery status updates
@@ -208,7 +241,8 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
 final deliveryStatusProvider =
     StateNotifierProvider<DeliveryStatusNotifier, DeliveryStatusState>((ref) {
       final deliveryApi = ref.watch(deliveryApiProvider);
-      return DeliveryStatusNotifier(deliveryApi);
+      final ordersApi = ref.watch(ordersApiProvider);
+      return DeliveryStatusNotifier(deliveryApi, ordersApi);
     });
 
 /// Selector for checking if delivery bar should be visible

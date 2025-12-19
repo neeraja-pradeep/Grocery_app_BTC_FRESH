@@ -8,8 +8,10 @@ import '../../../../core/application/providers/admin_phone_provider.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../../application/providers/orders_provider.dart';
 import '../../domain/entities/order_entity.dart';
+import '../../infrastructure/data_sources/orders_api.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -370,8 +372,80 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     }
   }
 
-  void _handleWriteReview(OrderEntity order) {
-    AppSnackbar.info(context, 'Review feature coming soon');
+  /// Shows rating bottom sheet for the order
+  /// Allows user to write a new review or update existing review
+  Future<void> _handleWriteReview(OrderEntity order) async {
+    // Only allow rating for delivered orders
+    if (!order.isCompleted) {
+      AppSnackbar.warning(
+        context,
+        'You can only rate orders that have been delivered',
+      );
+      return;
+    }
+
+    // Format delivery date (simple format)
+    final deliveryDate = order.updatedAt ?? order.createdAt;
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final formattedDate =
+        '${deliveryDate.day} ${months[deliveryDate.month - 1]} ${deliveryDate.year}';
+
+    // Show review bottom sheet
+    final rating = await ReviewBottomSheet.show(
+      context,
+      orderTitle: 'Rate Your Order',
+      orderSubtitle: 'Delivered on $formattedDate',
+    );
+
+    // Submit rating if user provided one
+    if (rating != null && rating > 0) {
+      await _submitOrderRating(order.id, rating);
+    }
+  }
+
+  /// Submit order rating to backend
+  Future<void> _submitOrderRating(int orderId, int stars) async {
+    try {
+      // Show loading
+      if (mounted) {
+        AppSnackbar.info(context, 'Submitting rating...');
+      }
+
+      await ref
+          .read(ordersApiProvider)
+          .submitOrderRating(orderId: orderId, stars: stars);
+
+      Logger.info('Order rating submitted: $stars stars for order $orderId');
+
+      // Show success message
+      if (mounted) {
+        AppSnackbar.success(context, 'Thank you for your rating!');
+      }
+    } catch (e) {
+      Logger.error('Failed to submit order rating', error: e);
+
+      // Show error message
+      if (mounted) {
+        final errorMessage = e.toString().contains('only rate your own')
+            ? 'You can only rate your own completed orders'
+            : 'Failed to submit rating. Please try again later.';
+
+        AppSnackbar.error(context, errorMessage);
+      }
+    }
   }
 }
 
