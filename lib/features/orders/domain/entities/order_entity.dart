@@ -7,6 +7,7 @@ class OrderEntity {
   final DateTime? updatedAt;
   final List<OrderLineEntity> orderLines;
   final OrderAddressEntity? deliveryAddress;
+  final int orderlinesCount;
 
   const OrderEntity({
     required this.id,
@@ -16,11 +17,23 @@ class OrderEntity {
     this.updatedAt,
     this.orderLines = const [],
     this.deliveryAddress,
+    this.orderlinesCount = 0,
   });
 
   factory OrderEntity.fromJson(Map<String, dynamic> json) {
     // Try shipping_address first, fallback to delivery_address
     final addressJson = json['shipping_address'] ?? json['delivery_address'];
+
+    // Parse order lines if present
+    final orderLinesList =
+        (json['order_lines'] as List?)
+            ?.map((e) => OrderLineEntity.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+
+    // Get orderlines count - prefer the count field, fallback to actual list length
+    final orderlinesCount =
+        json['orderlines_count'] as int? ?? orderLinesList.length;
 
     return OrderEntity(
       id: json['id'] as int,
@@ -31,14 +44,11 @@ class OrderEntity {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
-      orderLines:
-          (json['order_lines'] as List?)
-              ?.map((e) => OrderLineEntity.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      orderLines: orderLinesList,
       deliveryAddress: addressJson != null
           ? OrderAddressEntity.fromJson(addressJson as Map<String, dynamic>)
           : null,
+      orderlinesCount: orderlinesCount,
     );
   }
 
@@ -71,6 +81,7 @@ class OrderEntity {
 /// Order line item entity
 class OrderLineEntity {
   final int id;
+  final int orderId;
   final int productVariantId;
   final String productName;
   final String? productImage;
@@ -80,6 +91,7 @@ class OrderLineEntity {
 
   const OrderLineEntity({
     required this.id,
+    required this.orderId,
     required this.productVariantId,
     required this.productName,
     this.productImage,
@@ -93,6 +105,7 @@ class OrderLineEntity {
     final price = _parseDouble(json['price']);
     return OrderLineEntity(
       id: json['id'] as int,
+      orderId: json['order'] as int? ?? 0,
       productVariantId: json['product_variant'] as int? ?? 0,
       productName: json['product_name'] as String? ?? 'Unknown Product',
       productImage: json['product_image'] as String?,

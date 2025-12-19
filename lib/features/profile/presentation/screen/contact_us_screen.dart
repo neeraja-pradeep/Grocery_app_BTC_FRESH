@@ -141,151 +141,153 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
         ),
         centerTitle: false,
       ),
-      body: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Subject field label
-                AppText(
-                  text: 'How can we help you',
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.grey,
-                ),
-                SizedBox(height: 8.h),
-
-                // Subject text field
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(color: AppColors.green, width: 1),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.all(20.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Subject field label
+                  AppText(
+                    text: 'How can we help you',
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.grey,
                   ),
-                  child: TextField(
-                    controller: _subjectController,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 14.h,
-                      ),
-                      hintText: '',
-                      hintStyle: TextStyle(
-                        color: AppColors.lightGrey,
-                        fontSize: 14.sp,
-                      ),
+                  SizedBox(height: 8.h),
+
+                  // Subject text field
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.r),
+                      border: Border.all(color: AppColors.green, width: 1),
                     ),
-                    style: TextStyle(fontSize: 14.sp, color: AppColors.black),
-                  ),
-                ),
-
-                SizedBox(height: 20.h),
-
-                // Description field label
-                AppText(
-                  text: 'Describe your issue (Optional)',
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.grey,
-                ),
-                SizedBox(height: 8.h),
-
-                // Description text area
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(color: AppColors.green, width: 1),
-                  ),
-                  child: TextField(
-                    controller: _descriptionController,
-                    maxLines: 6,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 14.h,
+                    child: TextField(
+                      controller: _subjectController,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 14.h,
+                        ),
+                        hintText: '',
+                        hintStyle: TextStyle(
+                          color: AppColors.lightGrey,
+                          fontSize: 14.sp,
+                        ),
                       ),
-                      hintText: '',
-                      hintStyle: TextStyle(
-                        color: AppColors.lightGrey,
-                        fontSize: 14.sp,
-                      ),
+                      style: TextStyle(fontSize: 14.sp, color: AppColors.black),
                     ),
-                    style: TextStyle(fontSize: 14.sp, color: AppColors.black),
                   ),
-                ),
 
-                SizedBox(height: 24.h),
+                  SizedBox(height: 20.h),
 
-                // Send message button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50.h,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _sendMessage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.green50,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25.r),
-                      ),
-                      elevation: 0,
+                  // Description field label
+                  AppText(
+                    text: 'Describe your issue (Optional)',
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.grey,
+                  ),
+                  SizedBox(height: 8.h),
+
+                  // Description text area
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.r),
+                      border: Border.all(color: AppColors.green, width: 1),
                     ),
-                    child: _isLoading
-                        ? SizedBox(
-                            width: 20.w,
-                            height: 20.w,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                    child: TextField(
+                      controller: _descriptionController,
+                      maxLines: 6,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 14.h,
+                        ),
+                        hintText: '',
+                        hintStyle: TextStyle(
+                          color: AppColors.lightGrey,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      style: TextStyle(fontSize: 14.sp, color: AppColors.black),
+                    ),
+                  ),
+
+                  SizedBox(height: 24.h),
+
+                  // Send message button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _sendMessage,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.green50,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25.r),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isLoading
+                          ? SizedBox(
+                              width: 20.w,
+                              height: 20.w,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : AppText(
+                              text: 'Send message',
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.white,
                             ),
-                          )
-                        : AppText(
-                            text: 'Send message',
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.white,
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // WhatsApp floating button
-          Positioned(
-            bottom: 30.h,
-            right: 20.w,
-            child: GestureDetector(
-              onTap: _openWhatsApp,
-              child: Container(
-                width: 56.w,
-                height: 56.w,
-                decoration: BoxDecoration(
-                  color: AppColors.lightGreen,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
                     ),
-                  ],
-                ),
-                child: Center(
-                  child: Image.asset(
-                    'assets/svgs/profile/whatsapp.png',
-                    width: 42.w,
-                    height: 42.w,
-                    errorBuilder: (_, e, s) =>
-                        Icon(Icons.chat, color: Colors.white, size: 28.sp),
+                  ),
+                ],
+              ),
+            ),
+
+            // WhatsApp floating button
+            Positioned(
+              bottom: 30.h,
+              right: 20.w,
+              child: GestureDetector(
+                onTap: _openWhatsApp,
+                child: Container(
+                  width: 56.w,
+                  height: 56.w,
+                  decoration: BoxDecoration(
+                    color: AppColors.lightGreen,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/svgs/profile/whatsapp.png',
+                      width: 42.w,
+                      height: 42.w,
+                      errorBuilder: (_, e, s) =>
+                          Icon(Icons.chat, color: Colors.white, size: 28.sp),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

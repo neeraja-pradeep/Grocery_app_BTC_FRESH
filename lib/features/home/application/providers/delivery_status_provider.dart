@@ -144,7 +144,6 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
         ).then((rating) {
           if (rating != null) {
             Logger.info('User rated order: $rating stars');
-            // TODO: Send rating to backend if needed
           }
         });
       }
