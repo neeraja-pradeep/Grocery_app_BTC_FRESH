@@ -93,6 +93,7 @@ Implementation details for specific features.
 ### 🚚 Delivery
 | Document | Description |
 |----------|-------------|
+| [**Delivery Tracking Persistence**](DELIVERY_TRACKING_PERSISTENCE.md) | **Persist DeliveryStatusBar across app restarts using Hive** |
 | [Delivery Status Flow](03-Features/Delivery/delivery_status_flow.md) | Delivery status tracking |
 
 ### 📦 Orders & Ratings

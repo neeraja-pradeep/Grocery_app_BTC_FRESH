@@ -10,6 +10,7 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../../../orders/infrastructure/data_sources/orders_api.dart';
 import '../../domain/entities/delivery.dart';
+import '../../infrastructure/data_sources/local/delivery_storage_service.dart';
 import '../../infrastructure/data_sources/remote/delivery_api.dart';
 import '../states/delivery_status_state.dart';
 
@@ -25,18 +26,41 @@ import '../states/delivery_status_state.dart';
 class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   final DeliveryApi _deliveryApi;
   final OrdersApi _ordersApi;
+  final DeliveryStorageService _storageService;
   Timer? _pollingTimer;
   BuildContext? _context;
   bool _feedbackShown = false;
   static const Duration _pollingInterval = Duration(seconds: 30);
   static const Duration _completedHideDelay = Duration(seconds: 10);
 
-  DeliveryStatusNotifier(this._deliveryApi, this._ordersApi)
-    : super(const DeliveryStatusState.hidden());
+  DeliveryStatusNotifier(
+    this._deliveryApi,
+    this._ordersApi,
+    this._storageService,
+  ) : super(const DeliveryStatusState.hidden());
 
   /// Set the BuildContext for showing feedback popup
   void setContext(BuildContext context) {
     _context = context;
+  }
+
+  /// Restore delivery tracking from Hive storage
+  ///
+  /// Called on app startup to restore active delivery state
+  Future<void> restoreDeliveryFromStorage() async {
+    final savedDelivery = _storageService.loadDeliveryTracking();
+
+    if (savedDelivery == null || !savedDelivery.isActive) {
+      Logger.info('No active delivery to restore');
+      return;
+    }
+
+    Logger.info(
+      'Restoring delivery tracking for order: ${savedDelivery.orderId}',
+    );
+
+    // Start tracking the saved delivery
+    startDeliveryTracking(savedDelivery.orderId);
   }
 
   /// Start tracking delivery after successful payment
@@ -95,6 +119,8 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
           orderId: orderId,
           delivery: delivery,
         );
+        // Clear saved tracking data (delivery is complete)
+        _storageService.clearDeliveryTracking();
         // Stop polling and auto-hide after delay
         _stopPolling();
         _scheduleAutoHide();
@@ -109,6 +135,8 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
           delivery: delivery,
           failureReason: delivery.notes,
         );
+        // Clear saved tracking data (delivery failed)
+        _storageService.clearDeliveryTracking();
         // Stop polling on failure
         _stopPolling();
         Logger.info(
@@ -123,6 +151,8 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
           status: delivery.status,
           delivery: delivery,
         );
+        // Save tracking data to Hive for persistence
+        _storageService.saveDeliveryTracking(delivery);
         Logger.info(
           'Delivery status update for order: $orderId - ${delivery.status.name}',
         );
@@ -221,12 +251,14 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   /// Hide the delivery status bar
   void hide() {
     _stopPolling();
+    _storageService.clearDeliveryTracking();
     state = const DeliveryStatusState.hidden();
   }
 
   /// Dismiss failed delivery status (user acknowledged)
   void dismissFailure() {
     _stopPolling();
+    _storageService.clearDeliveryTracking();
     state = const DeliveryStatusState.hidden();
   }
 
@@ -242,7 +274,8 @@ final deliveryStatusProvider =
     StateNotifierProvider<DeliveryStatusNotifier, DeliveryStatusState>((ref) {
       final deliveryApi = ref.watch(deliveryApiProvider);
       final ordersApi = ref.watch(ordersApiProvider);
-      return DeliveryStatusNotifier(deliveryApi, ordersApi);
+      final storageService = ref.watch(deliveryStorageServiceProvider);
+      return DeliveryStatusNotifier(deliveryApi, ordersApi, storageService);
     });
 
 /// Selector for checking if delivery bar should be visible

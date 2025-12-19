@@ -101,6 +101,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Initialize location on app startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(locationProvider.notifier).initialize();
+
+      // Restore delivery tracking from Hive storage
+      // This will show DeliveryStatusBar if there's an active delivery
+      ref.read(deliveryStatusProvider.notifier).restoreDeliveryFromStorage();
     });
 
     // Listen to scroll for "scroll to top" FAB or animations

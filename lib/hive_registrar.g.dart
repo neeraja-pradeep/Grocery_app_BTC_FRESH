@@ -4,11 +4,13 @@
 
 import 'package:hive_ce/hive.dart';
 import 'package:grocery_app/core/storage/hive/adapters/address.dart';
+import 'package:grocery_app/core/storage/hive/adapters/delivery_tracking.dart';
 import 'package:grocery_app/core/storage/hive/adapters/user.dart';
 
 extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
     registerAdapter(AddressModelAdapter());
+    registerAdapter(DeliveryTrackingDataAdapter());
     registerAdapter(UserModelAdapter());
   }
 }
@@ -16,6 +18,7 @@ extension HiveRegistrar on HiveInterface {
 extension IsolatedHiveRegistrar on IsolatedHiveInterface {
   void registerAdapters() {
     registerAdapter(AddressModelAdapter());
+    registerAdapter(DeliveryTrackingDataAdapter());
     registerAdapter(UserModelAdapter());
   }
 }

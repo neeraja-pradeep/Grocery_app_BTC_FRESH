@@ -1,6 +1,7 @@
 import 'package:hive_ce/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../core/storage/hive/adapters/address.dart';
+import '../../core/storage/hive/adapters/delivery_tracking.dart';
 import '../../core/storage/hive/adapters/user.dart';
 import '../../core/storage/hive/boxes.dart';
 
@@ -19,6 +20,7 @@ class HiveInit {
     Hive.registerAdapter(AddressModelAdapter());
     Hive.registerAdapter(UserModelAdapter());
     Hive.registerAdapter(AddressTypeAdapter());
+    Hive.registerAdapter(DeliveryTrackingDataAdapter());
 
     // Open all needed boxes
     await Boxes.openHiveBoxes();
