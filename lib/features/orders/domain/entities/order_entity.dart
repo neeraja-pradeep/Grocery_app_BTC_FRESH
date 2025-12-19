@@ -1,3 +1,20 @@
+/// Order rating entity
+class OrderRatingEntity {
+  final int id;
+  final int stars;
+  final String? body;
+
+  const OrderRatingEntity({required this.id, required this.stars, this.body});
+
+  factory OrderRatingEntity.fromJson(Map<String, dynamic> json) {
+    return OrderRatingEntity(
+      id: json['id'] as int,
+      stars: json['stars'] as int? ?? 0,
+      body: json['body'] as String?,
+    );
+  }
+}
+
 /// Order entity representing a user's order
 class OrderEntity {
   final int id;
@@ -7,6 +24,7 @@ class OrderEntity {
   final DateTime? updatedAt;
   final List<OrderLineEntity> orderLines;
   final OrderAddressEntity? deliveryAddress;
+  final OrderRatingEntity? rating;
 
   const OrderEntity({
     required this.id,
@@ -16,11 +34,28 @@ class OrderEntity {
     this.updatedAt,
     this.orderLines = const [],
     this.deliveryAddress,
+    this.rating,
   });
 
   factory OrderEntity.fromJson(Map<String, dynamic> json) {
     // Try shipping_address first, fallback to delivery_address
     final addressJson = json['shipping_address'] ?? json['delivery_address'];
+
+    // Parse rating if available
+    // Note: The order list endpoint doesn't include ratings by default.
+    // Ratings are fetched separately via /api/order/v1/{order_id}/ratings/
+    final ratingJson = json['rating'];
+    OrderRatingEntity? rating;
+    if (ratingJson != null) {
+      if (ratingJson is Map<String, dynamic>) {
+        rating = OrderRatingEntity.fromJson(ratingJson);
+      } else if (ratingJson is List && ratingJson.isNotEmpty) {
+        // If rating is returned as a list, take the first item
+        rating = OrderRatingEntity.fromJson(
+          ratingJson[0] as Map<String, dynamic>,
+        );
+      }
+    }
 
     return OrderEntity(
       id: json['id'] as int,
@@ -39,6 +74,7 @@ class OrderEntity {
       deliveryAddress: addressJson != null
           ? OrderAddressEntity.fromJson(addressJson as Map<String, dynamic>)
           : null,
+      rating: rating,
     );
   }
 

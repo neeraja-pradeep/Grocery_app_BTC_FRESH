@@ -95,6 +95,14 @@ Implementation details for specific features.
 |----------|-------------|
 | [Delivery Status Flow](03-Features/Delivery/delivery_status_flow.md) | Delivery status tracking |
 
+### 📦 Orders & Ratings
+| Document | Description |
+|----------|-------------|
+| [**Order Rating Complete Summary**](ORDER_RATING_COMPLETE_SUMMARY.md) | **📋 High-level overview of all rating implementations** |
+| [Order Rating Update Implementation](ORDER_RATING_UPDATE_IMPLEMENTATION.md) | Complete order rating feature implementation |
+| [Rating Display Fix](RATING_DISPLAY_FIX.md) | Fix for displaying existing ratings in order history |
+| [Critical PATCH Endpoint Fix](CRITICAL_PATCH_ENDPOINT_FIX.md) | Fix for rating update endpoint with rating_id in URL |
+
 ### 🎨 UI Components
 | Document | Description |
 |----------|-------------|
@@ -177,6 +185,7 @@ docs/
 │   ├── Search/                   # Search functionality
 │   ├── Payment/                  # Payment integration
 │   ├── Delivery/                 # Delivery tracking
+│   ├── Orders/                   # Orders & Ratings (root level)
 │   ├── UI/                       # UI components
 │   ├── Authentication/           # Auth & guest mode
 │   ├── RealTime/                 # Real-time features

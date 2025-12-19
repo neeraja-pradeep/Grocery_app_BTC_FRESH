@@ -78,8 +78,46 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
   }
 
   /// Fetch completed orders (for Previous tab)
+  /// Also fetches ratings for each completed order
   Future<void> fetchCompletedOrders() async {
-    await fetchOrders(status: 'delivered');
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      activeFilter: 'delivered',
+    );
+
+    try {
+      // Fetch completed orders
+      final orders = await _ordersApi.getOrders(status: 'delivered');
+
+      // Fetch ratings for each order and update the order objects
+      final ordersWithRatings = await Future.wait(
+        orders.map((order) async {
+          // Fetch rating for this order
+          final rating = await _ordersApi.getOrderRating(order.id);
+
+          // If rating exists, create a new OrderEntity with the rating
+          if (rating != null) {
+            return OrderEntity(
+              id: order.id,
+              status: order.status,
+              totalAmount: order.totalAmount,
+              createdAt: order.createdAt,
+              updatedAt: order.updatedAt,
+              orderLines: order.orderLines,
+              deliveryAddress: order.deliveryAddress,
+              rating: rating, // Add the fetched rating
+            );
+          }
+
+          return order; // Return order as-is if no rating found
+        }),
+      );
+
+      state = state.copyWith(orders: ordersWithRatings, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
   }
 
   /// Refresh orders

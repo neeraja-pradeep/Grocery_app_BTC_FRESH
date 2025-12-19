@@ -46,6 +46,8 @@ class ApiEndpoints {
       '/api/order/v1/orders/$orderId/';
   static String orderRating(String orderId) =>
       '/api/order/v1/$orderId/ratings/';
+  static String orderRatingWithId(String orderId, int ratingId) =>
+      '/api/order/v1/$orderId/ratings/$ratingId/';
 
   // ============================================================================
   // CHECKOUT / PAYMENT ENDPOINTS
