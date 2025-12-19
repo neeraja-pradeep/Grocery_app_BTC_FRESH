@@ -114,6 +114,14 @@ class _DeliveryStatusBarState extends ConsumerState<DeliveryStatusBar> {
   ) {
     final status = state.status;
 
+    // Special handling for pending and assigned statuses
+    if (status == DeliveryApiStatus.pending) {
+      return _buildPendingBar(context, ref, state);
+    } else if (status == DeliveryApiStatus.assigned) {
+      return _buildAssignedBar(context, ref, state);
+    }
+
+    // Regular active status for other states
     return _buildContainer(
       onTap: () {
         // Navigate to order tracking screen
@@ -129,6 +137,171 @@ class _DeliveryStatusBarState extends ConsumerState<DeliveryStatusBar> {
           Expanded(child: _buildStatusText(status)),
           // Arrow button
           _buildArrowButton(),
+        ],
+      ),
+    );
+  }
+
+  /// Build pending status bar (waiting for store to accept)
+  Widget _buildPendingBar(
+    BuildContext context,
+    WidgetRef ref,
+    DeliveryStatusActive state,
+  ) {
+    return _buildContainer(
+      backgroundColor: const Color(0xFFFFF9E6), // Light amber background
+      borderColor: const Color(0xFFFFE082), // Amber border
+      onTap: () {
+        ref.read(deliveryStatusProvider.notifier).refresh();
+      },
+      child: Row(
+        children: [
+          // Pending icon with animation
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFFFB74D),
+                  Color(0xFFFFA726),
+                ], // Orange gradient
+              ),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: SizedBox(
+              width: 20.w,
+              height: 20.h,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          // Status text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Waiting for store to accept',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFF57C00), // Dark orange
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'Your order is being reviewed by the store',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: const Color(0xFF888888),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Estimated time badge
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFB74D),
+              borderRadius: BorderRadius.circular(6.r),
+            ),
+            child: Text(
+              '~40 min',
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build assigned status bar (order accepted by store)
+  Widget _buildAssignedBar(
+    BuildContext context,
+    WidgetRef ref,
+    DeliveryStatusActive state,
+  ) {
+    return _buildContainer(
+      backgroundColor: const Color(0xFFE8F5E9), // Light green background
+      borderColor: const Color(0xFF81C784), // Light green border
+      onTap: () {
+        ref.read(deliveryStatusProvider.notifier).refresh();
+      },
+      child: Row(
+        children: [
+          // Success check icon
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF66BB6A),
+                  Color(0xFF4CAF50),
+                ], // Green gradient
+              ),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 20.sp,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          // Status text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Order Accepted!',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF2E7D32), // Dark green
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'Your order is being prepared',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: const Color(0xFF888888),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Estimated time badge
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4CAF50),
+              borderRadius: BorderRadius.circular(6.r),
+            ),
+            child: Text(
+              '~40 min',
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
     );

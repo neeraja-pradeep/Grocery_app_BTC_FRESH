@@ -179,8 +179,13 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
         onTap: () {
           if (widget.onSubmit != null && _selectedRating > 0) {
             widget.onSubmit?.call(_selectedRating);
+          } else {
+            // If no onSubmit callback or no rating selected, just close
+            Navigator.pop(
+              context,
+              _selectedRating > 0 ? _selectedRating : null,
+            );
           }
-          Navigator.pop(context);
         },
         child: Container(
           width: double.infinity,

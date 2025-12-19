@@ -28,6 +28,7 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   final OrdersApi _ordersApi;
   final DeliveryStorageService _storageService;
   Timer? _pollingTimer;
+  Timer? _autoHideTimer;
   BuildContext? _context;
   bool _feedbackShown = false;
   static const Duration _pollingInterval = Duration(seconds: 30);
@@ -169,6 +170,9 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
     _feedbackShown = true;
     final currentOrderId = state.orderId;
 
+    // Cancel auto-hide timer while showing rating popup
+    _autoHideTimer?.cancel();
+
     // Show feedback popup after a short delay
     Future.delayed(const Duration(seconds: 1), () {
       if (_context != null && _context!.mounted && currentOrderId != null) {
@@ -183,6 +187,9 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
             // Submit rating to backend
             await _submitRating(currentOrderId, rating);
           }
+
+          // Reschedule auto-hide after rating sheet closes
+          _scheduleAutoHide();
         });
       }
     });
@@ -232,7 +239,10 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
 
   /// Schedule auto-hide after delivery is completed
   void _scheduleAutoHide() {
-    Timer(_completedHideDelay, () {
+    // Cancel any existing auto-hide timer
+    _autoHideTimer?.cancel();
+
+    _autoHideTimer = Timer(_completedHideDelay, () {
       if (mounted) {
         state = const DeliveryStatusState.hidden();
         Logger.info('Delivery status bar auto-hidden after completion');
@@ -251,6 +261,7 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   /// Hide the delivery status bar
   void hide() {
     _stopPolling();
+    _autoHideTimer?.cancel();
     _storageService.clearDeliveryTracking();
     state = const DeliveryStatusState.hidden();
   }
@@ -258,6 +269,7 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   /// Dismiss failed delivery status (user acknowledged)
   void dismissFailure() {
     _stopPolling();
+    _autoHideTimer?.cancel();
     _storageService.clearDeliveryTracking();
     state = const DeliveryStatusState.hidden();
   }
@@ -265,6 +277,7 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   @override
   void dispose() {
     _stopPolling();
+    _autoHideTimer?.cancel();
     super.dispose();
   }
 }
