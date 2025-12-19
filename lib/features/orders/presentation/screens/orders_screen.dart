@@ -7,6 +7,7 @@ import '../../../../app/theme/colors.dart';
 import '../../../../core/application/providers/admin_phone_provider.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../bottomnavbar/bottom_navbar.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../../application/providers/orders_provider.dart';
@@ -71,14 +72,16 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         ),
         centerTitle: false,
       ),
-      body: Column(
-        children: [
-          // Tab switcher
-          _buildTabSwitcher(),
-          SizedBox(height: 16.h),
-          // Orders list
-          Expanded(child: _buildBody(ordersState)),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Tab switcher
+            _buildTabSwitcher(),
+            SizedBox(height: 16.h),
+            // Orders list
+            Expanded(child: _buildBody(ordersState)),
+          ],
+        ),
       ),
     );
   }
@@ -244,35 +247,43 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 
   /// Reorders items from a previous order
-  /// Adds each product to cart with quantity of 1
-  /// Skips unavailable items (stock validation handled by API)
+  /// Fetches order lines from order-lines endpoint, adds items to cart with original quantities,
+  /// then navigates to cart tab
   Future<void> _handleReorder(OrderEntity order) async {
-    if (order.orderLines.isEmpty) {
-      AppSnackbar.warning(context, 'This order has no items to reorder');
-      return;
-    }
-
     // Show loading indicator
     if (mounted) {
-      AppSnackbar.info(context, 'Adding items to cart...');
+      AppSnackbar.info(context, 'Loading order items...');
     }
 
     try {
+      // Fetch order lines from the order-lines endpoint
+      final ordersApi = ref.read(ordersApiProvider);
+      final orderLines = await ordersApi.getOrderLines(order.id.toString());
+
+      if (orderLines.isEmpty) {
+        if (mounted) {
+          AppSnackbar.warning(context, 'This order has no items to reorder');
+        }
+        return;
+      }
+
+      // Show loading indicator for adding to cart
+      if (mounted) {
+        AppSnackbar.info(context, 'Adding items to cart...');
+      }
+
       final checkoutLineNotifier = ref.read(
         checkoutLineControllerProvider.notifier,
       );
 
       int successCount = 0;
       int failedCount = 0;
-      final List<String> unavailableItems = [];
 
-      // Add each item from the order to cart one by one
-      // Default quantity is 1 per product as per requirement
-      for (final orderLine in order.orderLines) {
+      // Add each item from the order to cart with original quantities
+      for (final orderLine in orderLines) {
         // Skip items with invalid product variant ID
         if (orderLine.productVariantId <= 0) {
           failedCount++;
-          unavailableItems.add(orderLine.productName);
           Logger.warning(
             'Skipping item with invalid variant ID: ${orderLine.productName} (${orderLine.productVariantId})',
           );
@@ -280,10 +291,10 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         }
 
         try {
-          // Add with quantity 1 (default as per requirement)
+          // Add with original quantity from the order
           await checkoutLineNotifier.addToCart(
             productVariantId: orderLine.productVariantId,
-            quantity: 1,
+            quantity: orderLine.quantity,
           );
           successCount++;
           Logger.info(
@@ -291,13 +302,12 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             data: {
               'product_variant_id': orderLine.productVariantId,
               'product_name': orderLine.productName,
-              'quantity': 1,
+              'quantity': orderLine.quantity,
             },
           );
         } catch (e) {
           // Item failed to add (likely out of stock or unavailable)
           failedCount++;
-          unavailableItems.add(orderLine.productName);
           Logger.error(
             'Failed to add item to cart: ${orderLine.productName} (variant: ${orderLine.productVariantId})',
             error: e,
@@ -305,7 +315,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         }
       }
 
-      // Show result to user
+      // Show result to user and navigate to cart if successful
       if (mounted) {
         if (successCount > 0 && failedCount == 0) {
           // All items added successfully
@@ -313,12 +323,16 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             context,
             '$successCount item${successCount > 1 ? 's' : ''} added to cart',
           );
+          // Navigate to cart tab (index 3 in bottom navbar)
+          _navigateToCart();
         } else if (successCount > 0 && failedCount > 0) {
           // Some items added, some failed (likely out of stock)
           AppSnackbar.warning(
             context,
             '$successCount added, $failedCount unavailable',
           );
+          // Still navigate to cart to show what was added
+          _navigateToCart();
         } else {
           // All items failed
           AppSnackbar.error(
@@ -333,6 +347,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         AppSnackbar.error(context, 'Failed to reorder. Please try again.');
       }
     }
+  }
+
+  /// Navigate to cart tab in bottom navbar
+  void _navigateToCart() {
+    // Pop the orders screen to go back to the profile/main screen
+    Navigator.of(context).pop();
+
+    // Use the BottomNavigation global key to navigate to cart tab (index 3)
+    BottomNavigation.globalKey.currentState?.navigateToTab(3);
   }
 
   /// Opens the phone dialer with the support number fetched from API
@@ -539,7 +562,8 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
 
   @override
   Widget build(BuildContext context) {
-    final itemCount = widget.order.orderLines.length;
+    // Use orderlinesCount from API instead of orderLines.length
+    final itemCount = widget.order.orderlinesCount;
     final firstProductImage = widget.order.orderLines.isNotEmpty
         ? widget.order.orderLines.first.productImage
         : null;

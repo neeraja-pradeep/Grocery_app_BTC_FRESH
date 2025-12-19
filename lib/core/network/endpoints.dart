@@ -49,6 +49,10 @@ class ApiEndpoints {
   static String orderRatingWithId(String orderId, int ratingId) =>
       '/api/order/v1/$orderId/ratings/$ratingId/';
 
+  /// Get order lines by order ID using query parameter
+  static String orderLinesByOrder(String orderId) =>
+      '/api/order/v1/order-lines/?order=$orderId';
+
   // ============================================================================
   // CHECKOUT / PAYMENT ENDPOINTS
   // ============================================================================

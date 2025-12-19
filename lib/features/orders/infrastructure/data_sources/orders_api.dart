@@ -106,6 +106,38 @@ class OrdersApi {
     }
   }
 
+  /// Fetch order lines (products) for a specific order
+  /// [orderId] - The ID of the order
+  /// Returns list of order line entities
+  Future<List<OrderLineEntity>> getOrderLines(String orderId) async {
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.orderLinesByOrder(orderId),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        // API returns paginated response: {count, next, previous, results}
+        final data = response.data as Map<String, dynamic>;
+        final results = data['results'] as List? ?? [];
+
+        final orderIdInt = int.parse(orderId);
+
+        // Filter to only include order lines that match the requested order ID
+        // API seems to return order lines from multiple orders, so we filter client-side
+        return results
+            .map((e) => OrderLineEntity.fromJson(e as Map<String, dynamic>))
+            .where((orderLine) => orderLine.orderId == orderIdInt)
+            .toList();
+      }
+
+      throw Exception('Failed to load order lines');
+    } on DioException catch (e) {
+      throw Exception('Error loading order lines: ${e.message}');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Submit rating for an order
   /// [orderId] - The ID of the order to rate
   /// [stars] - Rating value (1-5)

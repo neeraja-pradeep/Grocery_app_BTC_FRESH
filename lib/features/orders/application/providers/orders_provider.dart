@@ -78,6 +78,7 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
   }
 
   /// Fetch completed orders (for Previous tab)
+  /// Uses status='delivered' to fetch all delivered/completed orders
   /// Also fetches ratings for each completed order
   Future<void> fetchCompletedOrders() async {
     state = state.copyWith(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
+import '../../../bottomnavbar/bottom_navbar.dart';
 
 class FailedOrderScreen extends StatelessWidget {
   final String? errorMessage;
@@ -81,7 +82,10 @@ class FailedOrderScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      context.go('/cart');
+                      // Navigate back to home/main screen first
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      // Then navigate to cart tab via bottom navigation
+                      BottomNavigation.globalKey.currentState?.navigateToTab(3);
                     },
                     style: ButtonStyles.greenButton,
                     child: AppText(
