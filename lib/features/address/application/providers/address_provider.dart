@@ -4,6 +4,7 @@ import 'package:hive_ce/hive.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/network_exceptions.dart';
 import '../../../../core/storage/hive/boxes.dart';
+import '../../domain/entities/address.dart';
 import '../../domain/repositories/address_repository.dart';
 import '../../infrastructure/data_sources/local/address_local_ds.dart';
 import '../../infrastructure/data_sources/remote/address_api.dart';
@@ -69,11 +70,12 @@ class ProfileAddressController extends Notifier<AddressState> {
         clearError: true,
       );
 
-      // Always trigger background refresh when showing cached data
-      // This ensures backend changes are fetched even if cache is fresh
-      if (result.fromCache) {
-        _refreshInBackground();
-      }
+      // NOTE: Background refresh disabled to prevent overwriting optimistic updates
+      // with stale backend data (backend has inconsistent selection state bug)
+      // User can manually pull-to-refresh if needed
+      // if (result.fromCache) {
+      //   _refreshInBackground();
+      // }
     } catch (error) {
       final message = _mapError(error);
 
@@ -84,25 +86,7 @@ class ProfileAddressController extends Notifier<AddressState> {
     }
   }
 
-  /// Background refresh without blocking UI
-  void _refreshInBackground() {
-    final repoImpl = _repository as AddressRepositoryImpl;
-    repoImpl
-        .refreshAddressesFromApi()
-        .then((freshAddresses) {
-          if (freshAddresses != null) {
-            // Update state with fresh data
-            state = state.copyWith(
-              addresses: freshAddresses,
-              isStale: false,
-              clearError: true,
-            );
-          }
-        })
-        .catchError((_) {
-          // Silently fail - user already has cached data
-        });
-  }
+  // Background refresh removed - was overwriting optimistic updates with buggy backend data
 
   /// Manual refresh for pull-to-refresh
   Future<void> refreshAddresses() async {
@@ -245,6 +229,53 @@ class ProfileAddressController extends Notifier<AddressState> {
     }
   }
 
+  /// Optimistically update address selection in UI before API call
+  void updateAddressSelectionOptimistically(String id) {
+    // Create a completely new list with updated selection states
+    final updatedAddresses = <Address>[];
+
+    for (final addr in state.addresses) {
+      updatedAddresses.add(
+        Address(
+          id: addr.id,
+          firstName: addr.firstName,
+          lastName: addr.lastName,
+          streetAddress1: addr.streetAddress1,
+          streetAddress2: addr.streetAddress2,
+          city: addr.city,
+          state: addr.state,
+          postalCode: addr.postalCode,
+          country: addr.country,
+          latitude: addr.latitude,
+          longitude: addr.longitude,
+          addressType: addr.addressType,
+          selected: addr.id == id, // Only selected if this is the chosen one
+          createdAt: addr.createdAt,
+          updatedAt: addr.updatedAt,
+        ),
+      );
+    }
+
+    // Force state update with completely new state instance
+    state = AddressState(
+      status: state.status,
+      addresses: updatedAddresses,
+      errorMessage: state.errorMessage,
+      isCreating: state.isCreating,
+      isUpdating: state.isUpdating,
+      isDeleting: state.isDeleting,
+      isStale: state.isStale,
+    );
+  }
+
+  /// Optimistically remove address from UI before API call
+  void removeAddressOptimistically(String id) {
+    final updatedAddresses = state.addresses
+        .where((addr) => addr.id != id)
+        .toList();
+    state = state.copyWith(addresses: updatedAddresses);
+  }
+
   /// Select an address as the default delivery address
   Future<void> selectAddress(String id) async {
     state = state.copyWith(isUpdating: true, clearError: true);
@@ -252,8 +283,9 @@ class ProfileAddressController extends Notifier<AddressState> {
     try {
       await _repository.selectAddress(id);
 
-      // Refresh the list after selecting
-      await fetchAddresses();
+      // Don't refresh from API - keep optimistic update as source of truth
+      // Backend has inconsistent selection state, so we trust our local state
+      // The optimistic update already set the correct selection state
 
       state = state.copyWith(isUpdating: false, clearError: true);
     } catch (error) {
