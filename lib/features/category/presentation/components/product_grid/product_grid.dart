@@ -171,44 +171,90 @@ class ProductGridState extends ConsumerState<ProductGrid> {
       controller: _scrollController,
       slivers: [
         for (var i = 0; i < widget.categories.length; i++) ...[
-          // Category heading
-          SliverToBoxAdapter(
-            child: Padding(
-              key: _sectionKeys[i],
-              padding: EdgeInsets.only(
-                top: i == 0 ? 0.h : 5.h,
-                bottom: 5.h,
-                left: 4.w,
-                right: 4.w,
-              ),
-              child: Container(
-                height: 25.h,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: AppColors.grey.withValues(alpha: 0.2),
-                  ),
-                  color: AppColors.white,
-                ),
-                child: Center(
-                  child: AppText(
-                    text: widget.categories[i].title,
-                    color: AppColors.green100,
-                    fontSize: 12.sp,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Products in 2-column grid
-          SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: 1.w),
-            sliver: _CategoryProductsSliver(
-              categoryId: widget.categories[i].id ?? '',
-              colorScheme: colorScheme,
-              onAddToCart: widget.onAddToCart,
-            ),
+          // Only render category if it has products
+          _CategorySectionBuilder(
+            sectionKey: _sectionKeys[i],
+            category: widget.categories[i],
+            isFirst: i == 0,
+            colorScheme: colorScheme,
+            onAddToCart: widget.onAddToCart,
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Builds a category section only if it has products
+/// Conditionally renders category heading + products grid
+class _CategorySectionBuilder extends ConsumerWidget {
+  const _CategorySectionBuilder({
+    required this.sectionKey,
+    required this.category,
+    required this.isFirst,
+    required this.colorScheme,
+    required this.onAddToCart,
+  });
+
+  final GlobalKey sectionKey;
+  final CategoryItem category;
+  final bool isFirst;
+  final ColorScheme colorScheme;
+  final ValueChanged<CategoryProduct> onAddToCart;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the product state for this category
+    final productState = ref.watch(
+      category_products.categoryProductControllerProvider(category.id ?? ''),
+    );
+
+    // Filter: Don't render if category has no products
+    // Check both null and empty conditions
+    if (productState.products.isEmpty) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
+    // Category has products - render heading + grid
+    return SliverMainAxisGroup(
+      slivers: [
+        // Category heading
+        SliverToBoxAdapter(
+          child: Padding(
+            key: sectionKey,
+            padding: EdgeInsets.only(
+              top: isFirst ? 0.h : 5.h,
+              bottom: 5.h,
+              left: 4.w,
+              right: 4.w,
+            ),
+            child: Container(
+              height: 25.h,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: AppColors.grey.withValues(alpha: 0.2),
+                ),
+                color: AppColors.white,
+              ),
+              child: Center(
+                child: AppText(
+                  text: category.title,
+                  color: AppColors.green100,
+                  fontSize: 12.sp,
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Products in 2-column grid
+        SliverPadding(
+          padding: EdgeInsets.symmetric(horizontal: 1.w),
+          sliver: _CategoryProductsSliver(
+            categoryId: category.id ?? '',
+            colorScheme: colorScheme,
+            onAddToCart: onAddToCart,
+          ),
+        ),
       ],
     );
   }
