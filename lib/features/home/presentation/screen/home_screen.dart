@@ -684,10 +684,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddressListScreen()),
-    ).then((_) {
-      // Clear cache and refresh to ensure fresh address is fetched
-      ref.read(homeProvider.notifier).clearCacheAndRefresh();
-    });
+    );
+    // Note: Address updates are handled optimistically in AddressListScreen
+    // No need to refresh here - the optimistic update is already applied
   }
 
   void _navigateToProfile() {

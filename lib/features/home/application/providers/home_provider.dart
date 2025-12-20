@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/utils/logger.dart';
 import '../../domain/entities/banner.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/product_variant.dart';
@@ -135,11 +136,70 @@ class HomeNotifier extends StateNotifier<HomeState> {
     await refresh();
   }
 
+  /// Update address immediately for instant UI feedback (optimistic update)
+  void updateAddressOptimistically(UserAddress? address) {
+    Logger.debug(
+      'updateAddressOptimistically called: ${address?.streetAddress1}, state: ${state.runtimeType}',
+    );
+
+    state.when(
+      initial: () {
+        Logger.warning('State is initial - cannot update address');
+      },
+      loading: () {
+        Logger.warning('State is loading - cannot update address');
+      },
+      loaded:
+          (
+            categories,
+            _,
+            bestDeals,
+            discountGroups,
+            activeAd,
+            catLoad,
+            dealLoad,
+            discLoad,
+          ) {
+            Logger.debug('Updating address in loaded state');
+            state = HomeState.loaded(
+              categories: categories,
+              selectedAddress: address,
+              bestDeals: bestDeals,
+              discountGroups: discountGroups,
+              activeAd: activeAd,
+              categoriesLoading: catLoad,
+              bestDealsLoading: dealLoad,
+              discountsLoading: discLoad,
+            );
+            Logger.debug(
+              'State updated with address: ${address?.streetAddress1}',
+            );
+          },
+      refreshing: (categories, _, bestDeals, discountGroups, activeAd) {
+        Logger.debug('Updating address in refreshing state');
+        state = HomeState.loaded(
+          categories: categories,
+          selectedAddress: address,
+          bestDeals: bestDeals,
+          discountGroups: discountGroups,
+          activeAd: activeAd,
+        );
+        Logger.debug('State updated with address: ${address?.streetAddress1}');
+      },
+      error: (failure, previousState) {
+        Logger.warning('State is error - cannot update address');
+      },
+    );
+
+    // Also update the cache to persist the optimistic update
+    if (address != null) {
+      _repository.updateCachedAddress(address);
+    }
+  }
+
   Future<void> reloadAddress() async {
     // Called when user updates address in profile/settings
-    // Clear the selected address cache first to force fresh fetch
-    await _repository.clearCache();
-
+    // Optimized: Only fetch address without clearing entire cache
     final result = await _repository.getSelectedAddress();
 
     result.fold(
@@ -147,7 +207,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
         // Keep current address on error, maybe show a snackbar in UI
       },
       (address) {
-        // Handle both loaded and refreshing states
+        // Immediately update state for instant UI feedback
         state.mapOrNull(
           loaded: (loadedState) {
             state = loadedState.copyWith(selectedAddress: address);

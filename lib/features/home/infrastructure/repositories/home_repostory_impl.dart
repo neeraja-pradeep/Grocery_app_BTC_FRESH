@@ -418,6 +418,20 @@ class HomeRepositoryImpl implements HomeRepository {
   }
 
   @override
+  Future<void> updateCachedAddress(UserAddress address) async {
+    try {
+      await _localDataSource.saveSelectedAddress(address);
+      Logger.debug('Selected address cache updated optimistically');
+    } on HiveError catch (e) {
+      Logger.error('Hive error updating cached address', error: e);
+      // Don't throw - cache update should be non-blocking
+    } catch (e) {
+      Logger.error('Unexpected error updating cached address', error: e);
+      // Don't throw - cache update should be non-blocking
+    }
+  }
+
+  @override
   Future<void> clearCache() async {
     try {
       await _localDataSource.clearAllHomeCache();

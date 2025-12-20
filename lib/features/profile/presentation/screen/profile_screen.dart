@@ -6,7 +6,6 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../address/presentation/screens/address_list_screen.dart';
 import '../../../auth/application/providers/auth_provider.dart';
-import '../../../home/application/providers/home_provider.dart';
 import '../../application/providers/profile_provider.dart';
 import '../components/profile_header.dart';
 import '../components/profile_menu_item.dart';
@@ -165,18 +164,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         titleFontSize: 14.sp,
                         titleFontWeight: FontWeight.w500,
                         onTap: () {
-                          Navigator.of(context)
-                              .push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const AddressListScreen(),
-                                ),
-                              )
-                              .then((_) {
-                                // Clear cache and refresh to ensure fresh address is fetched
-                                ref
-                                    .read(homeProvider.notifier)
-                                    .clearCacheAndRefresh();
-                              });
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const AddressListScreen(),
+                            ),
+                          );
+                          // Note: Address updates are handled optimistically
+                          // No need to clear cache - optimistic updates are already applied
                         },
                       ),
                       AppSpacing.h24,

@@ -6,7 +6,9 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../home/application/providers/home_provider.dart';
+import '../../../home/domain/entities/user_address.dart';
 import '../../application/providers/address_provider.dart';
+import '../../domain/entities/address.dart';
 import 'address_form_screen.dart';
 
 class AddressListScreen extends ConsumerStatefulWidget {
@@ -21,7 +23,12 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
   void initState() {
     super.initState();
     Future<void>.microtask(() {
-      ref.read(profileAddressControllerProvider.notifier).fetchAddresses();
+      // Only fetch if we don't have addresses yet
+      // This prevents overwriting optimistic updates with stale backend data
+      final currentState = ref.read(profileAddressControllerProvider);
+      if (currentState.addresses.isEmpty) {
+        ref.read(profileAddressControllerProvider.notifier).fetchAddresses();
+      }
     });
   }
 
@@ -347,21 +354,66 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
 
   Future<void> _handleSelectAddress(String id) async {
     try {
+      // Optimistic update: Update address list UI immediately
+      ref
+          .read(profileAddressControllerProvider.notifier)
+          .updateAddressSelectionOptimistically(id);
+
+      // Get the selected address for home screen update
+      final addressState = ref.read(profileAddressControllerProvider);
+      final selectedAddress = addressState.addresses.firstWhere(
+        (addr) => addr.id == id,
+        orElse: () => addressState.addresses.first,
+      );
+
+      // Convert to UserAddress and update home screen
+      final userAddress = _convertToUserAddress(selectedAddress);
+      ref.read(homeProvider.notifier).updateAddressOptimistically(userAddress);
+
+      // Then update backend
       await ref
           .read(profileAddressControllerProvider.notifier)
           .selectAddress(id);
 
-      // Reload address in home provider to update home screen
-      await ref.read(homeProvider.notifier).reloadAddress();
+      // Note: Don't reload from API - backend returns inconsistent selection state
+      // Trust the optimistic update as source of truth
 
       if (mounted) {
         AppSnackbar.success(context, 'Address selected successfully');
       }
     } catch (error) {
+      // Revert optimistic update on error
+      await ref
+          .read(profileAddressControllerProvider.notifier)
+          .fetchAddresses();
+      await ref.read(homeProvider.notifier).reloadAddress();
+
       if (mounted) {
         AppSnackbar.error(context, error.toString());
       }
     }
+  }
+
+  /// Convert Address entity to UserAddress for home screen
+  UserAddress _convertToUserAddress(Address address) {
+    return UserAddress(
+      id: int.tryParse(address.id) ?? 0,
+      firstName: address.firstName,
+      lastName: address.lastName,
+      streetAddress1: address.streetAddress1,
+      streetAddress2: address.streetAddress2,
+      city: address.city ?? '',
+      state: address.state ?? '',
+      postalCode: address.postalCode ?? '',
+      country: address.country ?? '',
+      latitude: address.latitude,
+      longitude: address.longitude,
+      addressType: address.addressType ?? 'home',
+      selected: address.selected,
+      createdAt: address.createdAt != null
+          ? DateTime.tryParse(address.createdAt!) ?? DateTime.now()
+          : DateTime.now(),
+    );
   }
 
   Future<void> _handleDelete(BuildContext context, String id) async {
@@ -401,13 +453,25 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
 
     if (confirmed == true && mounted) {
       try {
+        // Optimistically remove from UI immediately
+        ref
+            .read(profileAddressControllerProvider.notifier)
+            .removeAddressOptimistically(id);
+
+        // Then delete from backend
         await ref
             .read(profileAddressControllerProvider.notifier)
             .deleteAddress(id);
+
         if (context.mounted) {
           AppSnackbar.success(context, 'Address deleted successfully');
         }
       } catch (error) {
+        // Revert on error by refetching
+        await ref
+            .read(profileAddressControllerProvider.notifier)
+            .fetchAddresses();
+
         if (context.mounted) {
           AppSnackbar.error(context, error.toString());
         }

@@ -63,6 +63,9 @@ abstract class HomeRepository {
   /// Returns the user's selected address (or null if skipped/not set).
   Future<Either<Failure, UserAddress?>> getSelectedAddress();
 
+  /// Update the cached selected address (for optimistic updates)
+  Future<void> updateCachedAddress(UserAddress address);
+
   // --- Best Deals ---
   /// Fetches a list of specific product variants marked as "Best Deals".
   Future<Either<Failure, List<ProductVariant>>> getBestDeals({int limit = 10});
