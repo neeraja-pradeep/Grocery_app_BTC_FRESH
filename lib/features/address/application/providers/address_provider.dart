@@ -62,10 +62,35 @@ class ProfileAddressController extends Notifier<AddressState> {
       final repoImpl = _repository as AddressRepositoryImpl;
       final result = await repoImpl.fetchAddressesWithCache();
 
+      // Apply local selection override if we have one
+      // This works around the buggy backend GET endpoint that returns wrong selected address
+      final localSelectedId = state.localSelectedAddressId;
+      final correctedAddresses = localSelectedId != null
+          ? result.addresses.map((addr) {
+              return Address(
+                id: addr.id,
+                firstName: addr.firstName,
+                lastName: addr.lastName,
+                streetAddress1: addr.streetAddress1,
+                streetAddress2: addr.streetAddress2,
+                city: addr.city,
+                state: addr.state,
+                postalCode: addr.postalCode,
+                country: addr.country,
+                latitude: addr.latitude,
+                longitude: addr.longitude,
+                addressType: addr.addressType,
+                selected: addr.id == localSelectedId,
+                createdAt: addr.createdAt,
+                updatedAt: addr.updatedAt,
+              );
+            }).toList()
+          : result.addresses;
+
       // Update UI immediately with cached/fresh data
       state = state.copyWith(
         status: AddressStatus.data,
-        addresses: result.addresses,
+        addresses: correctedAddresses,
         isStale: result.isStale,
         clearError: true,
       );
@@ -95,9 +120,34 @@ class ProfileAddressController extends Notifier<AddressState> {
       final freshAddresses = await repoImpl.refreshAddressesFromApi();
 
       if (freshAddresses != null) {
+        // Apply local selection override if we have one
+        // This works around the buggy backend GET endpoint that returns wrong selected address
+        final localSelectedId = state.localSelectedAddressId;
+        final correctedAddresses = localSelectedId != null
+            ? freshAddresses.map((addr) {
+                return Address(
+                  id: addr.id,
+                  firstName: addr.firstName,
+                  lastName: addr.lastName,
+                  streetAddress1: addr.streetAddress1,
+                  streetAddress2: addr.streetAddress2,
+                  city: addr.city,
+                  state: addr.state,
+                  postalCode: addr.postalCode,
+                  country: addr.country,
+                  latitude: addr.latitude,
+                  longitude: addr.longitude,
+                  addressType: addr.addressType,
+                  selected: addr.id == localSelectedId,
+                  createdAt: addr.createdAt,
+                  updatedAt: addr.updatedAt,
+                );
+              }).toList()
+            : freshAddresses;
+
         state = state.copyWith(
           status: AddressStatus.data,
-          addresses: freshAddresses,
+          addresses: correctedAddresses,
           isStale: false,
           clearError: true,
         );
@@ -229,14 +279,17 @@ class ProfileAddressController extends Notifier<AddressState> {
     }
   }
 
-  /// Optimistically update address selection in UI before API call
-  void updateAddressSelectionOptimistically(String id) {
-    // Create a completely new list with updated selection states
-    final updatedAddresses = <Address>[];
+  /// Select an address as the default delivery address
+  /// Returns the selected address from the API response
+  Future<Address> selectAddress(String id) async {
+    state = state.copyWith(isUpdating: true, clearError: true);
 
-    for (final addr in state.addresses) {
-      updatedAddresses.add(
-        Address(
+    try {
+      final selectedAddress = await _repository.selectAddress(id);
+
+      // Update local state to reflect the selection
+      final updatedAddresses = state.addresses.map((addr) {
+        return Address(
           id: addr.id,
           firstName: addr.firstName,
           lastName: addr.lastName,
@@ -249,50 +302,24 @@ class ProfileAddressController extends Notifier<AddressState> {
           latitude: addr.latitude,
           longitude: addr.longitude,
           addressType: addr.addressType,
-          selected: addr.id == id, // Only selected if this is the chosen one
+          selected: addr.id == id,
           createdAt: addr.createdAt,
           updatedAt: addr.updatedAt,
-        ),
+        );
+      }).toList();
+
+      state = state.copyWith(
+        isUpdating: false,
+        clearError: true,
+        addresses: updatedAddresses,
+        // Track locally selected address to override buggy API during refresh
+        localSelectedAddressId: id,
       );
-    }
 
-    // Force state update with completely new state instance
-    state = AddressState(
-      status: state.status,
-      addresses: updatedAddresses,
-      errorMessage: state.errorMessage,
-      isCreating: state.isCreating,
-      isUpdating: state.isUpdating,
-      isDeleting: state.isDeleting,
-      isStale: state.isStale,
-    );
-  }
-
-  /// Optimistically remove address from UI before API call
-  void removeAddressOptimistically(String id) {
-    final updatedAddresses = state.addresses
-        .where((addr) => addr.id != id)
-        .toList();
-    state = state.copyWith(addresses: updatedAddresses);
-  }
-
-  /// Select an address as the default delivery address
-  Future<void> selectAddress(String id) async {
-    state = state.copyWith(isUpdating: true, clearError: true);
-
-    try {
-      await _repository.selectAddress(id);
-
-      // Don't refresh from API - keep optimistic update as source of truth
-      // Backend has inconsistent selection state, so we trust our local state
-      // The optimistic update already set the correct selection state
-
-      state = state.copyWith(isUpdating: false, clearError: true);
+      return selectedAddress;
     } catch (error) {
       final message = _mapError(error);
-
       state = state.copyWith(isUpdating: false, errorMessage: message);
-
       rethrow;
     }
   }

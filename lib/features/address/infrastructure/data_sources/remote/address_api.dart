@@ -144,4 +144,25 @@ class AddressApi {
 
     return AddressDto.fromJson(data);
   }
+
+  /// Fetches the selected address using ?selected=true filter
+  /// DEBUG: Used to verify backend behavior
+  Future<AddressDto?> fetchSelectedAddress() async {
+    final response = await _client.get<Map<String, dynamic>>(
+      'api/auth/v1/address/',
+      queryParameters: {'selected': 'true'},
+    );
+
+    final data = response.data;
+    if (data == null) {
+      return null;
+    }
+
+    final results = data['results'] as List?;
+    if (results == null || results.isEmpty) {
+      return null;
+    }
+
+    return AddressDto.fromJson(results.first as Map<String, dynamic>);
+  }
 }

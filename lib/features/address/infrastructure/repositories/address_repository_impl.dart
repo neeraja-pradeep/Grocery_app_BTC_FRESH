@@ -175,11 +175,13 @@ class AddressRepositoryImpl implements AddressRepository {
   }
 
   @override
-  Future<void> selectAddress(String id) async {
-    await _remoteDs.selectAddress(id);
+  Future<Address> selectAddress(String id) async {
+    final addressDto = await _remoteDs.selectAddress(id);
 
     // Invalidate cache after selecting address
     await _localDs.clearCache();
+
+    return addressDto.toDomain();
   }
 
   @override

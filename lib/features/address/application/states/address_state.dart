@@ -11,6 +11,7 @@ class AddressState {
     this.isUpdating = false,
     this.isDeleting = false,
     this.isStale = false,
+    this.localSelectedAddressId,
   });
 
   factory AddressState.initial() => const AddressState(
@@ -20,6 +21,7 @@ class AddressState {
     isUpdating: false,
     isDeleting: false,
     isStale: false,
+    localSelectedAddressId: null,
   );
 
   final AddressStatus status;
@@ -29,6 +31,10 @@ class AddressState {
   final bool isUpdating;
   final bool isDeleting;
   final bool isStale;
+
+  /// Locally tracked selected address ID to work around buggy backend API
+  /// The GET endpoint returns wrong selected address, so we track it locally
+  final String? localSelectedAddressId;
 
   bool get hasData => addresses.isNotEmpty;
   bool get isLoading => status == AddressStatus.loading;
@@ -42,7 +48,9 @@ class AddressState {
     bool? isUpdating,
     bool? isDeleting,
     bool? isStale,
+    String? localSelectedAddressId,
     bool clearError = false,
+    bool clearLocalSelectedAddressId = false,
   }) {
     return AddressState(
       status: status ?? this.status,
@@ -52,6 +60,9 @@ class AddressState {
       isUpdating: isUpdating ?? this.isUpdating,
       isDeleting: isDeleting ?? this.isDeleting,
       isStale: isStale ?? this.isStale,
+      localSelectedAddressId: clearLocalSelectedAddressId
+          ? null
+          : (localSelectedAddressId ?? this.localSelectedAddressId),
     );
   }
 }

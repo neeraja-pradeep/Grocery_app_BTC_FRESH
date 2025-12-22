@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
-import '../../../../core/utils/logger.dart';
 import '../../domain/entities/banner.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/product_variant.dart';
@@ -33,7 +32,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
     _loadHomeData();
   }
 
-  Future<void> _loadHomeData() async {
+  Future<void> _loadHomeData({UserAddress? preservedAddress}) async {
     // Only set loading if we are in initial or error state
     state.maybeMap(
       refreshing: (_) {}, // Don't overwrite refreshing state with loading
@@ -41,14 +40,15 @@ class HomeNotifier extends StateNotifier<HomeState> {
     );
 
     // Load all sections concurrently
+    // Skip address fetch if we have a preserved address (during refresh)
     final results = await Future.wait([
       _repository.getCategories(page: 1),
-      _repository.getSelectedAddress(),
+      preservedAddress != null
+          ? Future.value(Right<Failure, UserAddress?>(preservedAddress))
+          : _repository.getSelectedAddress(),
       _repository.getBestDeals(limit: 10),
       _repository.getDiscountedProducts(ordering: '-discounted_price'),
-      _repository.getBanners(
-        page: 1,
-      ), // Used getBanners instead of getActiveAdvertisement
+      _repository.getBanners(page: 1),
     ]);
 
     // Process results
@@ -90,11 +90,6 @@ class HomeNotifier extends StateNotifier<HomeState> {
       categories: categories,
     );
 
-    // Debug output
-    // print('DEBUG: Categories loaded: ${categories.length}');
-    // print('DEBUG: Best deals loaded: ${bestDeals.length}');
-    // print('DEBUG: Discount groups loaded: ${discounts.length}');
-
     // Logic: Use the first banner as the "active ad" for now, or null
     final banners = bannersResult.getRight().getOrElse(() => []);
     final activeAd = banners.isNotEmpty ? banners.first : null;
@@ -113,87 +108,44 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
   Future<void> refresh() async {
     // Only refresh if we have data loaded
-    state.mapOrNull(
-      loaded: (loadedState) {
-        state = HomeState.refreshing(
-          categories: loadedState.categories,
-          selectedAddress: loadedState.selectedAddress,
-          bestDeals: loadedState.bestDeals,
-          discountGroups: loadedState.discountGroups,
-          activeAd: loadedState.activeAd,
-        );
-        _loadHomeData();
-      },
-      error: (_) => _loadHomeData(), // Retry on error
-    );
+    final currentState = state;
+    if (currentState is HomeLoaded) {
+      state = HomeState.refreshing(
+        categories: currentState.categories,
+        selectedAddress: currentState.selectedAddress,
+        bestDeals: currentState.bestDeals,
+        discountGroups: currentState.discountGroups,
+        activeAd: currentState.activeAd,
+      );
+      // Preserve current address during refresh (buggy API returns wrong address)
+      await _loadHomeData(preservedAddress: currentState.selectedAddress);
+    } else if (currentState is HomeError) {
+      // Retry on error - fetch fresh address
+      await _loadHomeData();
+    }
   }
 
   Future<void> clearCacheAndRefresh() async {
     // Clear Hive cache first
     await _repository.clearCache();
 
-    // Then refresh data
+    // Then refresh data (preserve address)
     await refresh();
   }
 
-  /// Update address immediately for instant UI feedback (optimistic update)
-  void updateAddressOptimistically(UserAddress? address) {
-    Logger.debug(
-      'updateAddressOptimistically called: ${address?.streetAddress1}, state: ${state.runtimeType}',
-    );
-
-    state.when(
-      initial: () {
-        Logger.warning('State is initial - cannot update address');
-      },
-      loading: () {
-        Logger.warning('State is loading - cannot update address');
-      },
-      loaded:
-          (
-            categories,
-            _,
-            bestDeals,
-            discountGroups,
-            activeAd,
-            catLoad,
-            dealLoad,
-            discLoad,
-          ) {
-            Logger.debug('Updating address in loaded state');
-            state = HomeState.loaded(
-              categories: categories,
-              selectedAddress: address,
-              bestDeals: bestDeals,
-              discountGroups: discountGroups,
-              activeAd: activeAd,
-              categoriesLoading: catLoad,
-              bestDealsLoading: dealLoad,
-              discountsLoading: discLoad,
-            );
-            Logger.debug(
-              'State updated with address: ${address?.streetAddress1}',
-            );
-          },
-      refreshing: (categories, _, bestDeals, discountGroups, activeAd) {
-        Logger.debug('Updating address in refreshing state');
-        state = HomeState.loaded(
-          categories: categories,
-          selectedAddress: address,
-          bestDeals: bestDeals,
-          discountGroups: discountGroups,
-          activeAd: activeAd,
-        );
-        Logger.debug('State updated with address: ${address?.streetAddress1}');
-      },
-      error: (failure, previousState) {
-        Logger.warning('State is error - cannot update address');
-      },
-    );
-
-    // Also update the cache to persist the optimistic update
-    if (address != null) {
-      _repository.updateCachedAddress(address);
+  /// Update address in the current state
+  void updateAddressInState(UserAddress? address) {
+    final currentState = state;
+    if (currentState is HomeLoaded) {
+      state = currentState.copyWith(selectedAddress: address);
+    } else if (currentState is HomeRefreshing) {
+      state = HomeState.loaded(
+        categories: currentState.categories,
+        selectedAddress: address,
+        bestDeals: currentState.bestDeals,
+        discountGroups: currentState.discountGroups,
+        activeAd: currentState.activeAd,
+      );
     }
   }
 
@@ -208,20 +160,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
       },
       (address) {
         // Immediately update state for instant UI feedback
-        state.mapOrNull(
-          loaded: (loadedState) {
-            state = loadedState.copyWith(selectedAddress: address);
-          },
-          refreshing: (refreshingState) {
-            state = HomeState.loaded(
-              categories: refreshingState.categories,
-              selectedAddress: address,
-              bestDeals: refreshingState.bestDeals,
-              discountGroups: refreshingState.discountGroups,
-              activeAd: refreshingState.activeAd,
-            );
-          },
-        );
+        updateAddressInState(address);
       },
     );
   }

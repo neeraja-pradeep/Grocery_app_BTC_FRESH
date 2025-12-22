@@ -367,7 +367,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
   @override
   Future<void> clearAllHomeCache() async {
     final b = await box;
-    // Clear ALL home cache including selected address
+    // Clear all cache including address (address always fetched from API now)
     await b.clear();
   }
 }

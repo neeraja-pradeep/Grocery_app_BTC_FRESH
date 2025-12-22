@@ -341,39 +341,12 @@ class HomeRepositoryImpl implements HomeRepository {
 
   @override
   Future<Either<Failure, UserAddress?>> getSelectedAddress() async {
-    // 1. Check Cache
-    try {
-      final cached = await _localDataSource.getSelectedAddress();
-      if (cached != null) {
-        Logger.debug('Selected address loaded from cache');
-        return Right(cached);
-      }
-    } on HiveError catch (e) {
-      Logger.error('Hive cache read error for selected address', error: e);
-    } catch (e) {
-      Logger.error('Unexpected cache error for selected address', error: e);
-    }
-
-    // 2. Fetch
+    // Always fetch from API - no caching for address
     try {
       final address = await _remoteDataSource.getSelectedAddress();
       Logger.debug(
         'Selected address loaded from API: ${address != null ? 'found' : 'not found'}',
       );
-
-      if (address != null) {
-        try {
-          await _localDataSource.saveSelectedAddress(address);
-          Logger.debug('Selected address saved to cache');
-        } on HiveError catch (e) {
-          Logger.error('Failed to save selected address to cache', error: e);
-        } catch (e) {
-          Logger.error(
-            'Unexpected error saving selected address to cache',
-            error: e,
-          );
-        }
-      }
       return Right(address);
     } on NetworkException catch (e) {
       Logger.warning('Network error fetching selected address', error: e);
@@ -419,16 +392,8 @@ class HomeRepositoryImpl implements HomeRepository {
 
   @override
   Future<void> updateCachedAddress(UserAddress address) async {
-    try {
-      await _localDataSource.saveSelectedAddress(address);
-      Logger.debug('Selected address cache updated optimistically');
-    } on HiveError catch (e) {
-      Logger.error('Hive error updating cached address', error: e);
-      // Don't throw - cache update should be non-blocking
-    } catch (e) {
-      Logger.error('Unexpected error updating cached address', error: e);
-      // Don't throw - cache update should be non-blocking
-    }
+    // No-op: Address caching removed - always fetch from API
+    Logger.debug('Address cache update skipped - fetching from API instead');
   }
 
   @override
