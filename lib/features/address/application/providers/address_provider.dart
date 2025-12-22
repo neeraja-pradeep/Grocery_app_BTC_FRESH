@@ -335,6 +335,36 @@ class ProfileAddressController extends Notifier<AddressState> {
     }
   }
 
+  /// Set local selected address ID without making API call
+  /// Used when selection is made from another provider (e.g., cart bottom sheet)
+  void setLocalSelectedAddressId(String id) {
+    // Update local state to reflect the selection
+    final updatedAddresses = state.addresses.map((addr) {
+      return Address(
+        id: addr.id,
+        firstName: addr.firstName,
+        lastName: addr.lastName,
+        streetAddress1: addr.streetAddress1,
+        streetAddress2: addr.streetAddress2,
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country,
+        latitude: addr.latitude,
+        longitude: addr.longitude,
+        addressType: addr.addressType,
+        selected: addr.id == id,
+        createdAt: addr.createdAt,
+        updatedAt: addr.updatedAt,
+      );
+    }).toList();
+
+    state = state.copyWith(
+      addresses: updatedAddresses,
+      localSelectedAddressId: id,
+    );
+  }
+
   String _mapError(Object error) {
     if (error is NetworkException) {
       return error.message;

@@ -4,6 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
+import '../../../address/application/providers/address_provider.dart';
+import '../../../home/application/providers/home_provider.dart';
+import '../../../home/domain/entities/user_address.dart';
 import '../../application/providers/address_providers.dart';
 import '../../application/states/address_state.dart';
 import '../screen/address_screen.dart';
@@ -195,6 +198,32 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
             ref
                 .read(addressControllerProvider.notifier)
                 .setLocalSelectedAddress(address);
+
+            // Convert to UserAddress and update home screen
+            final userAddress = UserAddress(
+              id: address.id,
+              firstName: address.firstName,
+              lastName: address.lastName,
+              streetAddress1: address.streetAddress1,
+              streetAddress2: address.streetAddress2,
+              city: address.city ?? '',
+              state: address.state ?? '',
+              postalCode: address.postalCode ?? '',
+              country: address.country ?? '',
+              latitude: address.latitude?.toString(),
+              longitude: address.longitude?.toString(),
+              addressType: address.addressType,
+              selected: true,
+              createdAt: address.createdAt,
+            );
+
+            // Update home screen with selected address
+            ref.read(homeProvider.notifier).updateAddressInState(userAddress);
+
+            // Update profile address provider's local selection
+            ref
+                .read(profileAddressControllerProvider.notifier)
+                .setLocalSelectedAddressId(address.id.toString());
 
             // Close the bottom sheet
             Navigator.pop(context);

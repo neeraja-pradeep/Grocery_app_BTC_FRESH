@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../cart/application/providers/address_providers.dart';
 import '../../../home/application/providers/home_provider.dart';
 import '../../../home/domain/entities/user_address.dart';
 import '../../application/providers/address_provider.dart';
@@ -377,6 +378,12 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
 
       // Update home screen with the address from PATCH response
       ref.read(homeProvider.notifier).updateAddressInState(userAddress);
+
+      // Also update cart provider to keep it in sync
+      final addressId = int.tryParse(selectedAddress.id);
+      if (addressId != null) {
+        ref.read(addressControllerProvider.notifier).selectAddress(addressId);
+      }
 
       if (mounted) {
         AppSnackbar.success(context, 'Address selected successfully');
