@@ -311,19 +311,54 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
                   ),
                 ),
 
-                // More Options Icon
-                IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddressScreen(address: address),
-                      ),
-                    );
+                // More Options Menu (Edit/Delete)
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddressScreen(address: address),
+                        ),
+                      );
+                    } else if (value == 'delete') {
+                      _handleDelete(context, address.id);
+                    }
                   },
-                  icon: const Icon(Icons.more_vert),
-                  iconSize: 18.h,
-                  color: AppColors.black,
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: AppColors.black,
+                    size: 18.h,
+                  ),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 18.sp),
+                          SizedBox(width: 8.w),
+                          const Text('Edit'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline,
+                            size: 18.sp,
+                            color: Colors.red,
+                          ),
+                          SizedBox(width: 8.w),
+                          const Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -331,5 +366,70 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
         );
       },
     );
+  }
+
+  Future<void> _handleDelete(BuildContext context, int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          'Delete Address',
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Are you sure you want to delete this address?',
+          style: TextStyle(fontSize: 14.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(fontSize: 14.sp, color: AppColors.grey),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Delete',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(addressControllerProvider.notifier).deleteAddress(id);
+
+        // Sync profile address provider (just refresh, API delete already done)
+        ref.read(profileAddressControllerProvider.notifier).fetchAddresses();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Address deleted successfully'),
+              backgroundColor: AppColors.green100,
+            ),
+          );
+          // Close bottom sheet after delete
+          Navigator.pop(context);
+        }
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }

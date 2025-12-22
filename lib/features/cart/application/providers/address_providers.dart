@@ -316,11 +316,54 @@ class AddressController extends Notifier<AddressState> {
     try {
       await _repository.deleteAddress(id);
 
-      // Refresh list after deleting
-      await refresh();
+      // Force refresh to bypass 304 conditional request
+      // After delete, we need fresh data from server
+      await _forceRefresh();
     } catch (e) {
       developer.log('Failed to delete address: $e', name: 'AddressController');
       rethrow;
+    }
+  }
+
+  /// Force refresh bypassing conditional requests (304)
+  /// Used after mutations (create/update/delete) to ensure fresh data
+  Future<void> _forceRefresh() async {
+    state = state.copyWith(
+      isRefreshing: true,
+      refreshStartedAt: DateTime.now(),
+    );
+
+    try {
+      final addressList = await _repository.getAddressList(forceRefresh: true);
+
+      if (addressList == null) {
+        state = state.copyWith(
+          isRefreshing: false,
+          refreshEndedAt: DateTime.now(),
+        );
+        return;
+      }
+
+      final newStatus = addressList.results.isEmpty
+          ? AddressStatus.empty
+          : AddressStatus.data;
+
+      state = state.copyWith(
+        status: newStatus,
+        addressList: addressList,
+        lastSyncedAt: DateTime.now(),
+        isRefreshing: false,
+        refreshEndedAt: DateTime.now(),
+      );
+
+      _scheduleIndicatorReset();
+    } catch (e) {
+      developer.log('Force refresh failed: $e', name: 'AddressController');
+      state = state.copyWith(
+        isRefreshing: false,
+        refreshEndedAt: DateTime.now(),
+      );
+      _scheduleIndicatorReset();
     }
   }
 
