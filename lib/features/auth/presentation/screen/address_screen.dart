@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
+import '../../../../core/location/location_provider.dart';
 import '../../../../core/utils/address_enum.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../home/presentation/components/location_selection_screen.dart';
@@ -34,6 +35,15 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
   bool _hasLocationFromMap = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize location provider to prepare permissions
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(locationProvider.notifier).initialize();
+    });
+  }
+
+  @override
   void dispose() {
     houseController.dispose();
     areaController.dispose();
@@ -41,6 +51,21 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
   }
 
   Future<void> _openMapPicker() async {
+    // Ensure location provider is initialized and permissions are checked
+    final locationState = ref.read(locationProvider);
+
+    // If permission is required, request it before opening map
+    locationState.mapOrNull(
+      initial: (_) {
+        // Initialize if not done yet
+        ref.read(locationProvider.notifier).initialize();
+      },
+      permissionRequired: (_) {
+        // Request permission
+        ref.read(locationProvider.notifier).requestPermission();
+      },
+    );
+
     final result = await Navigator.push<SelectedLocation>(
       context,
       MaterialPageRoute(
