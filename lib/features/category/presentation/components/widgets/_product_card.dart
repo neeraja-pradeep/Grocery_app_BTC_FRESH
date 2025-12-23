@@ -117,6 +117,21 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     }
   }
 
+  /// Handle increase quantity in cart
+  Future<void> _handleIncreaseQuantity(BuildContext context, int lineId) async {
+    if (variantId > 0) {
+      try {
+        await ref
+            .read(checkoutLineControllerProvider.notifier)
+            .updateQuantity(lineId: lineId, delta: 1);
+      } catch (e) {
+        if (context.mounted) {
+          AppSnackbar.error(context, 'Failed to update cart');
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final image = widget.product.imageUrl ?? widget.product.thumbnailUrl;
@@ -129,6 +144,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     );
     final isInCart = cartItem.isNotEmpty;
     final cartLineId = isInCart ? cartItem.first.id : 0;
+    final cartQuantity = isInCart ? cartItem.first.quantity : 0;
 
     // Watch real-time Socket.IO updates
     final priceUpdates = ref.watch(priceUpdateNotifierProvider);
@@ -204,12 +220,15 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                     ),
                   ),
                   Positioned(
-                    top: 8.h,
-                    right: 5.w,
+                    top: 4.h,
+                    right: 4.w,
                     child: isInCart
-                        ? _MinusButton(
-                            onTap: () =>
+                        ? _QuantitySelector(
+                            quantity: cartQuantity,
+                            onDecrease: () =>
                                 _handleDecreaseQuantity(context, cartLineId),
+                            onIncrease: () =>
+                                _handleIncreaseQuantity(context, cartLineId),
                           )
                         : _AnimatedAddButton(
                             onTap: () => _handleAddToCart(context, inStock),
@@ -559,75 +578,73 @@ class _AnimatedAddButtonState extends State<_AnimatedAddButton>
   }
 }
 
-/// Animated minus button with user-friendly highlighted border
-/// Shows when product is already in cart - allows reducing quantity
-class _MinusButton extends StatefulWidget {
-  const _MinusButton({required this.onTap});
+/// Simple horizontal quantity selector [-] [qty] [+]
+class _QuantitySelector extends StatelessWidget {
+  const _QuantitySelector({
+    required this.quantity,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
 
-  final VoidCallback onTap;
-
-  @override
-  State<_MinusButton> createState() => _MinusButtonState();
-}
-
-class _MinusButtonState extends State<_MinusButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.85,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleTap() {
-    _controller.forward().then((_) {
-      _controller.reverse();
-    });
-    widget.onTap();
-  }
+  final int quantity;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _handleTap,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
+    return Container(
+      height: 29.h,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Minus button
+          GestureDetector(
+            onTap: onDecrease,
             child: Container(
               width: 29.w,
-              height: 29.w,
-              decoration: BoxDecoration(
-                color: AppColors.white,
+              height: 29.h,
+              decoration: const BoxDecoration(
+                color: AppColors.green,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.green50, width: 2.5),
               ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.remove,
-                color: AppColors.green50,
-                size: 20,
-              ),
+              child: const Icon(Icons.remove, color: AppColors.white, size: 18),
             ),
-          );
-        },
+          ),
+          // Quantity display
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.w),
+            child: AppText(
+              text: quantity.toString(),
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.black,
+            ),
+          ),
+          // Plus button
+          GestureDetector(
+            onTap: onIncrease,
+            child: Container(
+              width: 29.w,
+              height: 29.h,
+              decoration: const BoxDecoration(
+                color: AppColors.green,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add, color: AppColors.white, size: 18),
+            ),
+          ),
+        ],
       ),
     );
   }
