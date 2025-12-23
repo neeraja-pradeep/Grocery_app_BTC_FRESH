@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../../../../core/location/location_provider.dart';
 import '../../domain/entities/user_address.dart';
+import '../../../cart/presentation/components/address_sheet.dart';
 import '../screen/search_screen.dart';
-import 'location_selection_screen.dart';
 import 'profile_icon_button.dart';
 import 'search_bar.dart';
 import 'voice_search_overlay.dart';
@@ -38,77 +36,14 @@ class HomeHeader extends ConsumerWidget {
   //   // debugPrint("Voice search clicked");
   // }
 
-  /// Navigate to full-screen location selection map with smooth transition
-  void _navigateToLocationSelection(BuildContext context, WidgetRef ref) {
-    // Get current location if available
-    final locationState = ref.read(locationProvider);
-    LatLng? initialPosition;
-
-    locationState.mapOrNull(
-      loaded: (state) {
-        initialPosition = LatLng(
-          state.location.latitude,
-          state.location.longitude,
-        );
-      },
+  /// Open address selection bottom sheet for manual address entry
+  void _openAddressSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AddressSheet(),
     );
-
-    // Also check if we have address with coordinates
-    if (initialPosition == null &&
-        address?.latitude != null &&
-        address?.longitude != null) {
-      final lat = double.tryParse(address!.latitude!);
-      final lng = double.tryParse(address!.longitude!);
-      if (lat != null && lng != null) {
-        initialPosition = LatLng(lat, lng);
-      }
-    }
-
-    // Use smooth page transition for professional feel
-    Navigator.push<SelectedLocation>(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            LocationSelectionScreen(
-              initialLocation: initialPosition,
-              onBackWithoutSelection: () {
-                // User pressed back without selecting - no action needed
-              },
-            ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Smooth slide up transition like delivery apps
-          const begin = Offset(0.0, 0.3);
-          const end = Offset.zero;
-          const curve = Curves.easeOutCubic;
-
-          var tween = Tween(
-            begin: begin,
-            end: end,
-          ).chain(CurveTween(curve: curve));
-
-          var fadeTween = Tween<double>(
-            begin: 0.0,
-            end: 1.0,
-          ).chain(CurveTween(curve: curve));
-
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: FadeTransition(
-              opacity: animation.drive(fadeTween),
-              child: child,
-            ),
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 350),
-        reverseTransitionDuration: const Duration(milliseconds: 300),
-      ),
-    ).then((selectedLocation) {
-      if (selectedLocation != null) {
-        // Location was selected, trigger the original callback
-        // The parent widget can handle saving the location
-        onAddressClick();
-      }
-    });
   }
 
   @override
@@ -183,7 +118,7 @@ class HomeHeader extends ConsumerWidget {
                   // Location area - entire section is tappable (except profile icon)
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => _navigateToLocationSelection(context, ref),
+                      onTap: () => _openAddressSheet(context, ref),
                       behavior: HitTestBehavior.opaque,
                       child: Row(
                         children: [
