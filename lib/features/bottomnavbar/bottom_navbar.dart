@@ -32,6 +32,10 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
   int? _selectedCategoryId;
 
   void navigateToCategories(Category category) {
+    // Add to history if different from current
+    if (_currentIndex != 1) {
+      _tabHistory.add(1);
+    }
     setState(() {
       _selectedCategoryId = category.id;
       _currentIndex = 1;
@@ -42,6 +46,10 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
   /// Navigate to a specific tab by index
   void navigateToTab(int index) {
     if (index >= 0 && index < 4) {
+      // Add to history if different from current
+      if (index != _currentIndex) {
+        _tabHistory.add(index);
+      }
       setState(() {
         _currentIndex = index;
       });
@@ -64,6 +72,7 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
   }
 
   int _currentIndex = 0;
+  final List<int> _tabHistory = [0]; // Track navigation history
   late final PollingTabController _pollingController;
   bool _showReviewSheetOnCategoryLoad = false;
 
@@ -114,11 +123,20 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
       return;
     }
 
+    // Add to history only if different from current
+    if (index != _currentIndex) {
+      _tabHistory.add(index);
+    }
+
     setState(() => _currentIndex = index);
     _pollingController.selectTab(index);
   }
 
   void navigateToCategoryAndShowReview() {
+    // Add to history if different from current
+    if (_currentIndex != 1) {
+      _tabHistory.add(1);
+    }
     setState(() {
       _currentIndex = 1;
       _showReviewSheetOnCategoryLoad = true;
@@ -137,12 +155,30 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: _BottomNavBar(
-        colorScheme: colorScheme,
-        currentIndex: _currentIndex,
-        onItemSelected: _onTabSelected,
+    // Allow exit only if on Home tab and no history to go back to
+    final canExitApp = _tabHistory.length <= 1 && _currentIndex == 0;
+
+    return PopScope(
+      canPop: canExitApp,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return; // Already popped (exiting app)
+
+        // Go back to previous tab in history
+        if (_tabHistory.length > 1) {
+          _tabHistory.removeLast(); // Remove current tab
+          final previousTab = _tabHistory.last;
+
+          setState(() => _currentIndex = previousTab);
+          _pollingController.selectTab(previousTab);
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(index: _currentIndex, children: _pages),
+        bottomNavigationBar: _BottomNavBar(
+          colorScheme: colorScheme,
+          currentIndex: _currentIndex,
+          onItemSelected: _onTabSelected,
+        ),
       ),
     );
   }

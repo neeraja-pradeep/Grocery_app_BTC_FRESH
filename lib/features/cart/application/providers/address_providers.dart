@@ -404,6 +404,18 @@ class AddressController extends Notifier<AddressState> {
   /// - Conditional requests: Tiny 304 responses save bandwidth
   /// - Unconditional timing: Guarantees responsive UI updates
   void _startPolling() {
+    // Register with PollingManager for screen-aware polling
+    // DO NOT start timer here - wait for onResume callback
+    PollingManager.instance.registerPoller(
+      featureName: 'cart',
+      resourceId: 'addresses',
+      onResume: _resumePolling,
+      onPause: _pausePolling,
+    );
+  }
+
+  /// Actually start the polling timer (called by PollingManager when cart feature is active)
+  void _startPollingTimer() {
     _pollingTimer ??= Timer.periodic(_pollingInterval, (_) async {
       if (state.isRefreshing) return;
       if (!state.hasData && state.status == AddressStatus.loading) {
@@ -411,14 +423,6 @@ class AddressController extends Notifier<AddressState> {
       }
       await refresh();
     });
-
-    // Register with PollingManager for screen-aware polling
-    PollingManager.instance.registerPoller(
-      featureName: 'cart',
-      resourceId: 'addresses',
-      onResume: _resumePolling,
-      onPause: _pausePolling,
-    );
   }
 
   /// Resume polling when user navigates back to cart/address screen
@@ -429,7 +433,7 @@ class AddressController extends Notifier<AddressState> {
         name: 'AddressController',
         level: 700,
       );
-      _startPolling();
+      _startPollingTimer();
     }
   }
 
