@@ -5,6 +5,8 @@ import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
 import '../../application/providers/address_providers.dart';
 import '../../domain/entities/address.dart';
 
@@ -21,8 +23,6 @@ class AddressScreen extends ConsumerStatefulWidget {
 }
 
 class _AddressScreenState extends ConsumerState<AddressScreen> {
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _houseController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
 
@@ -35,8 +35,6 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
     // If editing, populate fields with existing data
     if (widget.address != null) {
       final address = widget.address!;
-      _firstNameController.text = address.firstName;
-      _lastNameController.text = address.lastName;
       _houseController.text = address.streetAddress1;
       _apartmentController.text = address.streetAddress2 ?? '';
       _selectedAddressType = address.addressType;
@@ -45,8 +43,6 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
 
   @override
   void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
     _houseController.dispose();
     _apartmentController.dispose();
     super.dispose();
@@ -56,15 +52,20 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
 
   Future<void> _saveAddress() async {
     // Validate fields
-    if (_firstNameController.text.isEmpty || _houseController.text.isEmpty) {
+    if (_houseController.text.isEmpty) {
       AppSnackbar.info(context, 'Please fill in all required fields');
       return;
     }
 
-    // Backend requires last_name to not be blank, use "." as default if empty
-    final lastName = _lastNameController.text.trim().isEmpty
-        ? '.'
-        : _lastNameController.text.trim();
+    // Get user data from auth provider
+    final authState = ref.read(authProvider);
+    String firstName = '.';
+    String lastName = '.';
+
+    if (authState is Authenticated) {
+      firstName = authState.user.firstName;
+      lastName = authState.user.lastName;
+    }
 
     setState(() => _isSaving = true);
 
@@ -75,7 +76,7 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
             .read(addressControllerProvider.notifier)
             .updateAddress(
               id: widget.address!.id,
-              firstName: _firstNameController.text.trim(),
+              firstName: firstName,
               lastName: lastName,
               streetAddress1: _houseController.text.trim(),
               streetAddress2: _apartmentController.text.trim().isEmpty
@@ -90,7 +91,7 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
         await ref
             .read(addressControllerProvider.notifier)
             .createAddress(
-              firstName: _firstNameController.text.trim(),
+              firstName: firstName,
               lastName: lastName,
               streetAddress1: _houseController.text.trim(),
               streetAddress2: _apartmentController.text.trim().isEmpty
@@ -224,62 +225,6 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                         fontWeight: FontWeight.w400,
                         color: AppColors.green100,
                         maxLines: 3,
-                      ),
-                    ),
-
-                    SizedBox(height: 24.h),
-
-                    // First Name
-                    TextField(
-                      controller: _firstNameController,
-                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12.sp),
-                      decoration: InputDecoration(
-                        labelText: 'First Name *',
-                        labelStyle: TextStyle(
-                          color: AppColors.lightGrey,
-                          fontSize: 12.sp,
-                          fontFamily: 'Poppins',
-                        ),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: AppColors.grey.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: AppColors.green100,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 24.h),
-
-                    // Last Name
-                    TextField(
-                      controller: _lastNameController,
-                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12.sp),
-                      decoration: InputDecoration(
-                        labelText: 'Last Name *',
-                        labelStyle: TextStyle(
-                          color: AppColors.lightGrey,
-                          fontSize: 12.sp,
-                          fontFamily: 'Poppins',
-                        ),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: AppColors.grey.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: AppColors.green100,
-                            width: 2,
-                          ),
-                        ),
                       ),
                     ),
 

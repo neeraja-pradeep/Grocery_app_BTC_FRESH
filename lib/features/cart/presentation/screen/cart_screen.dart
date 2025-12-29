@@ -127,6 +127,9 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   @override
   Widget build(BuildContext context) {
+    final checkoutState = ref.watch(checkoutLineControllerProvider);
+    final isCartEmpty = checkoutState.isEmpty || checkoutState.items.isEmpty;
+
     return Scaffold(
       backgroundColor: AppColors.green60,
       appBar: const CartAppBar(),
@@ -136,18 +139,63 @@ class _CartScreenState extends ConsumerState<CartScreen>
             Expanded(
               child: Container(
                 color: Colors.white,
-                child: Column(
-                  children: [
-                    _buildHeader(),
-                    _buildDivider(),
-                    _buildTabBar(),
-                    Expanded(child: _buildBody()),
-                  ],
-                ),
+                child: isCartEmpty
+                    ? _buildEmptyState()
+                    : Column(
+                        children: [
+                          _buildHeader(),
+                          _buildDivider(),
+                          _buildTabBar(),
+                          Expanded(child: _buildBody()),
+                        ],
+                      ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Build empty state UI - shown when cart is empty
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset('assets/images/trolley.png', width: 120.w, height: 120.h),
+          SizedBox(height: 24.h),
+          AppText(
+            text: 'Your cart is empty',
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w600,
+            color: AppColors.loaderGreen,
+          ),
+          SizedBox(height: 32.h),
+          SizedBox(
+            width: 230.w,
+            height: 48.h,
+            child: ElevatedButton(
+              onPressed: () {
+                // Switch to categories tab (index 1) using bottom nav global key
+                BottomNavigation.globalKey.currentState?.navigateToTab(1);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.green50,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                elevation: 0,
+              ),
+              child: AppText(
+                text: 'Continue Shopping',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.white,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -391,53 +439,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
       );
     }
 
-    // Handle empty state
-    if (checkoutState.isEmpty || checkoutState.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              'assets/images/trolley.png',
-              width: 120.w,
-              height: 120.h,
-            ),
-            SizedBox(height: 24.h),
-            AppText(
-              text: 'Your cart is empty',
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.loaderGreen,
-            ),
-            SizedBox(height: 32.h),
-            SizedBox(
-              width: 230.w,
-              height: 48.h,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Switch to categories tab (index 1) using bottom nav global key
-                  BottomNavigation.globalKey.currentState?.navigateToTab(1);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.green50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  elevation: 0,
-                ),
-                child: AppText(
-                  text: 'Continue Shopping',
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+    // Empty state is now handled at top level in build method
     final cartItems = checkoutState.items;
 
     return SingleChildScrollView(
