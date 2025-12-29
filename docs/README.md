@@ -76,6 +76,42 @@ Deep dive into the app's architecture and technical implementation.
 
 Implementation details for specific features.
 
+### 🏠 Home & Categories
+| Document | Description |
+|----------|-------------|
+| [**Home & Category Flow**](03-Features/Home/HOME_CATEGORY_FLOW.md) | Browse categories, product listing, address bar |
+
+### 📍 Address
+| Document | Description |
+|----------|-------------|
+| [**Address Flow**](03-Features/Address/ADDRESS_FLOW.md) | Add/Edit/Delete/Select address, sync across providers |
+
+### 🛒 Cart
+| Document | Description |
+|----------|-------------|
+| [**Cart Flow**](03-Features/Cart/CART_FLOW.md) | Add to cart, quantity updates, cart summary |
+| [Payment Flow](payment_flow.md) | Complete checkout and payment process |
+
+### ❤️ Wishlist
+| Document | Description |
+|----------|-------------|
+| [**Wishlist Flow**](03-Features/Wishlist/WISHLIST_FLOW.md) | Add/remove wishlist items, move to cart |
+
+### 📦 Orders
+| Document | Description |
+|----------|-------------|
+| [**Orders Flow**](03-Features/Orders/ORDERS_FLOW.md) | Order history, details, reorder, rating |
+| [Reorder Flow](reorder_flow.md) | Reorder previous orders |
+| [**Order Rating Complete Summary**](ORDER_RATING_COMPLETE_SUMMARY.md) | High-level overview of all rating implementations |
+| [Order Rating Update Implementation](ORDER_RATING_UPDATE_IMPLEMENTATION.md) | Complete order rating feature implementation |
+| [Rating Display Fix](RATING_DISPLAY_FIX.md) | Fix for displaying existing ratings in order history |
+| [Critical PATCH Endpoint Fix](CRITICAL_PATCH_ENDPOINT_FIX.md) | Fix for rating update endpoint with rating_id in URL |
+
+### 🧭 Navigation
+| Document | Description |
+|----------|-------------|
+| [**Navigation Flow**](03-Features/Navigation/NAVIGATION_FLOW.md) | Bottom nav, back button, deep linking, routing |
+
 ### 🔍 Search
 | Document | Description |
 |----------|-------------|
@@ -93,16 +129,8 @@ Implementation details for specific features.
 ### 🚚 Delivery
 | Document | Description |
 |----------|-------------|
-| [**Delivery Tracking Persistence**](DELIVERY_TRACKING_PERSISTENCE.md) | **Persist DeliveryStatusBar across app restarts using Hive** |
+| [**Delivery Tracking Persistence**](DELIVERY_TRACKING_PERSISTENCE.md) | Persist DeliveryStatusBar across app restarts using Hive |
 | [Delivery Status Flow](03-Features/Delivery/delivery_status_flow.md) | Delivery status tracking |
-
-### 📦 Orders & Ratings
-| Document | Description |
-|----------|-------------|
-| [**Order Rating Complete Summary**](ORDER_RATING_COMPLETE_SUMMARY.md) | **📋 High-level overview of all rating implementations** |
-| [Order Rating Update Implementation](ORDER_RATING_UPDATE_IMPLEMENTATION.md) | Complete order rating feature implementation |
-| [Rating Display Fix](RATING_DISPLAY_FIX.md) | Fix for displaying existing ratings in order history |
-| [Critical PATCH Endpoint Fix](CRITICAL_PATCH_ENDPOINT_FIX.md) | Fix for rating update endpoint with rating_id in URL |
 
 ### 🎨 UI Components
 | Document | Description |
@@ -183,14 +211,19 @@ docs/
 │   ├── UI-Responsiveness/        # Responsive design
 │   └── Overview/                 # General architecture
 ├── 03-Features/                  # Feature-specific docs
-│   ├── Search/                   # Search functionality
-│   ├── Payment/                  # Payment integration
-│   ├── Delivery/                 # Delivery tracking
-│   ├── Orders/                   # Orders & Ratings (root level)
-│   ├── UI/                       # UI components
+│   ├── Address/                  # Address management
 │   ├── Authentication/           # Auth & guest mode
+│   ├── Cart/                     # Cart & checkout
+│   ├── Delivery/                 # Delivery tracking
+│   ├── Home/                     # Home & categories
+│   ├── Navigation/               # App navigation & routing
+│   ├── Orders/                   # Order history & rating
+│   ├── Payment/                  # Payment integration
+│   ├── ProductDetails/           # Product details
 │   ├── RealTime/                 # Real-time features
-│   └── ProductDetails/           # Product details
+│   ├── Search/                   # Search functionality
+│   ├── UI/                       # UI components
+│   └── Wishlist/                 # Wishlist feature
 ├── 04-Development-Guidelines/    # Coding standards
 ├── 05-API-Documentation/         # Backend API docs
 ├── 06-Design/                    # Design resources
@@ -219,10 +252,18 @@ docs/
 
 ## 📝 Documentation Statistics
 
-- **Total Documents**: 38 markdown files
+- **Total Documents**: 44 markdown files
 - **Categories**: 7 main categories
-- **Subcategories**: 16 specialized sections
+- **Subcategories**: 19 specialized sections
 - **Coverage**: Setup, Architecture, Features, Guidelines, API, Design, QA
+
+### New Flow Documentation (Dec 2025)
+- Address Flow - Add/Edit/Delete/Select addresses
+- Cart Flow - Shopping cart management
+- Wishlist Flow - Save products for later
+- Home & Category Flow - Product browsing
+- Orders Flow - Order history and rating
+- Navigation Flow - App navigation and routing
 
 ---
 
@@ -249,5 +290,5 @@ Some files may contain unresolved Git merge markers. Please resolve these before
 
 ---
 
-**Last Updated**: 2025-12-19
+**Last Updated**: 2025-12-25
 **Maintained By**: BTC Grocery Development Team
