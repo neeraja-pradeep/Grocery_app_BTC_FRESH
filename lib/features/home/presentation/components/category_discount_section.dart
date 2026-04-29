@@ -303,6 +303,9 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
+                          border: inStock
+                              ? null
+                              : Border.all(color: Colors.grey, width: 1),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.1),
@@ -311,9 +314,11 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.add,
-                          color: Color(0xFF4CAF50), // Green Plus
+                          color: inStock
+                              ? const Color(0xFF4CAF50)
+                              : Colors.grey,
                           size: 20,
                         ),
                       ),
