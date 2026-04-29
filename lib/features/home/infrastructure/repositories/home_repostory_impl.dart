@@ -396,6 +396,23 @@ class HomeRepositoryImpl implements HomeRepository {
   }
 
   @override
+  Future<Either<Failure, Product>> getProductById(int id) async {
+    try {
+      final product = await _remoteDataSource.getProductById(id);
+      return Right(product);
+    } on NetworkException catch (e) {
+      Logger.warning('Network error fetching product by id', error: e);
+      return Left(NetworkFailure(e.toString()));
+    } on ServerException catch (e) {
+      Logger.error('Server error fetching product by id', error: e);
+      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+    } catch (e) {
+      Logger.error('Unexpected error fetching product by id', error: e);
+      return Left(UnknownFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
   Future<void> clearCache() async {
     try {
       await _localDataSource.clearAllHomeCache();

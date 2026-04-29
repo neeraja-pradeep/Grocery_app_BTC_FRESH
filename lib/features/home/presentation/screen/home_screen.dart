@@ -61,6 +61,7 @@ import '../../domain/entities/banner.dart' as entities;
 import '../../domain/entities/category.dart';
 import '../../domain/entities/product_variant.dart';
 import '../../domain/entities/user_address.dart';
+import '../../infrastructure/repositories/home_repostory_impl.dart';
 import '../components/advertisement_card.dart';
 import '../components/category_discount_section.dart';
 import '../components/category_grid.dart';
@@ -581,7 +582,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  void _handleBannerClick(entities.Banner banner) {
+  Future<void> _handleBannerClick(entities.Banner banner) async {
     final targetType = banner.targetType;
     final targetId = banner.targetId;
 
@@ -601,8 +602,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     switch (targetType) {
       case 'variant':
-      case 'product':
         context.push('/product-details/$targetId');
+        break;
+      case 'product':
+        // The product details route expects a variant id. The banner only
+        // gives us a product id, so resolve it to a variant via the product
+        // endpoint (default variant, otherwise the first variant) before
+        // navigating.
+        final result = await ref
+            .read(homeRepositoryProvider)
+            .getProductById(targetId);
+        if (!mounted) return;
+        result.fold(
+          (failure) {
+            AppSnackbar.error(context, 'Unable to open this product');
+          },
+          (product) {
+            final variant = product.defaultVariant;
+            if (variant == null) {
+              AppSnackbar.warning(
+                context,
+                'This product has no available variants',
+              );
+              return;
+            }
+            context.push('/product-details/${variant.id}');
+          },
+        );
         break;
       case 'category':
         widget.onCategoryNavigate(

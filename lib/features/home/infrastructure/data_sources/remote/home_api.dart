@@ -40,6 +40,8 @@ abstract class HomeRemoteDataSource {
   Future<UserAddress?> getSelectedAddress();
 
   Future<List<ProductVariant>> getBestDeals({int limit = 10});
+
+  Future<Product> getProductById(int id);
 }
 
 class HomeApiImpl implements HomeRemoteDataSource {
@@ -359,6 +361,25 @@ class HomeApiImpl implements HomeRemoteDataSource {
       queryParameters: {'search': query, 'page': page},
       fromJson: Product.fromJson,
     );
+  }
+
+  @override
+  Future<Product> getProductById(int id) async {
+    try {
+      final response = await _apiClient.get('/api/products/v1/$id/');
+      if (response.data == null) {
+        throw const ServerException('Empty response from server');
+      }
+      return Product.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } on FormatException catch (e) {
+      throw DataParsingException('Invalid data format: $e');
+    } on TypeError catch (e) {
+      throw DataParsingException('Data type mismatch: $e');
+    } catch (e) {
+      throw ServerException('Unexpected error: $e');
+    }
   }
 }
 

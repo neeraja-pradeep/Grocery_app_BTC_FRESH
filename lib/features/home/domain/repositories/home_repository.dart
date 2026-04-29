@@ -82,6 +82,12 @@ abstract class HomeRepository {
   /// Fetches a list of specific product variants marked as "Best Deals".
   Future<Either<Failure, List<ProductVariant>>> getBestDeals({int limit = 10});
 
+  // --- Product by ID ---
+  /// Fetches a single product (with its variants) by product id.
+  /// Used to resolve banner clicks that target a product, since the product
+  /// details screen needs a variant id to open.
+  Future<Either<Failure, Product>> getProductById(int id);
+
   // --- Cache Management ---
   /// Clears all cached home data to force fresh data on next request
   Future<void> clearCache();
