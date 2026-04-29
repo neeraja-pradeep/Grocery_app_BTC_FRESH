@@ -303,12 +303,21 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: inStock
-                                ? const Color(0xFF8cc727)
-                                : Colors.grey,
-                            width: 1.2,
-                          ),
+                          border: inStock
+                              ? Border.all(
+                                  color: const Color(0xFF8cc727),
+                                  width: 1.2,
+                                )
+                              : null,
+                          boxShadow: inStock
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                         ),
                         child: Icon(
                           Icons.add,
