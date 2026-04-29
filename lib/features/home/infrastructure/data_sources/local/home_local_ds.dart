@@ -8,6 +8,7 @@ import '../../../domain/entities/banner.dart';
 import '../../../domain/entities/category.dart';
 import '../../../domain/entities/product_variant.dart';
 import '../../../domain/entities/user_address.dart';
+import '../../../domain/repositories/home_repository.dart';
 
 /// Helper class for timestamped cache
 /// You might need a Hive Adapter for this generic class, or store it as a Map.
@@ -30,12 +31,12 @@ abstract class HomeLocalDataSource {
   Future<void> saveCategories(List<Category> categories);
 
   // Discounted Products
-  Future<CachedData<List<ProductVariant>>?> getDiscountedProducts({
+  Future<CachedData<DiscountedProductsResult>?> getDiscountedProducts({
     required String cacheKey,
   });
   Future<void> saveDiscountedProducts({
     required String cacheKey,
-    required List<ProductVariant> products,
+    required DiscountedProductsResult result,
   });
 
   // Banners (Advertisement)
@@ -142,7 +143,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
   }
 
   @override
-  Future<CachedData<List<ProductVariant>>?> getDiscountedProducts({
+  Future<CachedData<DiscountedProductsResult>?> getDiscountedProducts({
     required String cacheKey,
   }) async {
     final b = await box;
@@ -153,14 +154,38 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
     try {
       final rawMap = raw as Map<dynamic, dynamic>;
       final jsonList = (rawMap['data'] as List).cast<Map<String, dynamic>>();
-      final products = jsonList
+      final variants = jsonList
           .map((json) => ProductVariant.fromJson(json))
           .toList();
+
+      // Restore the productId → categoryId map. Older cache entries written
+      // before this field existed simply produce an empty map (the use case
+      // falls back gracefully).
+      final productCategoryMap = <int, int>{};
+      final rawCategoryMap = rawMap['product_category_map'];
+      if (rawCategoryMap is Map) {
+        rawCategoryMap.forEach((key, value) {
+          final productId = key is int ? key : int.tryParse(key.toString());
+          final categoryId = value is int
+              ? value
+              : int.tryParse(value.toString());
+          if (productId != null && categoryId != null) {
+            productCategoryMap[productId] = categoryId;
+          }
+        });
+      }
+
       final timestamp = DateTime.fromMillisecondsSinceEpoch(
         rawMap['timestamp'] as int,
       );
 
-      return CachedData(data: products, cachedAt: timestamp);
+      return CachedData(
+        data: DiscountedProductsResult(
+          variants: variants,
+          productCategoryMap: productCategoryMap,
+        ),
+        cachedAt: timestamp,
+      );
     } catch (e) {
       return null;
     }
@@ -169,12 +194,12 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
   @override
   Future<void> saveDiscountedProducts({
     required String cacheKey,
-    required List<ProductVariant> products,
+    required DiscountedProductsResult result,
   }) async {
     final b = await box;
     final fullKey = '${HiveKeys.homeDiscounts}$cacheKey';
     // Convert to JSON - simplified version, you may need to expand this
-    final jsonList = products
+    final jsonList = result.variants
         .map(
           (product) => {
             'id': product.id,
@@ -211,7 +236,12 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         )
         .toList();
 
-    await b.put(fullKey, _wrapJson(jsonList));
+    final wrapped = _wrapJson(jsonList);
+    wrapped['product_category_map'] = result.productCategoryMap.map(
+      (productId, categoryId) => MapEntry(productId.toString(), categoryId),
+    );
+
+    await b.put(fullKey, wrapped);
   }
 
   @override

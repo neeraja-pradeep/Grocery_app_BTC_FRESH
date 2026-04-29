@@ -124,7 +124,7 @@ class HomeRepositoryImpl implements HomeRepository {
   }
 
   @override
-  Future<Either<Failure, List<ProductVariant>>> getDiscountedProducts({
+  Future<Either<Failure, DiscountedProductsResult>> getDiscountedProducts({
     String? parentCategoryName,
     double? minPrice,
     double? maxPrice,
@@ -151,21 +151,21 @@ class HomeRepositoryImpl implements HomeRepository {
 
     // 2. Fetch from API
     try {
-      final variants = await _remoteDataSource.getDiscountedProducts(
+      final result = await _remoteDataSource.getDiscountedProducts(
         parentCategoryName: parentCategoryName,
         minPrice: minPrice,
         maxPrice: maxPrice,
         ordering: ordering,
       );
       Logger.debug(
-        'Discounted products loaded from API: ${variants.length} items',
+        'Discounted products loaded from API: ${result.variants.length} items',
       );
 
-      // 3. Save to Cache (Store the flat list)
+      // 3. Save to Cache (Store the flat list along with category map)
       try {
         await _localDataSource.saveDiscountedProducts(
           cacheKey: cacheKey,
-          products: variants,
+          result: result,
         );
         Logger.debug('Discounted products saved to cache: $cacheKey');
       } on HiveError catch (e) {
@@ -177,8 +177,7 @@ class HomeRepositoryImpl implements HomeRepository {
         );
       }
 
-      // 4. Return raw product variants (no business logic grouping)
-      return Right(variants);
+      return Right(result);
     } on NetworkException catch (e) {
       Logger.warning('Network error fetching discounted products', error: e);
       return Left(NetworkFailure(e.toString()));

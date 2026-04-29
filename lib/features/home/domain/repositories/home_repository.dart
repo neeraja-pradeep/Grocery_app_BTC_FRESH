@@ -27,6 +27,18 @@ class PaginatedResult<T> {
   });
 }
 
+/// Discounted products bundled with the productId → categoryId mapping
+/// derived from the products endpoint, used for category grouping.
+class DiscountedProductsResult {
+  final List<ProductVariant> variants;
+  final Map<int, int> productCategoryMap;
+
+  const DiscountedProductsResult({
+    required this.variants,
+    required this.productCategoryMap,
+  });
+}
+
 abstract class HomeRepository {
   Future<Either<Failure, PaginatedResult<Category>>> getCategories({
     int page = 1,
@@ -34,7 +46,7 @@ abstract class HomeRepository {
 
   // --- Discounted Products (Mega Fresh Offers) ---
 
-  Future<Either<Failure, List<ProductVariant>>> getDiscountedProducts({
+  Future<Either<Failure, DiscountedProductsResult>> getDiscountedProducts({
     String? parentCategoryName,
     double? minPrice,
     double? maxPrice,
