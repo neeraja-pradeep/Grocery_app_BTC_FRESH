@@ -582,11 +582,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleBannerClick(entities.Banner banner) {
-    // Handle navigation based on banner type
-    if (banner.productVariantId != null) {
-      // Navigate to variant
-    } else if (banner.categoryId != null) {
-      // Navigate to category
+    final targetType = banner.targetType;
+    final targetId = banner.targetId;
+
+    Logger.info(
+      'User clicked banner',
+      data: {
+        'banner_id': banner.id,
+        'banner_name': banner.name,
+        'target_type': targetType,
+        'target_id': targetId,
+      },
+    );
+
+    if (targetType == null || targetId == null) {
+      return;
+    }
+
+    switch (targetType) {
+      case 'variant':
+      case 'product':
+        context.push('/product-details/$targetId');
+        break;
+      case 'category':
+        widget.onCategoryNavigate(
+          Category(
+            id: targetId,
+            name: '',
+            slug: '',
+            description: '',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+        break;
     }
   }
 
