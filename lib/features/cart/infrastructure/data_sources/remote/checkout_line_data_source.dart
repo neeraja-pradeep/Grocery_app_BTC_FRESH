@@ -100,10 +100,39 @@ class CheckoutLineDataSource {
         name: 'CheckoutLineDataSource',
       );
 
+      var firstPage = CheckoutLinesResponseDto.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+
+      // Follow pagination: keep fetching subsequent pages while `next` is set,
+      // accumulating results into a single combined list.
+      final allResults = <CheckoutLineDto>[...firstPage.results];
+      String? nextUrl = firstPage.next;
+      while (nextUrl != null && nextUrl.isNotEmpty) {
+        final nextUri = Uri.parse(nextUrl);
+        final nextPageResponse = await _apiClient.get(
+          '/api/order/v1/checkout-lines/',
+          queryParameters: nextUri.queryParameters.isEmpty
+              ? null
+              : Map<String, dynamic>.from(nextUri.queryParameters),
+        );
+
+        final nextPage = CheckoutLinesResponseDto.fromJson(
+          nextPageResponse.data as Map<String, dynamic>,
+        );
+        allResults.addAll(nextPage.results);
+        nextUrl = nextPage.next;
+      }
+
+      final aggregated = CheckoutLinesResponseDto(
+        count: firstPage.count,
+        next: null,
+        previous: firstPage.previous,
+        results: allResults,
+      );
+
       return CheckoutLinesRemoteResponse(
-        checkoutLines: CheckoutLinesResponseDto.fromJson(
-          response.data as Map<String, dynamic>,
-        ),
+        checkoutLines: aggregated,
         fetchedAt: DateTime.now(),
         eTag: eTag,
         lastModified: lastModified,
