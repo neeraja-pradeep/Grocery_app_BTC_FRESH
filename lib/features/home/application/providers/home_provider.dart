@@ -57,7 +57,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
     final addressResult = results[1] as Either<Failure, UserAddress?>;
     final bestDealsResult = results[2] as Either<Failure, List<ProductVariant>>;
     final discountedVariantsResult =
-        results[3] as Either<Failure, List<ProductVariant>>;
+        results[3] as Either<Failure, DiscountedProductsResult>;
     final bannersResult = results[4] as Either<Failure, List<Banner>>;
 
     // Check for critical failures (Categories are critical)
@@ -80,14 +80,18 @@ class HomeNotifier extends StateNotifier<HomeState> {
         .results;
     final address = addressResult.getRight().getOrElse(() => null);
     final bestDeals = bestDealsResult.getRight().getOrElse(() => []);
-    final discountedVariants = discountedVariantsResult.getRight().getOrElse(
-      () => [],
+    final discountedResult = discountedVariantsResult.getRight().getOrElse(
+      () => const DiscountedProductsResult(
+        variants: [],
+        productCategoryMap: {},
+      ),
     );
 
     // Apply business logic via UseCase to group products by category
     final discounts = _groupUseCase.execute(
-      variants: discountedVariants,
+      variants: discountedResult.variants,
       categories: categories,
+      productCategoryMap: discountedResult.productCategoryMap,
     );
 
     // Logic: Use the first banner as the "active ad" for now, or null

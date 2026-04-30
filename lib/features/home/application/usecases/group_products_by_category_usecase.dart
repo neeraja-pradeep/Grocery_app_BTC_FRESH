@@ -7,19 +7,23 @@ import '../../domain/entities/product_variant.dart';
 /// UseCase for grouping product variants by category
 /// This handles the business logic of organizing products into discount groups
 class GroupProductsByCategoryUseCase {
-  /// Groups product variants by their associated categories
+  /// Groups product variants by their associated categories.
   ///
   /// [variants] - List of product variants to group
   /// [categories] - Available categories to match against
+  /// [productCategoryMap] - Lookup of productId → categoryId derived from the
+  ///   products endpoint. Required to correctly assign each variant to its
+  ///   real category (variants do not carry a categoryId of their own).
   ///
   /// Returns a list of CategoryDiscountGroup sorted by number of products (descending)
   List<CategoryDiscountGroup> execute({
     required List<ProductVariant> variants,
     required List<Category> categories,
+    Map<int, int> productCategoryMap = const {},
   }) {
     if (variants.isEmpty) return [];
 
-    // Group variants by product ID (assuming products belong to categories)
+    // Group variants by product ID
     final Map<int, List<ProductVariant>> groupedMap = {};
 
     for (var variant in variants) {
@@ -30,22 +34,40 @@ class GroupProductsByCategoryUseCase {
       groupedMap[productId]!.add(variant);
     }
 
-    // Map product IDs to actual categories
-    final List<CategoryDiscountGroup> groups = [];
+    // Aggregate variants by their real category (looked up via productCategoryMap)
+    // so multiple products in the same category collapse into one group.
+    final Map<int, List<ProductVariant>> categoryGrouped = {};
+    final List<ProductVariant> orphans = [];
 
     groupedMap.forEach((productId, productVariants) {
-      // Try to find matching category
-      // Note: This assumes a relationship between product and category
-      // You might need to adjust this logic based on your actual data model
-      final category = _findCategoryForProduct(productId, categories);
+      final categoryId = productCategoryMap[productId];
+      if (categoryId == null) {
+        orphans.addAll(productVariants);
+        return;
+      }
+      categoryGrouped.putIfAbsent(categoryId, () => []).addAll(productVariants);
+    });
 
+    final List<CategoryDiscountGroup> groups = [];
+
+    categoryGrouped.forEach((categoryId, categoryVariants) {
+      final category = _findCategoryById(categoryId, categories);
       groups.add(
         CategoryDiscountGroup(
           category: category,
-          discountedProducts: productVariants,
+          discountedProducts: categoryVariants,
         ),
       );
     });
+
+    if (orphans.isNotEmpty) {
+      groups.add(
+        CategoryDiscountGroup(
+          category: _fallbackCategory(),
+          discountedProducts: orphans,
+        ),
+      );
+    }
 
     // Sort by number of discounted products (highest first)
     groups.sort(
@@ -56,24 +78,29 @@ class GroupProductsByCategoryUseCase {
     return groups;
   }
 
-  /// Finds the appropriate category for a product
-  /// Creates a fallback category if no match is found
-  Category _findCategoryForProduct(int productId, List<Category> categories) {
-    // Try to find matching category by ID
-    // Note: You might need to adjust this logic based on your data model
-    // For example, if products have a categoryId field, use that instead
+  Category _findCategoryById(int categoryId, List<Category> categories) {
     try {
-      return categories.firstWhere((cat) => cat.id == productId);
-    } catch (e) {
-      // Create fallback category for products without a matching category
+      return categories.firstWhere((cat) => cat.id == categoryId);
+    } catch (_) {
       return Category(
-        id: productId,
+        id: categoryId,
         name: 'Special Offers',
-        slug: 'special-offers-$productId',
+        slug: 'special-offers-$categoryId',
         description: 'Limited time deals and discounts',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
     }
+  }
+
+  Category _fallbackCategory() {
+    return Category(
+      id: 0,
+      name: 'Special Offers',
+      slug: 'special-offers',
+      description: 'Limited time deals and discounts',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
   }
 }

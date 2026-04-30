@@ -9,8 +9,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/socket_provider.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../../bottomnavbar/bottom_navbar.dart';
 import '../../../home/application/providers/home_provider.dart';
+import '../../../home/domain/entities/banner.dart' as entities;
+import '../../../home/domain/entities/category.dart';
 import '../../../home/domain/entities/product_variant.dart';
+import '../../../home/infrastructure/repositories/home_repostory_impl.dart';
 import '../../../home/presentation/components/advertisement_card.dart';
 import '../../../home/presentation/components/product_card.dart';
 import '../../application/providers/wishlist_provider.dart';
@@ -172,7 +177,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                 if (activeAd != null) {
                   return AdvertisementCard(
                     banner: activeAd,
-                    onShopNowClick: () => _handleShopNowClick(context),
+                    onShopNowClick: () => _handleShopNowClick(activeAd),
                   );
                 }
                 return const SizedBox.shrink();
@@ -206,7 +211,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                 if (activeAd != null) {
                   return AdvertisementCard(
                     banner: activeAd,
-                    onShopNowClick: () => _handleShopNowClick(context),
+                    onShopNowClick: () => _handleShopNowClick(activeAd),
                   );
                 }
                 return const SizedBox.shrink();
@@ -222,8 +227,67 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
     context.push('/product-details/${product.id}');
   }
 
-  void _handleShopNowClick(BuildContext context) {
-    Navigator.of(context).popUntil((route) => route.isFirst);
+  Future<void> _handleShopNowClick(entities.Banner banner) async {
+    final targetType = banner.targetType;
+    final targetId = banner.targetId;
+
+    Logger.info(
+      'User clicked banner',
+      data: {
+        'banner_id': banner.id,
+        'banner_name': banner.name,
+        'target_type': targetType,
+        'target_id': targetId,
+      },
+    );
+
+    if (targetType == null || targetId == null) {
+      return;
+    }
+
+    switch (targetType) {
+      case 'variant':
+        context.push('/product-details/$targetId');
+        break;
+      case 'product':
+        // Resolve the product to its default variant before opening the
+        // product details route (which only accepts variant ids).
+        final result = await ref
+            .read(homeRepositoryProvider)
+            .getProductById(targetId);
+        if (!mounted) return;
+        result.fold(
+          (failure) {
+            AppSnackbar.error(context, 'Unable to open this product');
+          },
+          (product) {
+            final variant = product.defaultVariant;
+            if (variant == null) {
+              AppSnackbar.warning(
+                context,
+                'This product has no available variants',
+              );
+              return;
+            }
+            context.push('/product-details/${variant.id}');
+          },
+        );
+        break;
+      case 'category':
+        // Switch to the Categories tab via the bottom nav and pre-select
+        // the banner's target category.
+        BottomNavigation.globalKey.currentState?.navigateToCategories(
+          Category(
+            id: targetId,
+            name: '',
+            slug: '',
+            description: '',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+        break;
+    }
   }
 }
 

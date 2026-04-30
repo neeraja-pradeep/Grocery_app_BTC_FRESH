@@ -31,7 +31,7 @@ class AuthApi {
     try {
       final res = await _dio.post(
         ApiEndpoints.login,
-        data: {'username': username, 'password': password},
+        data: {'email': username, 'password': password},
       );
 
       if (res.statusCode != 200) {

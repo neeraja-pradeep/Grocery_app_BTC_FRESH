@@ -322,9 +322,16 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(color: borderColor, width: 1.2.w),
+                    border: Border.all(
+                      color: inStock ? borderColor : Colors.grey,
+                      width: 1.2.w,
+                    ),
                   ),
-                  child: Icon(Icons.add, color: iconColor, size: 20.sp),
+                  child: Icon(
+                    Icons.add,
+                    color: inStock ? iconColor : Colors.grey,
+                    size: 20.sp,
+                  ),
                 ),
               );
             },

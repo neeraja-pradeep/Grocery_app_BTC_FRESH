@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../../core/config/app_config.dart';
+
 part 'product_media.freezed.dart';
 
 @freezed
@@ -15,14 +17,8 @@ class ProductMedia with _$ProductMedia {
   }) = _ProductMedia;
 
   factory ProductMedia.fromJson(Map<String, dynamic> json) {
-    // URL Fixer Logic
     final rawImageUrl = json['image']?.toString() ?? '';
-    String finalImageUrl = '';
-    if (rawImageUrl.isNotEmpty && !rawImageUrl.startsWith('http')) {
-      finalImageUrl = 'https://$rawImageUrl';
-    } else {
-      finalImageUrl = rawImageUrl;
-    }
+    final finalImageUrl = AppConfig.convertToCdnUrl(rawImageUrl);
 
     return ProductMedia(
       id: json['id'] is int

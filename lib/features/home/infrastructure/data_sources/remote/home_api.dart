@@ -16,7 +16,7 @@ import '../../../domain/repositories/home_repository.dart';
 abstract class HomeRemoteDataSource {
   Future<PaginatedResult<Category>> getCategories({int page = 1});
 
-  Future<List<ProductVariant>> getDiscountedProducts({
+  Future<DiscountedProductsResult> getDiscountedProducts({
     int? categoryId,
     String? categoryName,
     String? parentCategoryName,
@@ -40,6 +40,8 @@ abstract class HomeRemoteDataSource {
   Future<UserAddress?> getSelectedAddress();
 
   Future<List<ProductVariant>> getBestDeals({int limit = 10});
+
+  Future<Product> getProductById(int id);
 }
 
 class HomeApiImpl implements HomeRemoteDataSource {
@@ -225,15 +227,20 @@ class HomeApiImpl implements HomeRemoteDataSource {
   }
 
   @override
-  Future<List<ProductVariant>> getDiscountedProducts({
+  Future<DiscountedProductsResult> getDiscountedProducts({
     int? categoryId,
     String? categoryName,
     String? parentCategoryName,
     double? minPrice,
     double? maxPrice,
     String ordering = '-discounted_price',
-  }) {
-    final params = {
+  }) async {
+    // Hit the products endpoint instead of the variants/discounts/ endpoint.
+    // The products endpoint embeds category_id / category_name on each product,
+    // which lets the grouping use case match category by id (correct ID space)
+    // instead of comparing variant.productId against category.id.
+    final params = <String, dynamic>{
+      'is_discounted': 'true',
       'ordering': ordering,
       if (categoryId != null) 'category_id': categoryId,
       if (categoryName != null) 'category_name': categoryName,
@@ -243,10 +250,22 @@ class HomeApiImpl implements HomeRemoteDataSource {
       if (maxPrice != null) 'max_price': maxPrice,
     };
 
-    return _fetchList(
-      '/api/products/v1/variants/discounts/', // Updated endpoint
+    final products = await _fetchList(
+      '/api/products/v1/',
       queryParameters: params,
-      fromJson: ProductVariant.fromJson,
+      fromJson: Product.fromJson,
+    );
+
+    final variants = <ProductVariant>[];
+    final productCategoryMap = <int, int>{};
+    for (final product in products) {
+      productCategoryMap[product.id] = product.categoryId;
+      variants.addAll(product.variants);
+    }
+
+    return DiscountedProductsResult(
+      variants: variants,
+      productCategoryMap: productCategoryMap,
     );
   }
 
@@ -342,6 +361,25 @@ class HomeApiImpl implements HomeRemoteDataSource {
       queryParameters: {'search': query, 'page': page},
       fromJson: Product.fromJson,
     );
+  }
+
+  @override
+  Future<Product> getProductById(int id) async {
+    try {
+      final response = await _apiClient.get('/api/products/v1/$id/');
+      if (response.data == null) {
+        throw const ServerException('Empty response from server');
+      }
+      return Product.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } on FormatException catch (e) {
+      throw DataParsingException('Invalid data format: $e');
+    } on TypeError catch (e) {
+      throw DataParsingException('Data type mismatch: $e');
+    } catch (e) {
+      throw ServerException('Unexpected error: $e');
+    }
   }
 }
 
