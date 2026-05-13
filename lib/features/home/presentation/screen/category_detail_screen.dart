@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../category/presentation/screen/category_screen.dart';
 import '../../domain/entities/category.dart';
 
 class CategoryDetailScreen extends StatelessWidget {
@@ -12,12 +13,14 @@ class CategoryDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFcaf5ac), // Custom green color
-        statusBarIconBrightness: Brightness.dark, // Dark icons
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFcaf5ac),
+        statusBarIconBrightness: Brightness.dark,
       ),
-      child: Scaffold(body: Center(child: Text('category'))),
+      child: Scaffold(
+        body: CategoryScreen(initialCategoryId: category.id.toString()),
+      ),
     );
   }
 }

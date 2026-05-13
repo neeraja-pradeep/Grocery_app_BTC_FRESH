@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/utils/logger.dart';
+import '../../../auth/application/providers/auth_provider.dart';
+import '../../../auth/application/states/auth_state.dart';
 import '../../domain/entities/banner.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/product_variant.dart';
 import '../../domain/entities/user_address.dart';
 import '../../domain/repositories/home_repository.dart';
-import '../../infrastructure/repositories/home_repostory_impl.dart';
+import 'home_repository_provider.dart';
 import '../states/home_state.dart';
 import '../states/search_state.dart';
 import '../usecases/group_products_by_category_usecase.dart';
@@ -18,18 +21,16 @@ import '../usecases/group_products_by_category_usecase.dart';
 // 1. Home Notifier (Manages the entire Home Screen State)
 // ----------------------------------------------------------------------
 
-class HomeNotifier extends StateNotifier<HomeState> {
-  final HomeRepository _repository;
-  final GroupProductsByCategoryUseCase _groupUseCase;
+class HomeNotifier extends Notifier<HomeState> {
+  late final HomeRepository _repository;
+  late final GroupProductsByCategoryUseCase _groupUseCase;
 
-  HomeNotifier({
-    required HomeRepository repository,
-    required GroupProductsByCategoryUseCase groupUseCase,
-  }) : _repository = repository,
-       _groupUseCase = groupUseCase,
-       super(const HomeState.initial()) {
-    // Load home screen data on app start
-    _loadHomeData();
+  @override
+  HomeState build() {
+    _repository = ref.watch(homeRepositoryProvider);
+    _groupUseCase = ref.watch(groupProductsUseCaseProvider);
+    Future.microtask(_loadHomeData);
+    return const HomeState.initial();
   }
 
   Future<void> _loadHomeData({UserAddress? preservedAddress}) async {
@@ -45,15 +46,17 @@ class HomeNotifier extends StateNotifier<HomeState> {
       _repository.getCategories(page: 1),
       preservedAddress != null
           ? Future.value(Right<Failure, UserAddress?>(preservedAddress))
-          : _repository.getSelectedAddress(),
+          : _repository.getSelectedAddress().timeout(
+              const Duration(seconds: 10),
+              onTimeout: () => const Right(null),
+            ),
       _repository.getBestDeals(limit: 10),
       _repository.getDiscountedProducts(ordering: '-discounted_price'),
       _repository.getBanners(page: 1),
     ]);
 
     // Process results
-    final categoriesResult =
-        results[0] as Either<Failure, PaginatedResult<Category>>;
+    final categoriesResult = results[0] as Either<Failure, List<Category>>;
     final addressResult = results[1] as Either<Failure, UserAddress?>;
     final bestDealsResult = results[2] as Either<Failure, List<ProductVariant>>;
     final discountedVariantsResult =
@@ -74,10 +77,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
     }
 
     // Extract successful data (use defaults for non-critical failures)
-    final categories = categoriesResult
-        .getRight()
-        .getOrElse(() => PaginatedResult(count: 0, results: []))
-        .results;
+    final categories = categoriesResult.getRight().getOrElse(() => []);
     final address = addressResult.getRight().getOrElse(() => null);
     final bestDeals = bestDealsResult.getRight().getOrElse(() => []);
     final discountedResult = discountedVariantsResult.getRight().getOrElse(
@@ -160,7 +160,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
     result.fold(
       (failure) {
-        // Keep current address on error, maybe show a snackbar in UI
+        Logger.warning('Failed to reload address', error: failure);
       },
       (address) {
         // Immediately update state for instant UI feedback
@@ -174,43 +174,56 @@ class HomeNotifier extends StateNotifier<HomeState> {
 // 2. Search Notifier (Manages Search Logic)
 // ----------------------------------------------------------------------
 
-class SearchNotifier extends StateNotifier<SearchState> {
-  final HomeRepository _repository;
+class SearchNotifier extends AutoDisposeNotifier<SearchState> {
+  late final HomeRepository _repository;
 
-  SearchNotifier({required HomeRepository repository})
-    : _repository = repository,
-      super(const SearchState.initial()) {
-    // Optional: Load history on init?
-    // _loadHistory();
+  @override
+  SearchState build() {
+    _repository = ref.watch(homeRepositoryProvider);
+    return const SearchState.initial();
   }
 
   void startSearch(String query, {bool isVoice = false}) {
     if (query.isEmpty) return;
 
+    if (isVoice) {
+      state = const SearchState.listening(isVoiceSearch: true);
+    }
     state = SearchState.loading(query: query, isVoiceSearch: isVoice);
     performSearch(query);
   }
 
   Future<void> performSearch(String query) async {
-    final result = await _repository.searchProducts(query: query);
-
-    result.fold(
-      (failure) => state = SearchState.error(failure: failure, query: query),
-      (variants) {
-        if (variants.isEmpty) {
-          state = SearchState.empty(query: query);
-        } else {
-          // Sort results: products starting with query first, then others
-          final sortedVariants = _sortSearchResults(variants, query);
-
-          state = SearchState.loaded(
-            query: query,
-            results: sortedVariants,
-            hasMore: false, // Simple list, no pagination for now
+    try {
+      final result = await _repository
+          .searchProducts(query: query)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => const Left(TimeoutFailure()),
           );
-        }
-      },
-    );
+
+      result.fold(
+        (failure) => state = SearchState.error(failure: failure, query: query),
+        (variants) {
+          if (variants.isEmpty) {
+            state = SearchState.empty(query: query);
+          } else {
+            final sortedVariants = _sortSearchResults(variants, query);
+            state = SearchState.loaded(
+              query: query,
+              results: sortedVariants,
+              hasMore: false,
+            );
+          }
+        },
+      );
+    } catch (e) {
+      Logger.error('Unexpected search error', error: e);
+      state = SearchState.error(
+        failure: UnknownFailure(e.toString()),
+        query: query,
+      );
+    }
   }
 
   /// Sort search results by relevance:
@@ -250,11 +263,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
 // ----------------------------------------------------------------------
 
 // Replaces 'homeProvider' and 'catalogControllerProvider'
-final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
-  final repository = ref.watch(homeRepositoryProvider);
-  final groupUseCase = ref.watch(groupProductsUseCaseProvider);
-  return HomeNotifier(repository: repository, groupUseCase: groupUseCase);
-});
+final homeProvider = NotifierProvider<HomeNotifier, HomeState>(HomeNotifier.new);
 
 // UseCase provider
 final groupProductsUseCaseProvider = Provider<GroupProductsByCategoryUseCase>((
@@ -265,17 +274,14 @@ final groupProductsUseCaseProvider = Provider<GroupProductsByCategoryUseCase>((
 
 // Replaces 'searchControllerProvider'
 final searchProvider =
-    StateNotifierProvider.autoDispose<SearchNotifier, SearchState>((ref) {
-      final repository = ref.watch(homeRepositoryProvider);
-      return SearchNotifier(repository: repository);
-    });
+    AutoDisposeNotifierProvider<SearchNotifier, SearchState>(SearchNotifier.new);
 
 // ----------------------------------------------------------------------
 // 4. Selectors (Helpers for UI optimization)
 // ----------------------------------------------------------------------
 
 // Example: Watch only categories to avoid rebuilding entire home screen
-final categoriesProvider = Provider.autoDispose<List<Category>>((ref) {
+final categoriesProvider = Provider<List<Category>>((ref) {
   final homeState = ref.watch(homeProvider);
   return homeState.maybeMap(
     loaded: (s) => s.categories,
@@ -284,11 +290,16 @@ final categoriesProvider = Provider.autoDispose<List<Category>>((ref) {
   );
 });
 
-final activeAdProvider = Provider.autoDispose<Banner?>((ref) {
+final activeAdProvider = Provider<Banner?>((ref) {
   final homeState = ref.watch(homeProvider);
   return homeState.maybeMap(
     loaded: (s) => s.activeAd,
     refreshing: (s) => s.activeAd,
     orElse: () => null,
   );
+});
+
+final isGuestProvider = Provider<bool>((ref) {
+  final authState = ref.watch(authProvider);
+  return authState is GuestMode;
 });

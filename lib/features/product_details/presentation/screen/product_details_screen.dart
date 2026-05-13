@@ -13,11 +13,10 @@ import '../../../../core/widgets/app_text.dart';
 import '../../../auth/application/providers/auth_provider.dart';
 import '../../../auth/application/states/auth_state.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
-import '../../../cart/infrastructure/data_sources/remote/checkout_line_data_source.dart';
+import '../../../cart/domain/exceptions/cart_exceptions.dart';
 import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../../../category/application/providers/price_update_notifier.dart';
 import '../../../orders/application/providers/orders_provider.dart';
-import '../../../orders/infrastructure/data_sources/orders_api.dart';
 import '../../../wishlist/application/providers/wishlist_provider.dart';
 import '../../../bottomnavbar/bottom_navbar.dart';
 import '../components/checkout_section/checkout_section.dart';
@@ -54,10 +53,11 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
       _ProductDetailsScreenState();
 }
 
+/// Space reserved at the bottom of the scroll column to clear the sticky bottom sheet.
+const _kBottomSheetClearance = 100.0;
+
 class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     with WidgetsBindingObserver {
-  /// UI State: Only track expandable section state
-  /// This is UI-only state and doesn't need Riverpod
   bool _isProductDetailExpanded = true;
 
   /// Store previous active feature to restore when popping back
@@ -129,6 +129,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     final priceUpdates = ref.watch(priceUpdateNotifierProvider);
     final inventoryUpdates = ref.watch(inventoryUpdateNotifierProvider);
 
+    // Watch wishlist state at build level (rule: ref.watch only in build())
+    final isInWishlist = ref.watch(isInWishlistProvider(widget.variantId));
+
     // Extract variant ID for Socket updates lookup
     final variantId = int.tryParse(widget.variantId) ?? 0;
 
@@ -181,6 +184,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         variantId: variantId,
         cartQuantity: cartQuantity,
         cartLineId: cartLineId,
+        isInWishlist: isInWishlist,
       ),
       bottomSheet: _buildBottomSheet(
         productDetail: productDetail,
@@ -199,9 +203,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     required int variantId,
     required int cartQuantity,
     required int cartLineId,
+    required bool isInWishlist,
   }) {
-    // Check wishlist status from wishlist provider
-    final isInWishlist = ref.watch(isInWishlistProvider(widget.variantId));
 
     // Stock status: prioritize Socket.IO real-time update, fallback to API data
     final currentQuantity =
@@ -209,26 +212,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     final inStock = currentQuantity > 0;
     final quantity = currentQuantity;
 
-    // Calculate display price and original price based on discounted_price
-    // If discountedPrice exists → it's the display price, price is strikethrough
-    // If discountedPrice is null → price is the display price, no strikethrough
-    final String displayPrice;
-    final String? originalPrice;
-
-    if (socketPriceUpdate != null) {
-      // Use real-time Socket.IO price if available
-      displayPrice = socketPriceUpdate.newPrice.toString();
-      originalPrice = socketPriceUpdate.oldPrice?.toString();
-    } else if (productDetail.discountedPrice != null &&
-        productDetail.discountedPrice!.isNotEmpty) {
-      // Has discount: discountedPrice is display, price is strikethrough
-      displayPrice = productDetail.discountedPrice!;
-      originalPrice = productDetail.price;
-    } else {
-      // No discount: price is display, no strikethrough
-      displayPrice = productDetail.price;
-      originalPrice = null;
-    }
+    final (displayPrice, originalPrice) = _resolveDisplayPrice(
+      productDetail,
+      socketPriceUpdate,
+    );
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -252,9 +239,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(
+                  child: Icon(
                     Icons.arrow_back_ios_new,
-                    size: 18,
+                    size: 18.sp,
                     color: AppColors.black,
                   ),
                 ),
@@ -386,8 +373,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 },
               ),
 
-            // Add bottom padding for bottom sheet
-            SizedBox(height: 100.h),
+            SizedBox(height: _kBottomSheetClearance.h),
           ],
         ),
       ),
@@ -395,25 +381,12 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   }
 
   /// Build bottom sheet (sticky checkout section)
-  /// Delegates to CheckoutSection component for display
-  /// Price calculation handled by CheckoutSection component
   Widget _buildBottomSheet({
     required product_variant.ProductVariant productDetail,
     required PriceUpdateEvent? socketPriceUpdate,
     required int cartQuantity,
   }) {
-    // Calculate display price based on discounted_price logic
-    final String displayPrice;
-
-    if (socketPriceUpdate != null) {
-      displayPrice = socketPriceUpdate.newPrice.toString();
-    } else if (productDetail.discountedPrice != null &&
-        productDetail.discountedPrice!.isNotEmpty) {
-      displayPrice = productDetail.discountedPrice!;
-    } else {
-      displayPrice = productDetail.price;
-    }
-
+    final (displayPrice, _) = _resolveDisplayPrice(productDetail, socketPriceUpdate);
     final unitPrice = extractNumericPrice(displayPrice);
 
     return CheckoutSection(
@@ -422,6 +395,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
       onViewCart: _handleNavigateToCart,
       onCheckout: _handleNavigateToCheckout,
     );
+  }
+
+  /// Resolves the display price and optional strikethrough original price.
+  /// Priority: real-time socket update → discounted price → base price.
+  (String displayPrice, String? originalPrice) _resolveDisplayPrice(
+    product_variant.ProductVariant product,
+    PriceUpdateEvent? socketUpdate,
+  ) {
+    if (socketUpdate != null) {
+      return (socketUpdate.newPrice.toString(), socketUpdate.oldPrice?.toString());
+    }
+    if (product.discountedPrice != null && product.discountedPrice!.isNotEmpty) {
+      return (product.discountedPrice!, product.price);
+    }
+    return (product.price, null);
   }
 
   /// Handle Add button tap - adds 1 item to cart
@@ -544,7 +532,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
   /// Handle navigate to cart
   void _handleNavigateToCart() {
-    context.push('/cart');
+    context.go('/home');
+    BottomNavigation.globalKey.currentState?.navigateToTab(3);
   }
 
   /// Handle navigate to checkout
@@ -560,10 +549,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     Logger.info('Rating submitted: $rating stars for order $orderId');
 
     try {
-      // Submit rating via API
       await ref
-          .read(ordersApiProvider)
-          .submitOrderRating(orderId: orderId, stars: rating);
+          .read(ordersProvider.notifier)
+          .submitRating(orderId: orderId, stars: rating);
 
       if (mounted) {
         AppSnackbar.success(context, 'Thank you for your rating!');
@@ -584,94 +572,108 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     // Log the error for debugging
     Logger.error('Product details error: $errorMessage', error: errorMessage);
 
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(16.w),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.shopping_bag_outlined,
-                size: 48.sp,
-                color: Colors.red.shade400,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              'Product not available',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              _getUserFriendlyErrorMessage(errorMessage),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey,
-                height: 1.5,
-              ),
-            ),
-            SizedBox(height: 24.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Logger.info('User tapped retry on product details error');
-                    ref
-                        .read(
-                          productDetailControllerProvider(
-                            widget.variantId,
-                          ).notifier,
-                        )
-                        .refresh();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 12.h,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                  ),
-                  icon: Icon(Icons.refresh, size: 20.sp),
-                  label: const Text('Try Again'),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        image: DecorationImage(
+          image: AssetImage('assets/bg.png'),
+          repeat: ImageRepeat.repeat,
+          opacity: 0.7,
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
                 ),
-                SizedBox(width: 12.w),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey.shade700,
-                    side: BorderSide(color: Colors.grey.shade300),
-                    elevation: 0,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 12.h,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                  ),
-                  icon: Icon(Icons.arrow_back, size: 20.sp),
-                  label: const Text('Go Back'),
+                child: Icon(
+                  Icons.shopping_bag_outlined,
+                  size: 48.sp,
+                  color: Colors.red.shade400,
                 ),
-              ],
-            ),
-          ],
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'Product not available',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                _getUserFriendlyErrorMessage(errorMessage),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.grey,
+                  height: 1.5,
+                ),
+              ),
+              SizedBox(height: 24.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Logger.info(
+                        'User tapped retry on product details error',
+                      );
+                      ref
+                          .read(
+                            productDetailControllerProvider(
+                              widget.variantId,
+                            ).notifier,
+                          )
+                          .refresh();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.w,
+                        vertical: 12.h,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                    ),
+                    icon: Icon(Icons.refresh, size: 20.sp),
+                    label: const Text('Try Again'),
+                  ),
+                  SizedBox(width: 12.w),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey.shade700,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      elevation: 0,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.w,
+                        vertical: 12.h,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                    ),
+                    icon: Icon(Icons.arrow_back, size: 20.sp),
+                    label: const Text('Go Back'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

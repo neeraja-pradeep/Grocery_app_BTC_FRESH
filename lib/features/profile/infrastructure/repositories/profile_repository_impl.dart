@@ -1,20 +1,9 @@
+import 'package:flutter/foundation.dart';
+
 import '../../domain/entities/profile.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../data_sources/local/profile_local_ds.dart';
 import '../data_sources/remote/profile_api.dart';
-
-/// Result of fetching profile with cache information
-class ProfileFetchResult {
-  const ProfileFetchResult({
-    required this.profile,
-    required this.isStale,
-    required this.fromCache,
-  });
-
-  final Profile profile;
-  final bool isStale;
-  final bool fromCache;
-}
 
 class ProfileRepositoryImpl implements ProfileRepository {
   const ProfileRepositoryImpl({
@@ -26,10 +15,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileApi _remoteDs;
   final ProfileLocalDs _localDs;
 
-  /// Fetches profile with cache-first strategy:
-  /// 1. Returns cached data immediately if available (even if stale)
-  /// 2. Triggers background API refresh
-  /// Returns ProfileFetchResult with cache metadata
+  @override
   Future<ProfileFetchResult> fetchProfileWithCache() async {
     // Step 1: Try to get cached data first
     final cachedResult = await _localDs.getCachedProfile();
@@ -59,14 +45,13 @@ class ProfileRepositoryImpl implements ProfileRepository {
         isStale: false,
         fromCache: false,
       );
-    } catch (error) {
-      // API failed and no cache - rethrow error
+    } catch (error, st) {
+      debugPrint('[ProfileRepositoryImpl] cold-start fetch failed: $error\n$st');
       rethrow;
     }
   }
 
-  /// Refreshes profile from API (background refresh)
-  /// Returns fresh data or null if fails or data not modified
+  @override
   Future<Profile?> refreshProfileFromApi() async {
     try {
       final response = await _remoteDs.fetchProfile();

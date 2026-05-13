@@ -1,37 +1,10 @@
 import '../entities/category.dart';
 
-/// Indicates where category data was retrieved from (cache or remote API).
-///
-/// Used to determine if a result came from local Hive storage or fresh from the API.
-/// Helps UI decide whether to show loading indicators or cached data indicators.
-enum CategoryDataSource {
-  /// Data retrieved from local Hive storage
-  cache,
-
-  /// Data retrieved from remote API
-  remote,
-}
-
 /// Result of a category repository operation.
-///
-/// Contains the fetched categories, metadata about when they were synced,
-/// and pagination information for loading more data.
-///
-/// Example:
-/// ```dart
-/// final result = await categoryRepository.syncCategories();
-/// if (result.hasData) {
-///   print('${result.categories.length} categories loaded');
-/// }
-/// if (result.isStale) {
-///   print('Data is older than TTL, should refresh');
-/// }
-/// ```
 class CategoryRepositoryResult {
-  /// Creates a new [CategoryRepositoryResult].
   const CategoryRepositoryResult({
     required this.categories,
-    required this.source,
+    required this.isFromCache,
     required this.lastSyncedAt,
     required this.isStale,
     this.totalCount,
@@ -40,11 +13,10 @@ class CategoryRepositoryResult {
     this.lastModified,
   });
 
-  /// List of categories returned from cache or API.
   final List<Category> categories;
 
-  /// Where these categories came from (cache or remote).
-  final CategoryDataSource source;
+  /// True when data came from local cache; false when fetched from the remote API.
+  final bool isFromCache;
 
   /// When these categories were last synced with the server.
   ///

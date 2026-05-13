@@ -6,15 +6,16 @@ import '../../app/theme/colors.dart';
 import '../../core/polling/polling_manager.dart';
 import '../../core/polling/polling_tab_controller.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/network_status_banner.dart';
 import '../auth/application/providers/auth_provider.dart';
 import '../auth/application/states/auth_state.dart';
 import '../cart/application/providers/checkout_line_provider.dart';
 import '../category/presentation/screen/category_screen.dart';
 import '../cart/presentation/screen/cart_screen.dart';
 import '../category/presentation/components/widgets/review_bottom_sheet.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../home/presentation/screen/home_screen.dart';
 import '../wishlist/presentation/screen/wishlist_screen.dart';
-import '../home/domain/entities/category.dart';
 
 class BottomNavigation extends ConsumerStatefulWidget {
   const BottomNavigation({super.key});
@@ -30,15 +31,20 @@ class BottomNavigation extends ConsumerStatefulWidget {
 class BottomNavigationState extends ConsumerState<BottomNavigation>
     with WidgetsBindingObserver {
   int? _selectedCategoryId;
+  late List<Widget> _pages;
 
-  void navigateToCategories(Category category) {
-    // Add to history if different from current
-    if (_currentIndex != 1) {
+  void navigateToCategories(int categoryId) {
+    if (_tabHistory.isEmpty || _tabHistory.last != 1) {
       _tabHistory.add(1);
     }
     setState(() {
-      _selectedCategoryId = category.id;
+      _selectedCategoryId = categoryId;
       _currentIndex = 1;
+      _visitedTabs.add(1);
+      _pages[1] = CategoryScreen(
+        key: ValueKey(categoryId),
+        initialCategoryId: categoryId.toString(),
+      );
     });
     _pollingController.selectTab(1);
   }
@@ -46,33 +52,23 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
   /// Navigate to a specific tab by index
   void navigateToTab(int index) {
     if (index >= 0 && index < 4) {
-      // Add to history if different from current
-      if (index != _currentIndex) {
+      if (_tabHistory.isEmpty || _tabHistory.last != index) {
         _tabHistory.add(index);
       }
       setState(() {
         _currentIndex = index;
+        _visitedTabs.add(index);
       });
       _pollingController.selectTab(index);
     }
   }
 
-  List<Widget> get _pages {
-    return [
-      HomeScreen(onCategoryNavigate: navigateToCategories),
-      CategoryScreen(
-        key: ValueKey(
-          _selectedCategoryId,
-        ), // Force rebuild when category changes
-        initialCategoryId: _selectedCategoryId?.toString(),
-      ),
-      const WishlistScreen(),
-      const CartScreen(),
-    ];
-  }
-
   int _currentIndex = 0;
   final List<int> _tabHistory = [0]; // Track navigation history
+  // Tabs the user has actually visited. Unvisited tabs render as SizedBox in
+  // the IndexedStack so their widget trees (and the per-category fetches the
+  // Categories tab kicks off on mount) never run until the user goes there.
+  final Set<int> _visitedTabs = {0};
   late final PollingTabController _pollingController;
   bool _showReviewSheetOnCategoryLoad = false;
 
@@ -81,10 +77,20 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    _pages = [
+      HomeScreen(onCategoryNavigate: navigateToCategories),
+      CategoryScreen(
+        key: ValueKey(_selectedCategoryId),
+        initialCategoryId: _selectedCategoryId?.toString(),
+      ),
+      const WishlistScreen(),
+      const CartScreen(),
+    ];
+
     _pollingController = PollingTabController(
       tabToFeature: {
-        0: 'category_products', // Home screen
-        1: 'home', // Category screen - Matches CategoryProductController registration
+        0: 'home',
+        1: 'category_products',
         2: 'wishlist',
         3: 'cart',
       },
@@ -123,22 +129,24 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
       return;
     }
 
-    // Add to history only if different from current
-    if (index != _currentIndex) {
+    if (_tabHistory.isEmpty || _tabHistory.last != index) {
       _tabHistory.add(index);
     }
 
-    setState(() => _currentIndex = index);
+    setState(() {
+      _currentIndex = index;
+      _visitedTabs.add(index);
+    });
     _pollingController.selectTab(index);
   }
 
   void navigateToCategoryAndShowReview() {
-    // Add to history if different from current
-    if (_currentIndex != 1) {
+    if (_tabHistory.isEmpty || _tabHistory.last != 1) {
       _tabHistory.add(1);
     }
     setState(() {
       _currentIndex = 1;
+      _visitedTabs.add(1);
       _showReviewSheetOnCategoryLoad = true;
     });
     _pollingController.selectTab(1);
@@ -173,7 +181,22 @@ class BottomNavigationState extends ConsumerState<BottomNavigation>
         }
       },
       child: Scaffold(
-        body: IndexedStack(index: _currentIndex, children: _pages),
+        body: Column(
+          children: [
+            const NetworkStatusBanner(),
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: [
+                  for (var i = 0; i < _pages.length; i++)
+                    _visitedTabs.contains(i)
+                        ? _pages[i]
+                        : const SizedBox.shrink(),
+                ],
+              ),
+            ),
+          ],
+        ),
         bottomNavigationBar: _BottomNavBar(
           colorScheme: colorScheme,
           currentIndex: _currentIndex,
@@ -205,7 +228,25 @@ class _BottomNavBar extends ConsumerWidget {
     // Get total number of items in cart (only for authenticated users)
     final cartItemCount = isAuthenticated ? cartState.items.length : 0;
 
-    return BottomNavigationBar(
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0D000000),
+            offset: Offset(0, -17),
+            blurRadius: 10,
+          ),
+          BoxShadow(
+            color: Color(0x0D000000),
+            offset: Offset(0, -2),
+            blurRadius: 11.9,
+          ),
+        ],
+      ),
+      child: SizedBox(
+        height: 74.h,
+        child: BottomNavigationBar(
       backgroundColor: Colors.white,
       currentIndex: currentIndex,
       onTap: onItemSelected,
@@ -213,13 +254,13 @@ class _BottomNavBar extends ConsumerWidget {
       unselectedItemColor: AppColors.black,
       showUnselectedLabels: true,
       type: BottomNavigationBarType.fixed,
-      elevation: 8,
+      elevation: 0,
       items: [
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
             'assets/svgs/nav_bar/home.svg',
-            height: 20,
-            width: 20,
+            height: 20.h,
+            width: 20.w,
             colorFilter: const ColorFilter.mode(
               AppColors.black,
               BlendMode.srcIn,
@@ -227,16 +268,16 @@ class _BottomNavBar extends ConsumerWidget {
           ),
           activeIcon: Image.asset(
             'assets/svgs/nav_bar/home_active.png',
-            height: 20,
-            width: 20,
+            height: 20.h,
+            width: 20.w,
           ),
           label: 'Home',
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
             'assets/svgs/nav_bar/categories.svg',
-            height: 20,
-            width: 20,
+            height: 20.h,
+            width: 20.w,
             colorFilter: const ColorFilter.mode(
               AppColors.black,
               BlendMode.srcIn,
@@ -244,16 +285,16 @@ class _BottomNavBar extends ConsumerWidget {
           ),
           activeIcon: Image.asset(
             'assets/svgs/nav_bar/category_active.png',
-            height: 20,
-            width: 20,
+            height: 20.h,
+            width: 20.w,
           ),
           label: 'Categories',
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
             'assets/svgs/nav_bar/wishlist.svg',
-            height: 20,
-            width: 20,
+            height: 20.h,
+            width: 20.w,
             colorFilter: const ColorFilter.mode(
               AppColors.black,
               BlendMode.srcIn,
@@ -261,8 +302,8 @@ class _BottomNavBar extends ConsumerWidget {
           ),
           activeIcon: Image.asset(
             'assets/svgs/nav_bar/wishlist_active.png',
-            height: 20,
-            width: 20,
+            height: 20.h,
+            width: 20.w,
           ),
           label: 'Wishlist',
         ),
@@ -272,6 +313,8 @@ class _BottomNavBar extends ConsumerWidget {
           label: 'Cart',
         ),
       ],
+        ),
+      ),
     );
   }
 
@@ -280,44 +323,42 @@ class _BottomNavBar extends ConsumerWidget {
     final icon = isActive
         ? Image.asset(
             'assets/svgs/nav_bar/cart_active.png',
-            height: 20,
-            width: 20,
+            height: 20.h,
+            width: 20.w,
           )
         : SvgPicture.asset(
             'assets/svgs/nav_bar/cart.svg',
-            height: 20,
-            width: 20,
+            height: 20.h,
+            width: 20.w,
             colorFilter: const ColorFilter.mode(
               AppColors.black,
               BlendMode.srcIn,
             ),
           );
 
-    // If no items, just return the icon
     if (itemCount <= 0) {
       return icon;
     }
 
-    // Return icon with badge
     return Stack(
       clipBehavior: Clip.none,
       children: [
         icon,
         Positioned(
-          right: -8,
-          top: -4,
+          right: -8.w,
+          top: -4.h,
           child: Container(
-            padding: const EdgeInsets.all(4),
+            padding: EdgeInsets.all(4.r),
             decoration: const BoxDecoration(
               color: AppColors.red,
               shape: BoxShape.circle,
             ),
-            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+            constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.h),
             child: Text(
               itemCount > 99 ? '99+' : itemCount.toString(),
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 10,
+                fontSize: 10.sp,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,

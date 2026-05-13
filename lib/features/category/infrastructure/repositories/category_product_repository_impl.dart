@@ -1,3 +1,4 @@
+import '../../../../core/storage/cache_config.dart';
 import '../../domain/entities/category_product.dart';
 import '../../domain/repositories/category_product_repository.dart';
 import '../data_sources/local/category_product_cache_dto.dart';
@@ -9,7 +10,7 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
   CategoryProductRepositoryImpl({
     required CategoryProductLocalDataSource localDataSource,
     required CategoryProductRemoteDataSource remoteDataSource,
-    Duration cacheTtl = const Duration(minutes: 10),
+    Duration cacheTtl = CacheConfig.cacheTTL,
   }) : _localDataSource = localDataSource,
        _remoteDataSource = remoteDataSource,
        _cacheTtl = cacheTtl;
@@ -33,7 +34,7 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
 
     return CategoryProductRepositoryResult(
       products: products,
-      source: CategoryProductDataSource.cache,
+      isFromCache: true,
       lastSyncedAt: cache.lastSyncedAt,
       isStale: isStale,
       totalCount: cache.count,
@@ -84,7 +85,7 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
       if (existingCache == null) {
         return const CategoryProductRepositoryResult(
           products: <CategoryProduct>[],
-          source: CategoryProductDataSource.cache,
+          isFromCache: true,
           lastSyncedAt: null,
           isStale: false,
         );
@@ -96,7 +97,7 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
 
       return CategoryProductRepositoryResult(
         products: _mapDtosToDomain(existingCache.products),
-        source: CategoryProductDataSource.cache,
+        isFromCache: true,
         lastSyncedAt: now,
         isStale: false,
         totalCount: existingCache.count,
@@ -124,7 +125,7 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
 
     return CategoryProductRepositoryResult(
       products: _mapDtosToDomain(response.products),
-      source: CategoryProductDataSource.remote,
+      isFromCache: false,
       lastSyncedAt: response.fetchedAt,
       isStale: false,
       totalCount: response.count,

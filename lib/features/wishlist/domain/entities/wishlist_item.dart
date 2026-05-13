@@ -22,41 +22,27 @@ class WishlistItem with _$WishlistItem {
   }) = _WishlistItem;
 
   factory WishlistItem.fromJson(Map<String, dynamic> json) {
-    // Debug: Print the raw JSON to see what we're getting
-    // print('WishlistItem.fromJson - Raw JSON: $json');
-
-    // Parse according to the actual API response format
     String imageUrl = json['image']?.toString() ?? '';
 
-    // Debug: Print the image URL
-    // print('WishlistItem.fromJson - Image URL: $imageUrl');
-
-    // Handle invalid/placeholder image URLs
     if (imageUrl == 'string' ||
         imageUrl.isEmpty ||
         !_isValidImageUrl(imageUrl)) {
-      // print('WishlistItem.fromJson - Invalid image URL, setting to empty');
-      imageUrl = ''; // Set to empty to show placeholder
+      imageUrl = '';
     }
 
     return WishlistItem(
       id: _parseInt(json['id']) ?? 0,
-      productId: json['product_variant']?.toString() ?? '',
+      productId: json['product_variant_id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       price: _parseDouble(json['price']) ?? 0.0,
-      // Since API doesn't provide MRP, use price as MRP
       mrp: _parseDouble(json['price']) ?? 0.0,
       imageUrl: imageUrl,
-      // API doesn't provide unit_label, so we'll use empty string
       unitLabel: '',
-      // API doesn't provide discount info, calculate from price if needed
       discountPct: 0,
-      // API doesn't provide added_at, use current time
       addedAt: DateTime.now(),
     );
   }
 
-  // Helper methods for parsing
   static double? _parseDouble(dynamic value) {
     if (value == null) return null;
     if (value is double) return value;
@@ -73,41 +59,28 @@ class WishlistItem with _$WishlistItem {
     return null;
   }
 
-  // Helper method to validate image URLs
   static bool _isValidImageUrl(String url) {
     if (url.isEmpty || url == 'string') return false;
-
-    // If it doesn't start with http, it might be a relative URL that we can fix
-    if (!url.startsWith('http')) {
-      return true; // We'll fix it later by adding https://
-    }
-
-    // Check if it's a valid URL format
+    if (!url.startsWith('http')) return true;
     final uri = Uri.tryParse(url);
     if (uri == null) return false;
-
-    // Check if it has a valid scheme
     return uri.scheme.startsWith('http');
   }
 
-  // Factory method to create WishlistItem from ProductVariant
   factory WishlistItem.fromProductVariant({
     required int id,
     required ProductVariant productVariant,
     DateTime? addedAt,
   }) {
-    // Get image URL from media
     String imageUrl = '';
     if (productVariant.media.isNotEmpty) {
       imageUrl = productVariant.media.first.imageUrl;
     }
 
-    // Calculate discount percentage
     final discountPct = productVariant.hasDiscount
         ? productVariant.discountPercentage.round()
         : 0;
 
-    // Use discounted price if available, otherwise regular price
     final currentPrice = productVariant.hasDiscount
         ? (productVariant.discountedPrice ?? productVariant.price)
         : productVariant.price;
@@ -117,7 +90,7 @@ class WishlistItem with _$WishlistItem {
       productId: productVariant.id.toString(),
       name: productVariant.name,
       price: currentPrice,
-      mrp: productVariant.price, // Original price as MRP
+      mrp: productVariant.price,
       imageUrl: imageUrl,
       unitLabel: productVariant.stockUnit ?? '',
       discountPct: discountPct,
@@ -125,19 +98,15 @@ class WishlistItem with _$WishlistItem {
     );
   }
 
-  // Factory method to create WishlistItem from complete product API response
   factory WishlistItem.fromProductVariantResponse({
     required int wishlistId,
     required Map<String, dynamic> productData,
   }) {
-    // Get image URL from media array (same as home screen)
     String imageUrl = '';
     final mediaList = productData['media'] as List<dynamic>?;
     if (mediaList != null && mediaList.isNotEmpty) {
       final firstMedia = mediaList.first as Map<String, dynamic>;
       final rawImageUrl = firstMedia['image']?.toString() ?? '';
-
-      // Apply same URL processing as ProductMedia.fromJson
       if (rawImageUrl.isNotEmpty && !rawImageUrl.startsWith('http')) {
         imageUrl = 'https://$rawImageUrl';
       } else {
@@ -145,11 +114,9 @@ class WishlistItem with _$WishlistItem {
       }
     }
 
-    // Parse prices
     final price = _parseDouble(productData['price']) ?? 0.0;
     final discountedPrice = _parseDouble(productData['discounted_price']);
 
-    // Calculate discount percentage
     final hasDiscount =
         discountedPrice != null &&
         discountedPrice < price &&
@@ -158,20 +125,14 @@ class WishlistItem with _$WishlistItem {
         ? (((price - discountedPrice) / price) * 100).round()
         : 0;
 
-    // Use discounted price if available, otherwise regular price
     final currentPrice = hasDiscount ? discountedPrice : price;
-
-    // print('WishlistItem.fromProductVariantResponse - Image URL: $imageUrl');
-    // print(
-    //   'WishlistItem.fromProductVariantResponse - Product: ${productData['name']}',
-    // );
 
     return WishlistItem(
       id: wishlistId,
       productId: productData['id']?.toString() ?? '',
       name: productData['name']?.toString() ?? '',
       price: currentPrice,
-      mrp: price, // Original price as MRP
+      mrp: price,
       imageUrl: imageUrl,
       unitLabel: productData['stock_unit']?.toString() ?? '',
       discountPct: discountPct,
@@ -186,20 +147,44 @@ extension WishlistItemX on WishlistItem {
 
   double get displayPrice => hasDiscount ? price : mrp;
 
-  // Convert to JSON for API requests
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'product_variant': int.tryParse(productId) ?? 0,
+      'product_variant_id': int.tryParse(productId) ?? 0,
       'name': name,
       'price': price.toString(),
       'image': imageUrl,
     };
   }
 
-  // Convert WishlistItem to ProductVariant for compatibility
+  /// Full serialization for Hive cache persistence.
+  Map<String, dynamic> toCacheJson() => {
+    'id': id,
+    'productId': productId,
+    'name': name,
+    'price': price,
+    'mrp': mrp,
+    'imageUrl': imageUrl,
+    'unitLabel': unitLabel,
+    'discountPct': discountPct,
+    if (addedAt != null) 'addedAt': addedAt!.toIso8601String(),
+  };
+
+  static WishlistItem fromCacheJson(Map<String, dynamic> json) => WishlistItem(
+    id: json['id'] as int,
+    productId: json['productId'] as String,
+    name: json['name'] as String,
+    price: (json['price'] as num).toDouble(),
+    mrp: (json['mrp'] as num).toDouble(),
+    imageUrl: json['imageUrl'] as String,
+    unitLabel: json['unitLabel'] as String,
+    discountPct: json['discountPct'] as int,
+    addedAt: json['addedAt'] != null
+        ? DateTime.parse(json['addedAt'] as String)
+        : null,
+  );
+
   ProductVariant toProductVariant() {
-    // Process image URL similar to ProductMedia.fromJson
     String processedImageUrl = '';
     if (imageUrl.isNotEmpty && imageUrl != 'string') {
       if (!imageUrl.startsWith('http')) {
@@ -208,11 +193,6 @@ extension WishlistItemX on WishlistItem {
         processedImageUrl = imageUrl;
       }
     }
-
-    // print('WishlistItem.toProductVariant - Original imageUrl: $imageUrl');
-    // print(
-    //   'WishlistItem.toProductVariant - Processed imageUrl: $processedImageUrl',
-    // );
 
     return ProductVariant(
       id: int.tryParse(productId) ?? 0,

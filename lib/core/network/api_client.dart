@@ -54,7 +54,7 @@ class ApiClient {
         LogInterceptor(
           requestBody: true,
           responseBody: true,
-          requestHeader: true,
+          requestHeader: false, // never log headers — contains session cookies
           responseHeader: false,
         ),
       );

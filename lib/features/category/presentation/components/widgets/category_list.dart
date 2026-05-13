@@ -154,7 +154,10 @@ class _CategoryListState extends State<CategoryList> {
                     vertical: isSelected ? 12.h : 10.h,
                   ),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.green10 : AppColors.white,
+                    // Only the selected row is transparent so the tiled bg.png
+                    // shows through it; unselected rows keep their solid white
+                    // background.
+                    color: isSelected ? Colors.transparent : AppColors.white,
                     borderRadius: borderRadius,
                     // Green left border for selected item
                     border: Border(
@@ -170,10 +173,10 @@ class _CategoryListState extends State<CategoryList> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Show image only when selected (local or network)
-                      if (isSelected &&
-                          (item.assetPath != null ||
-                              item.imageUrl != null)) ...[
+                      // Show image (or placeholder icon) when selected so the
+                      // selected card stays the same height regardless of
+                      // whether the category has an image.
+                      if (isSelected) ...[
                         ClipRRect(
                           borderRadius: BorderRadius.circular(14.r),
                           child: _buildCategoryImage(item),

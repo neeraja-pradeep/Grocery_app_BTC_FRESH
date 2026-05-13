@@ -16,7 +16,11 @@ final connectivityProvider = StreamProvider<ConnectivityStatus>((ref) async* {
   }
 });
 
-/// Provider that returns the current connectivity status (single value, not streaming)
+/// Provider that returns a one-shot connectivity snapshot.
+///
+/// WARNING: This resolves once at read time and NEVER updates after that.
+/// It cannot be used for reactive offline/online UI — use [connectivityProvider]
+/// (the StreamProvider) for anything that must respond to network changes.
 final connectivityStatusProvider = FutureProvider<ConnectivityStatus>((
   ref,
 ) async {

@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/network_exceptions.dart';
@@ -17,6 +15,9 @@ enum PaymentStatus {
   failed,
 }
 
+// Sentinel used to distinguish "not passed" from null in copyWith.
+const _unset = Object();
+
 class PaymentState {
   final PaymentStatus status;
   final String? errorMessage;
@@ -30,12 +31,14 @@ class PaymentState {
 
   PaymentState copyWith({
     PaymentStatus? status,
-    String? errorMessage,
+    Object? errorMessage = _unset,
     String? orderId,
   }) {
     return PaymentState(
       status: status ?? this.status,
-      errorMessage: errorMessage,
+      errorMessage: identical(errorMessage, _unset)
+          ? this.errorMessage
+          : errorMessage as String?,
       orderId: orderId ?? this.orderId,
     );
   }
@@ -47,23 +50,17 @@ class PaymentState {
 }
 
 /// Controller for handling the complete payment flow
-class PaymentController extends StateNotifier<PaymentState> {
-  final OrderDataSource _orderDataSource;
-  final RazorpayService _razorpayService;
-
-  PaymentController({
-    required OrderDataSource orderDataSource,
-    required RazorpayService razorpayService,
-  }) : _orderDataSource = orderDataSource,
-       _razorpayService = razorpayService,
-       super(const PaymentState()) {
-    _razorpayService.init();
-  }
+class PaymentController extends Notifier<PaymentState> {
+  late OrderDataSource _orderDataSource;
+  late RazorpayService _razorpayService;
 
   @override
-  void dispose() {
-    _razorpayService.dispose();
-    super.dispose();
+  PaymentState build() {
+    _orderDataSource = ref.watch(orderDataSourceProvider);
+    _razorpayService = ref.watch(razorpayServiceProvider);
+    // keepAlive so payment state survives tab navigation during active payment
+    ref.keepAlive();
+    return const PaymentState();
   }
 
   /// Reset payment state
@@ -91,14 +88,10 @@ class PaymentController extends StateNotifier<PaymentState> {
       // Step 1: Apply coupon if provided
       if (couponId != null && checkoutId != null) {
         state = state.copyWith(status: PaymentStatus.applyingCoupon);
-        developer.log('Applying coupon $couponId to checkout $checkoutId');
-
         await _orderDataSource.applyCoupon(
           checkoutId: checkoutId,
           couponId: couponId,
         );
-
-        developer.log('Coupon applied successfully');
       }
 
       // Step 2: Initiate payment via API
@@ -108,14 +101,7 @@ class PaymentController extends StateNotifier<PaymentState> {
         addressId: addressId,
       );
 
-      developer.log('========== RAZORPAY CHECKOUT DEBUG ==========');
-      developer.log('Razorpay Order ID: ${checkoutResponse.razorpayOrderId}');
-      developer.log('Amount (in paise): ${checkoutResponse.amount}');
-      developer.log('Currency: ${checkoutResponse.currency}');
-      developer.log('App Order ID: ${checkoutResponse.orderId}');
-      developer.log('============================================');
-
-      // Step 2: Open Razorpay payment
+      // Step 3: Open Razorpay payment
       state = state.copyWith(
         status: PaymentStatus.awaitingPayment,
         orderId: checkoutResponse.orderId,
@@ -130,7 +116,7 @@ class PaymentController extends StateNotifier<PaymentState> {
         customerPhone: customerPhone,
         onComplete: (result) async {
           if (result.success) {
-            // Step 3: Verify payment
+            // Step 4: Verify payment
             await _verifyPayment(
               razorpayPaymentId: result.paymentId!,
               razorpayOrderId: result.orderId!,
@@ -148,11 +134,7 @@ class PaymentController extends StateNotifier<PaymentState> {
         },
       );
     } catch (e) {
-      developer.log('Payment Error: $e');
-
-      // Extract error message from NetworkException or fallback to toString
       final errorMessage = e is NetworkException ? e.message : e.toString();
-
       state = state.copyWith(
         status: PaymentStatus.failed,
         errorMessage: errorMessage,
@@ -170,13 +152,6 @@ class PaymentController extends StateNotifier<PaymentState> {
   }) async {
     try {
       state = state.copyWith(status: PaymentStatus.verifyingPayment);
-
-      // Log payment details for debugging
-      developer.log('========== PAYMENT VERIFY REQUEST ==========');
-      developer.log('razorpay_payment_id: $razorpayPaymentId');
-      developer.log('razorpay_order_id: $razorpayOrderId');
-      developer.log('razorpay_signature: $razorpaySignature');
-      developer.log('=============================================');
 
       final verifyResponse = await _orderDataSource.verifyPayment(
         razorpayPaymentId: razorpayPaymentId,
@@ -198,19 +173,12 @@ class PaymentController extends StateNotifier<PaymentState> {
         onFailure(verifyResponse.message);
       }
     } catch (e) {
-      developer.log('Verify Payment Error: $e');
-
-      // Extract meaningful error message from NetworkException or fallback
       String errorMessage = 'Payment verification failed';
 
       if (e is NetworkException) {
-        // Use the message directly from NetworkException (extracted from API response)
         errorMessage = e.message;
-        developer.log('NetworkException message: ${e.message}');
-        developer.log('NetworkException body: ${e.body}');
       } else {
         final errorStr = e.toString();
-        // Check for specific error patterns from backend
         if (errorStr.contains('Reservation expired') ||
             errorStr.contains('not found')) {
           errorMessage = 'Reservation expired or not found';
@@ -239,9 +207,4 @@ final razorpayServiceProvider = Provider<RazorpayService>((ref) {
 
 /// Provider for PaymentController
 final paymentControllerProvider =
-    StateNotifierProvider<PaymentController, PaymentState>((ref) {
-      return PaymentController(
-        orderDataSource: ref.watch(orderDataSourceProvider),
-        razorpayService: ref.watch(razorpayServiceProvider),
-      );
-    });
+    NotifierProvider<PaymentController, PaymentState>(PaymentController.new);

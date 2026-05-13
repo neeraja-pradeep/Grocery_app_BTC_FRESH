@@ -62,14 +62,6 @@ abstract class ProductDetailRemoteDataSource {
   /// Fetch product variant by variant ID
   Future<ProductVariantDto> getProductVariant(String variantId);
 
-  /// Check if product is in wishlist
-  Future<bool> isInWishlist(String productId);
-
-  /// Add product to wishlist
-  Future<void> addToWishlist(String productId);
-
-  /// Remove product from wishlist
-  Future<void> removeFromWishlist(String productId);
 }
 
 /// Implementation using API Client (DIO)
@@ -322,32 +314,4 @@ class ProductDetailRemoteDataSourceImpl
     }
   }
 
-  @override
-  Future<bool> isInWishlist(String productId) async {
-    try {
-      final response = await _apiClient.get('/wishlist/check/$productId');
-      final responseData = response.data as Map<String, dynamic>;
-      return responseData['inWishlist'] as bool? ?? false;
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> addToWishlist(String productId) async {
-    try {
-      await _apiClient.post('/wishlist', data: {'productId': productId});
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> removeFromWishlist(String productId) async {
-    try {
-      await _apiClient.post('/wishlist/remove', data: {'productId': productId});
-    } catch (e) {
-      rethrow;
-    }
-  }
 }

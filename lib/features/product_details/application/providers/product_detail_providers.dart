@@ -1,20 +1,16 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/network/api_client.dart';
-import '../../../auth/application/providers/auth_provider.dart';
-import '../../../auth/application/states/auth_state.dart';
-import '../../../cart/application/providers/checkout_line_provider.dart';
+import '../../../../core/storage/cache_config.dart';
 
 import '../../domain/repositories/product_detail_repository.dart';
-import '../../domain/entities/product_variant.dart';
-import '../../domain/entities/product_base.dart';
-import '../../infrastructure/data_sources/local/product_detail_local_data_source.dart';
-import '../../infrastructure/data_sources/remote/product_detail_remote_data_source.dart';
-import '../../infrastructure/repositories/product_detail_repository_impl.dart';
+import '../usecases/merge_product_data_usecase.dart';
+import '../../infrastructure/providers/product_detail_infra_providers.dart';
 import '../states/product_detail_state.dart';
-import '../config/product_detail_config.dart';
 import '../../../../core/polling/polling_manager.dart';
+
+export '../../infrastructure/providers/product_detail_infra_providers.dart'
+    show productDetailRepositoryProvider;
 
 /// ============================================================================
 /// PRODUCT DETAIL POLLING SYSTEM - UNCONDITIONAL 30-SECOND UPDATES
@@ -57,46 +53,27 @@ import '../../../../core/polling/polling_manager.dart';
 /// Safeguards: Skips refresh if already refreshing or still loading initial data
 /// ============================================================================
 
-/// Riverpod Providers for Product Details Feature
-
-/// Local data source provider
-final productDetailLocalDataSourceProvider =
-    Provider<ProductDetailLocalDataSource>((ref) {
-      return ProductDetailLocalDataSourceImpl();
-    });
-
-/// Remote data source provider
-final productDetailRemoteDataSourceProvider =
-    Provider<ProductDetailRemoteDataSource>((ref) {
-      final apiClient = ref.watch(apiClientProvider);
-      return ProductDetailRemoteDataSourceImpl(apiClient);
-    });
-
-/// Repository provider
-final productDetailRepositoryProvider = Provider<ProductDetailRepository>((
-  ref,
-) {
-  final localDataSource = ref.watch(productDetailLocalDataSourceProvider);
-  final remoteDataSource = ref.watch(productDetailRemoteDataSourceProvider);
-
-  return ProductDetailRepositoryImpl(
-    localDataSource: localDataSource,
-    remoteDataSource: remoteDataSource,
-    cacheTTL: const Duration(minutes: 10),
-  );
-});
-
 /// Product detail controller - manages product detail state with polling
 class ProductDetailController
     extends AutoDisposeFamilyNotifier<ProductDetailState, String> {
-  // Use global polling interval from config - allows easy adjustment across entire feature
-  static final Duration _pollingInterval = ProductDetailConfig.pollingInterval;
+  static const Duration _pollingInterval = CacheConfig.pollingInterval;
 
   late ProductDetailRepository _repository;
   late String _variantId;
+  static const _mergeUseCase = MergeProductDataUseCase();
+
   bool _initialized = false;
   Timer? _pollingTimer;
   Timer? _indicatorTimer;
+  bool _pollingActive = false;
+  int _failureCount = 0;
+  static const int _kMaxBackoffMultiplier = 5; // caps at 5× base interval
+
+  Duration get _nextPollingInterval {
+    if (_failureCount == 0) return _pollingInterval;
+    final multiplier = (1 << _failureCount).clamp(1, _kMaxBackoffMultiplier);
+    return _pollingInterval * multiplier;
+  }
 
   @override
   ProductDetailState build(String variantId) {
@@ -158,7 +135,7 @@ class ProductDetailController
         );
 
         // Merge product base data into variant data
-        final mergedProduct = _mergeProductData(productDetail, productBase);
+        final mergedProduct = _mergeUseCase.execute(productDetail, productBase);
 
         state = state.copyWith(
           status: ProductDetailStatus.data,
@@ -248,7 +225,7 @@ class ProductDetailController
       }
 
       // Merge product base data into variant data
-      final mergedProduct = _mergeProductData(variantDataToUse, productBase);
+      final mergedProduct = _mergeUseCase.execute(variantDataToUse, productBase);
 
       // Log what changed
       final changeLog = [
@@ -261,6 +238,7 @@ class ProductDetailController
         name: 'ProductDetail',
       );
 
+      _failureCount = 0;
       state = state.copyWith(
         status: ProductDetailStatus.data,
         productDetail: mergedProduct,
@@ -272,8 +250,9 @@ class ProductDetailController
 
       _scheduleIndicatorReset();
     } catch (e) {
+      _failureCount = (_failureCount + 1).clamp(0, _kMaxBackoffMultiplier);
       developer.log(
-        'Polling failed for variant $_variantId: $e',
+        'Polling failed for variant $_variantId (failure #$_failureCount, next in ${_nextPollingInterval.inSeconds}s): $e',
         name: 'ProductDetail',
       );
 
@@ -286,59 +265,6 @@ class ProductDetailController
 
       _scheduleIndicatorReset();
     }
-  }
-
-  /// Merge product base data into variant data
-  /// Fills in description, rating, and media from product base if available
-  ProductVariant _mergeProductData(
-    ProductVariant variant,
-    ProductBase? productBase,
-  ) {
-    if (productBase == null) {
-      return variant;
-    }
-
-    return ProductVariant(
-      id: variant.id,
-      sku: variant.sku,
-      name: variant.name,
-      variantName: variant.variantName,
-      productId: variant.productId,
-      trackInventory: variant.trackInventory,
-      price: variant.price,
-      originalPrice: variant.originalPrice,
-      discountedPrice: variant.discountedPrice,
-      isSelected: variant.isSelected,
-      isPreorder: variant.isPreorder,
-      preorderEndDate: variant.preorderEndDate,
-      preorderGlobalThreshold: variant.preorderGlobalThreshold,
-      quantityLimitPerCustomer: variant.quantityLimitPerCustomer,
-      createdAt: variant.createdAt,
-      updatedAt: variant.updatedAt,
-      weight: variant.weight,
-      status: variant.status,
-      tags: variant.tags,
-      barCode: variant.barCode,
-      // Use product base media if available, otherwise use variant media
-      media: productBase.media ?? variant.media,
-      currentQuantity: variant.currentQuantity,
-      stockUnit: variant.stockUnit,
-      prodDescription: variant.prodDescription,
-      productRating: variant.productRating,
-      warehouseName: variant.warehouseName,
-      categoryId: variant.categoryId,
-      // Use product base description if available
-      description: productBase.description ?? variant.description,
-      reviews: variant.reviews,
-      nutritionFacts: variant.nutritionFacts,
-      images: variant.images,
-      imageUrl: variant.imageUrl,
-      thumbnailUrl: variant.thumbnailUrl,
-      // Use product base rating if available
-      rating: productBase.rating ?? variant.rating,
-      // Use product base reviewCount if available
-      reviewCount: productBase.reviewCount ?? variant.reviewCount,
-    );
   }
 
   /// Register for polling with PollingManager
@@ -374,118 +300,54 @@ class ProductDetailController
 
   /// Start the polling timer (called by PollingManager when 'product_detail' feature becomes active)
   void _startPollingTimer() {
-    if (_pollingTimer != null) return; // Already running
-
+    if (_pollingActive) return;
+    _pollingActive = true;
     developer.log(
-      'Starting polling timer for variant $_variantId (interval: ${_pollingInterval.inSeconds}s)',
+      'Starting polling for variant $_variantId (interval: ${_pollingInterval.inSeconds}s)',
       name: 'ProductDetail',
       level: 700,
     );
+    _scheduleNextPoll();
+  }
 
-    _pollingTimer = Timer.periodic(_pollingInterval, (_) async {
-      if (state.isRefreshing) return;
-      if (!state.hasData && state.status == ProductDetailStatus.loading) {
-        return;
-      }
-      await refresh();
-    });
+  void _scheduleNextPoll() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer(_nextPollingInterval, _onPollTimer);
+  }
+
+  Future<void> _onPollTimer() async {
+    _pollingTimer = null;
+    if (!_pollingActive) return;
+    if (state.isRefreshing || (!state.hasData && state.status == ProductDetailStatus.loading)) {
+      _scheduleNextPoll();
+      return;
+    }
+    await refresh();
+    if (_pollingActive) _scheduleNextPoll();
   }
 
   /// Stop the polling timer (called by PollingManager when 'product_detail' feature becomes inactive)
   void _stopPollingTimer() {
-    if (_pollingTimer != null) {
-      developer.log(
-        'Stopping polling timer for variant $_variantId',
-        name: 'ProductDetail',
-        level: 700,
-      );
-      _pollingTimer?.cancel();
-      _pollingTimer = null;
-    }
+    _pollingActive = false;
+    _failureCount = 0; // reset backoff when user leaves screen
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+    developer.log(
+      'Stopping polling for variant $_variantId',
+      name: 'ProductDetail',
+      level: 700,
+    );
   }
 
   /// Schedule reset of refresh indicators
-  /// Duration controlled globally via ProductDetailConfig
   void _scheduleIndicatorReset() {
     _indicatorTimer?.cancel();
-    _indicatorTimer = Timer(ProductDetailConfig.refreshIndicatorDuration, () {
+    _indicatorTimer = Timer(CacheConfig.refreshIndicatorDuration, () {
       state = state.copyWith(
         resetRefreshStartedAt: true,
         resetRefreshEndedAt: true,
       );
     });
-  }
-
-  /// Toggle wishlist status
-  Future<bool> toggleWishlist() async {
-    // Block guests from adding to wishlist
-    final authState = ref.read(authProvider);
-    final isGuest = authState is GuestMode;
-
-    if (isGuest) {
-      state = state.copyWith(
-        errorMessage: 'Please login to add items to wishlist',
-      );
-      return false;
-    }
-
-    try {
-      if (state.isInWishlist) {
-        await _repository.removeFromWishlist(_variantId);
-        state = state.copyWith(isInWishlist: false);
-      } else {
-        await _repository.addToWishlist(_variantId);
-        state = state.copyWith(isInWishlist: true);
-      }
-      return true;
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to update wishlist: $e');
-      return false;
-    }
-  }
-
-  /// Update quantity
-  void setQuantity(int quantity) {
-    if (quantity >= 0) {
-      state = state.copyWith(quantity: quantity);
-    }
-  }
-
-  /// Add current product to cart
-  /// Calls the CheckoutLineController to persist the cart item
-  Future<void> addToCart() async {
-    if (state.quantity <= 0) {
-      developer.log('Cannot add to cart: quantity is 0', name: 'ProductDetail');
-      return;
-    }
-
-    final variantId = int.tryParse(_variantId);
-    if (variantId == null) {
-      developer.log(
-        'Cannot add to cart: invalid variant ID',
-        name: 'ProductDetail',
-      );
-      return;
-    }
-
-    try {
-      // Import and call the checkout line controller
-      final checkoutController = ref.read(
-        checkoutLineControllerProvider.notifier,
-      );
-      await checkoutController.addToCart(
-        productVariantId: variantId,
-        quantity: state.quantity,
-      );
-
-      developer.log(
-        'Added to cart: variant $variantId, quantity ${state.quantity}',
-        name: 'ProductDetail',
-      );
-    } catch (e) {
-      developer.log('Failed to add to cart: $e', name: 'ProductDetail');
-      rethrow;
-    }
   }
 
   /// Dispose resources
@@ -497,6 +359,7 @@ class ProductDetailController
     );
 
     // Cancel timers
+    _pollingActive = false;
     _pollingTimer?.cancel();
     _indicatorTimer?.cancel();
     _initialized = false;

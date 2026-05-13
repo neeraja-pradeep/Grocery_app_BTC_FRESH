@@ -6,7 +6,8 @@ import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
-import '../../infrastructure/data_sources/remote/auth_api.dart';
+import '../../application/providers/forgot_password_provider.dart';
+import '../../application/states/forgot_password_state.dart';
 import '../components/number_filed.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -20,7 +21,6 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final TextEditingController _mobileController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -33,41 +33,28 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
     final mobile = _mobileController.text.trim();
     if (mobile.isEmpty) {
-      _showSnack('Please enter your mobile number');
+      AppSnackbar.error(context, 'Please enter your mobile number');
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    try {
-      final authApi = ref.read(authApiProvider);
-      final phoneWithCountryCode = '+91$mobile';
-
-      final message = await authApi.sendOtp(phoneNumber: phoneWithCountryCode);
-
-      if (!mounted) return;
-
-      if (message == 'OTP sent successfully') {
-        goToForgotPasswordOtp(context, mobileNumber: phoneWithCountryCode);
-      } else {
-        _showSnack(message);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack(e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  void _showSnack(String msg) {
-    AppSnackbar.error(context, msg);
+    await ref
+        .read(forgotPasswordProvider.notifier)
+        .sendOtp('+91$mobile');
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ForgotPasswordState>(forgotPasswordProvider, (prev, next) {
+      if (!mounted) return;
+      if (next is FpOtpSent) {
+        goToForgotPasswordOtp(context, mobileNumber: next.phone);
+      } else if (next is FpError) {
+        AppSnackbar.error(context, next.message);
+      }
+    });
+
+    final isLoading = ref.watch(forgotPasswordProvider) is FpLoading;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -102,16 +89,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
                   MobileNumberField(
                     controller: _mobileController,
-                    enabled: !_isLoading,
+                    enabled: !isLoading,
                   ),
 
                   SizedBox(height: 30.h),
 
                   GestureDetector(
-                    onTap: _isLoading ? null : _handleSendCode,
+                    onTap: isLoading ? null : _handleSendCode,
                     child: AppButton(
-                      text: _isLoading ? 'Sending...' : 'Send Code',
-                      loading: _isLoading,
+                      text: isLoading ? 'Sending...' : 'Send Code',
+                      loading: isLoading,
                     ),
                   ),
 

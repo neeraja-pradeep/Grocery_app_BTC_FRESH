@@ -1,7 +1,11 @@
 /// Centralized configuration for all backend URLs and app settings
 ///
-/// This file contains all API endpoints, CDN URLs, and environment configurations.
-/// Update this file when changing servers or environments.
+/// Pass build-time values via --dart-define:
+///   IS_PRODUCTION=true
+///   API_BASE_URL=https://your-prod-server.com
+///
+/// Example release command:
+///   flutter build apk --dart-define=IS_PRODUCTION=true --dart-define=API_BASE_URL=https://prod-server.com
 class AppConfig {
   AppConfig._();
 
@@ -9,17 +13,27 @@ class AppConfig {
   // ENVIRONMENT CONFIGURATION
   // ============================================================================
 
-  /// Current environment mode
-  static const bool isProduction = false;
-  static const bool isDevelopment = true;
+  /// Whether this is a production build.
+  /// Set via --dart-define=IS_PRODUCTION=true in CI/CD release pipeline.
+  static const bool isProduction = bool.fromEnvironment(
+    'IS_PRODUCTION',
+    defaultValue: false,
+  );
+
+  static const bool isDevelopment = !isProduction;
 
   // ============================================================================
   // API BASE URLS
   // ============================================================================
 
-  /// Main backend API server
-  /// This is used for all API requests (auth, products, orders, etc.)
-  static const String apiBaseUrl = 'http://156.67.104.149:8080';
+  /// Main backend API server.
+  /// Override for production: --dart-define=API_BASE_URL=https://prod-server.com
+  /// WARNING: default value uses HTTP — only acceptable for local dev.
+  /// Production builds MUST pass an HTTPS URL via --dart-define.
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://156.67.104.149:8080',
+  );
 
   /// API base URL with trailing slash (for some endpoints that need it)
   static const String apiBaseUrlWithSlash = '$apiBaseUrl/';
@@ -32,42 +46,36 @@ class AppConfig {
   // ============================================================================
 
   /// CDN base URL for images and media files
-  /// This is where product images, category images, etc. are hosted
   static const String cdnBaseUrl = 'https://grocery-application.b-cdn.net';
 
   /// Internal server base URL (used for image URL conversion)
-  /// Images from this URL are converted to CDN URLs for better performance
   static const String internalServerBase = apiBaseUrl;
 
   // ============================================================================
   // APP INFORMATION
   // ============================================================================
 
-  /// Application name
   static const String appName = 'BTC Fresh';
-
-  /// Application version
   static const String appVersion = '1.0.0';
 
   // ============================================================================
   // API TIMEOUT CONFIGURATION
   // ============================================================================
 
-  /// Connection timeout duration
-  static const Duration connectTimeout = Duration(seconds: 30);
+  /// Connection timeout — 10 seconds as per QA Prompt 5 spec.
+  static const Duration connectTimeout = Duration(seconds: 10);
 
-  /// Receive timeout duration
-  static const Duration receiveTimeout = Duration(seconds: 30);
+  /// Receive timeout — 10 seconds as per QA Prompt 5 spec.
+  static const Duration receiveTimeout = Duration(seconds: 10);
 
-  /// Send timeout duration
-  static const Duration sendTimeout = Duration(seconds: 30);
+  /// Send timeout — 10 seconds as per QA Prompt 5 spec.
+  static const Duration sendTimeout = Duration(seconds: 10);
 
   // ============================================================================
   // HELPER METHODS
   // ============================================================================
 
   /// Convert internal server URLs to CDN URLs for images
-  /// This improves performance by serving images from CDN instead of backend
   static String convertToCdnUrl(String url) {
     if (url.isEmpty) return url;
 
@@ -96,22 +104,15 @@ class AppConfig {
   }
 
   /// Ensure URL has HTTPS protocol
-  /// Used for external URLs that might be missing the protocol
   static String ensureHttps(String url) {
     if (url.isEmpty) return url;
-
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
     return 'https://$url';
   }
 
   /// Get full API URL by appending path to base URL
   static String getApiUrl(String path) {
-    if (path.startsWith('/')) {
-      return '$apiBaseUrl$path';
-    }
+    if (path.startsWith('/')) return '$apiBaseUrl$path';
     return '$apiBaseUrl/$path';
   }
 }

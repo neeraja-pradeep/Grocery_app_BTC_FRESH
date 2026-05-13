@@ -15,9 +15,8 @@ class ContactUsScreen extends StatefulWidget {
 class _ContactUsScreenState extends State<ContactUsScreen> {
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
-  bool _isLoading = false;
 
-  // WhatsApp number for contact
+  // TODO: Replace with actual business WhatsApp number loaded from remote config
   static const String whatsAppNumber = '+919876543210';
 
   @override
@@ -27,36 +26,14 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     super.dispose();
   }
 
-  Future<void> _sendMessage() async {
-    final subject = _subjectController.text.trim();
-
-    if (subject.isEmpty) {
-      AppSnackbar.info(context, 'Please enter how we can help you');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    // Simulate sending message
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      AppSnackbar.success(context, 'Message sent successfully!');
-      _subjectController.clear();
-      _descriptionController.clear();
-    }
-  }
-
   void _openWhatsApp() {
-    // Show WhatsApp number with option to copy
-    showModalBottomSheet(
-      context: context,
+    final parentContext = context;
+    showModalBottomSheet<void>(
+      context: parentContext,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (context) => Padding(
+      builder: (sheetContext) => Padding(
         padding: EdgeInsets.all(24.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -95,11 +72,13 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   Clipboard.setData(const ClipboardData(text: whatsAppNumber));
-                  Navigator.pop(context);
-                  AppSnackbar.success(
-                    context,
-                    'Phone number copied to clipboard',
-                  );
+                  Navigator.pop(sheetContext);
+                  if (parentContext.mounted) {
+                    AppSnackbar.success(
+                      parentContext,
+                      'Phone number copied to clipboard',
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF25D366),
@@ -149,7 +128,6 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Subject field label
                   AppText(
                     text: 'How can we help you',
                     fontSize: 14.sp,
@@ -157,8 +135,6 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                     color: AppColors.grey,
                   ),
                   SizedBox(height: 8.h),
-
-                  // Subject text field
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8.r),
@@ -181,10 +157,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                       style: TextStyle(fontSize: 14.sp, color: AppColors.black),
                     ),
                   ),
-
                   SizedBox(height: 20.h),
-
-                  // Description field label
                   AppText(
                     text: 'Describe your issue (Optional)',
                     fontSize: 14.sp,
@@ -192,8 +165,6 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                     color: AppColors.grey,
                   ),
                   SizedBox(height: 8.h),
-
-                  // Description text area
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8.r),
@@ -217,37 +188,34 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                       style: TextStyle(fontSize: 14.sp, color: AppColors.black),
                     ),
                   ),
-
                   SizedBox(height: 24.h),
-
-                  // Send message button
-                  SizedBox(
+                  // In-app messaging not yet available — use WhatsApp button below
+                  Container(
                     width: double.infinity,
-                    height: 50.h,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _sendMessage,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.green50,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25.r),
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8.r),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.orange.shade700,
+                          size: 20.sp,
                         ),
-                        elevation: 0,
-                      ),
-                      child: _isLoading
-                          ? SizedBox(
-                              width: 20.w,
-                              height: 20.w,
-                              child: const CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : AppText(
-                              text: 'Send message',
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.white,
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Text(
+                            'In-app messaging is coming soon. Please use the WhatsApp button below to reach us.',
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: Colors.orange.shade900,
                             ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

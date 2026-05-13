@@ -28,6 +28,7 @@ class AddressEntry extends _$AddressEntry {
     String? city,
     String? state,
     String? postalCode,
+    String? country,
   }) async {
     this.state = AddressSaving();
 
@@ -35,13 +36,14 @@ class AddressEntry extends _$AddressEntry {
       firstName: firstName,
       lastName: lastName,
       streetAddress: streetAddress,
-      addressType: addressType.name, // backend expects string
+      addressType: addressType.name,
       streetAddress2: streetAddress2,
       latitude: latitude,
       longitude: longitude,
       city: city,
       state: state,
       postalCode: postalCode,
+      country: country,
     );
 
     result.fold(

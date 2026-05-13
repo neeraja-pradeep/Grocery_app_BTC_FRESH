@@ -4,6 +4,9 @@ import 'package:hive_ce/hive.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/network_exceptions.dart';
 import '../../../../core/storage/hive/boxes.dart';
+import '../../../cart/application/providers/address_providers.dart';
+import '../../../home/application/providers/home_provider.dart';
+import '../../../home/domain/entities/user_address.dart';
 import '../../domain/entities/address.dart';
 import '../../domain/repositories/address_repository.dart';
 import '../../infrastructure/data_sources/local/address_local_ds.dart';
@@ -36,11 +39,11 @@ final profileAddressRepositoryProvider = Provider<AddressRepository>((ref) {
 /// Manages addresses from Profile > My Addresses screen
 /// For cart/checkout addresses, use cart's addressControllerProvider instead
 final profileAddressControllerProvider =
-    NotifierProvider<ProfileAddressController, AddressState>(
+    NotifierProvider.autoDispose<ProfileAddressController, AddressState>(
       ProfileAddressController.new,
     );
 
-class ProfileAddressController extends Notifier<AddressState> {
+class ProfileAddressController extends AutoDisposeNotifier<AddressState> {
   AddressRepository get _repository =>
       ref.read(profileAddressRepositoryProvider);
 
@@ -59,8 +62,7 @@ class ProfileAddressController extends Notifier<AddressState> {
     }
 
     try {
-      final repoImpl = _repository as AddressRepositoryImpl;
-      final result = await repoImpl.fetchAddressesWithCache();
+      final result = await _repository.fetchAddressesWithCache();
 
       // Apply local selection override if we have one
       // This works around the buggy backend GET endpoint that returns wrong selected address
@@ -116,8 +118,7 @@ class ProfileAddressController extends Notifier<AddressState> {
   /// Manual refresh for pull-to-refresh
   Future<void> refreshAddresses() async {
     try {
-      final repoImpl = _repository as AddressRepositoryImpl;
-      final freshAddresses = await repoImpl.refreshAddressesFromApi();
+      final freshAddresses = await _repository.refreshAddressesFromApi();
 
       if (freshAddresses != null) {
         // Apply local selection override if we have one
@@ -198,6 +199,9 @@ class ProfileAddressController extends Notifier<AddressState> {
 
       // Refresh the list after creating
       await fetchAddresses();
+      // Keep the cart/home-header bottom-sheet provider in sync so the new
+      // address appears everywhere it's listed.
+      await _syncCartAddressList();
 
       state = state.copyWith(isCreating: false, clearError: true);
     } catch (error) {
@@ -245,6 +249,7 @@ class ProfileAddressController extends Notifier<AddressState> {
 
       // Refresh the list after updating
       await fetchAddresses();
+      await _syncCartAddressList();
 
       state = state.copyWith(
         isUpdating: false,
@@ -263,13 +268,27 @@ class ProfileAddressController extends Notifier<AddressState> {
   Future<void> deleteAddress(String id) async {
     state = state.copyWith(isDeleting: true, clearError: true);
 
+    final wasSelected = state.localSelectedAddressId == id;
+
     try {
       await _repository.deleteAddress(id);
 
       // Refresh the list after deleting
       await fetchAddresses();
+      await _syncCartAddressList();
 
-      state = state.copyWith(isDeleting: false, clearError: true);
+      // If the deleted address was the selected one, or no addresses remain,
+      // clear the home screen's selected address so the UI doesn't show stale text.
+      if (wasSelected || state.addresses.isEmpty) {
+        ref.read(homeProvider.notifier).updateAddressInState(null);
+        state = state.copyWith(
+          isDeleting: false,
+          clearError: true,
+          clearLocalSelectedAddressId: true,
+        );
+      } else {
+        state = state.copyWith(isDeleting: false, clearError: true);
+      }
     } catch (error) {
       final message = _mapError(error);
 
@@ -279,9 +298,9 @@ class ProfileAddressController extends Notifier<AddressState> {
     }
   }
 
-  /// Select an address as the default delivery address
-  /// Returns the selected address from the API response
-  Future<Address> selectAddress(String id) async {
+  /// Select an address as the default delivery address.
+  /// Updates local state and syncs homeProvider and cart addressControllerProvider.
+  Future<void> selectAddress(String id) async {
     state = state.copyWith(isUpdating: true, clearError: true);
 
     try {
@@ -316,7 +335,32 @@ class ProfileAddressController extends Notifier<AddressState> {
         localSelectedAddressId: id,
       );
 
-      return selectedAddress;
+      // Sync home provider with the selected address from the API PATCH response
+      final numericId = int.tryParse(selectedAddress.id);
+      final userAddress = UserAddress(
+        id: numericId ?? 0,
+        firstName: selectedAddress.firstName,
+        lastName: selectedAddress.lastName,
+        streetAddress1: selectedAddress.streetAddress1,
+        streetAddress2: selectedAddress.streetAddress2,
+        city: selectedAddress.city ?? '',
+        state: selectedAddress.state ?? '',
+        postalCode: selectedAddress.postalCode ?? '',
+        country: selectedAddress.country ?? '',
+        latitude: selectedAddress.latitude,
+        longitude: selectedAddress.longitude,
+        addressType: selectedAddress.addressType ?? 'home',
+        selected: true,
+        createdAt: selectedAddress.createdAt != null
+            ? DateTime.tryParse(selectedAddress.createdAt!) ?? DateTime.now()
+            : DateTime.now(),
+      );
+      ref.read(homeProvider.notifier).updateAddressInState(userAddress);
+
+      // Sync cart address provider so checkout sees the updated selection
+      if (numericId != null) {
+        ref.read(addressControllerProvider.notifier).selectAddress(numericId);
+      }
     } catch (error) {
       final message = _mapError(error);
       state = state.copyWith(isUpdating: false, errorMessage: message);
@@ -324,9 +368,20 @@ class ProfileAddressController extends Notifier<AddressState> {
     }
   }
 
+  /// Refresh the cart's address provider so the home header bottom sheet
+  /// and checkout flows immediately reflect a profile-side mutation.
+  /// Best-effort — failures here must not break the profile mutation.
+  Future<void> _syncCartAddressList() async {
+    try {
+      await ref.read(addressControllerProvider.notifier).refresh();
+    } catch (_) {
+      // Best-effort — the profile-side data is already correct.
+    }
+  }
+
   Future<void> logout() async {
     try {
-      await _repository.logout();
+      await ref.read(profileAddressLocalDsProvider).clearAll();
       state = AddressState.initial();
     } catch (error) {
       // Even if logout fails, reset the state

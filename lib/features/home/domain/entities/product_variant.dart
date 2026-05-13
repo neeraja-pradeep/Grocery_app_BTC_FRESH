@@ -25,6 +25,7 @@ class ProductVariant with _$ProductVariant {
     required double price,
     double? discountedPrice,
     String? stockUnit,
+    String? weight,
     required String currentQuantity,
     required bool status,
     required List<ProductMedia> media,
@@ -56,8 +57,8 @@ class ProductVariant with _$ProductVariant {
       stockUnit:
           json['stock_unit']?.toString() ??
           json['unit']?.toString() ??
-          json['weight']?.toString() ??
           json['size']?.toString(),
+      weight: json['weight']?.toString(),
       currentQuantity: json['current_quantity']?.toString() ?? '0',
       status: json['status'] == true, // Ensures boolean
       // Parse nested List<ProductMedia>

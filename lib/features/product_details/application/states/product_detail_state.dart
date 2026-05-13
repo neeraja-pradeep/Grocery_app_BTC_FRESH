@@ -15,8 +15,6 @@ class ProductDetailState extends Equatable {
     this.productDetail,
     this.productBase,
     this.reviews,
-    this.isInWishlist = false,
-    this.quantity = 0,
     this.errorMessage,
     this.lastFetchedAt,
     this.lastSyncedAt,
@@ -31,8 +29,6 @@ class ProductDetailState extends Equatable {
   final ProductVariant? productDetail;
   final ProductBase? productBase;
   final List<ProductVariantReview>? reviews;
-  final bool isInWishlist;
-  final int quantity;
   final String? errorMessage;
   final DateTime? lastFetchedAt;
   final DateTime? lastSyncedAt;
@@ -48,8 +44,6 @@ class ProductDetailState extends Equatable {
     ProductVariant? productDetail,
     ProductBase? productBase,
     List<ProductVariantReview>? reviews,
-    bool? isInWishlist,
-    int? quantity,
     String? errorMessage,
     DateTime? lastFetchedAt,
     DateTime? lastSyncedAt,
@@ -66,8 +60,6 @@ class ProductDetailState extends Equatable {
       productDetail: productDetail ?? this.productDetail,
       productBase: productBase ?? this.productBase,
       reviews: reviews ?? this.reviews,
-      isInWishlist: isInWishlist ?? this.isInWishlist,
-      quantity: quantity ?? this.quantity,
       errorMessage: errorMessage ?? this.errorMessage,
       lastFetchedAt: lastFetchedAt ?? this.lastFetchedAt,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
@@ -92,9 +84,6 @@ class ProductDetailState extends Equatable {
   /// Check if state has error
   bool get hasError => status == ProductDetailStatus.error;
 
-  /// Check if product is in cart (quantity > 0)
-  bool get isInCart => quantity > 0;
-
   /// Equatable props for value-based comparison.
   /// Riverpod uses these to detect when state changes and rebuild widgets.
   @override
@@ -103,8 +92,6 @@ class ProductDetailState extends Equatable {
     productDetail,
     productBase,
     reviews,
-    isInWishlist,
-    quantity,
     errorMessage,
     lastFetchedAt,
     lastSyncedAt,
@@ -117,6 +104,5 @@ class ProductDetailState extends Equatable {
 
   @override
   String toString() =>
-      'ProductDetailState(status: $status, hasData: $hasData, '
-      'quantity: $quantity, isInWishlist: $isInWishlist)';
+      'ProductDetailState(status: $status, hasData: $hasData)';
 }

@@ -3,19 +3,6 @@ import '../../domain/repositories/address_repository.dart';
 import '../data_sources/local/address_local_ds.dart';
 import '../data_sources/remote/address_api.dart';
 
-/// Result of fetching addresses with cache information
-class AddressFetchResult {
-  const AddressFetchResult({
-    required this.addresses,
-    required this.isStale,
-    required this.fromCache,
-  });
-
-  final List<Address> addresses;
-  final bool isStale;
-  final bool fromCache;
-}
-
 class AddressRepositoryImpl implements AddressRepository {
   const AddressRepositoryImpl({
     required AddressApi remoteDs,
@@ -26,10 +13,7 @@ class AddressRepositoryImpl implements AddressRepository {
   final AddressApi _remoteDs;
   final AddressLocalDs _localDs;
 
-  /// Fetches addresses with cache-first strategy:
-  /// 1. Returns cached data immediately if available (even if stale)
-  /// 2. Triggers background API refresh
-  /// Returns AddressFetchResult with cache metadata
+  @override
   Future<AddressFetchResult> fetchAddressesWithCache() async {
     // Step 1: Try to get cached data first
     final cachedResult = await _localDs.getCachedAddresses();
@@ -61,8 +45,7 @@ class AddressRepositoryImpl implements AddressRepository {
     }
   }
 
-  /// Refreshes addresses from API (background refresh)
-  /// Returns fresh data or null if fails
+  @override
   Future<List<Address>?> refreshAddressesFromApi() async {
     try {
       final addressDtos = await _remoteDs.fetchAddresses();
@@ -184,7 +167,6 @@ class AddressRepositoryImpl implements AddressRepository {
     return addressDto.toDomain();
   }
 
-  @override
   Future<void> logout() async {
     // Clear all cached address data on logout
     await _localDs.clearAll();

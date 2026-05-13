@@ -29,7 +29,6 @@ class AppBootstrap {
           );
         };
 
-        // 🔥 COMBINED INITIALIZATION (theirs + yours)
         result = await _initialize();
 
         final widget = await builder();
@@ -38,17 +37,16 @@ class AppBootstrap {
       (error, stack) {
         if (kDebugMode) {
           log('Uncaught zone error: $error\n$stack');
+        } else {
+          // TODO: integrate crash reporting (e.g. FirebaseCrashlytics.instance.recordError)
         }
       },
     );
   }
 
-  /// 🔥 This is the MERGED INITIALIZE function
   static Future<AppBootstrapResult> _initialize() async {
-    // --- THEIR Hive init ---
     await HiveInit.initialize();
 
-    // --- YOUR API client init ---
     final apiClient = ApiClient();
     await apiClient.init();
 

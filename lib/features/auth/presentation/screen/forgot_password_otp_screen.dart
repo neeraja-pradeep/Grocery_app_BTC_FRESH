@@ -9,7 +9,8 @@ import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
-import '../../infrastructure/data_sources/remote/auth_api.dart';
+import '../../application/providers/forgot_password_provider.dart';
+import '../../application/states/forgot_password_state.dart';
 
 class ForgotPasswordOtpScreen extends ConsumerStatefulWidget {
   final String mobileNumber;
@@ -29,7 +30,6 @@ class _ForgotPasswordOtpScreenState
   );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  bool _isLoading = false;
   int _timerSeconds = 60;
   Timer? _timer;
   bool _canResend = false;
@@ -38,41 +38,6 @@ class _ForgotPasswordOtpScreenState
   void initState() {
     super.initState();
     _startTimer();
-    _listenToClipboard();
-  }
-
-  void _listenToClipboard() {
-    // Listen to the first field for paste events
-    _focusNodes[0].addListener(() {
-      if (_focusNodes[0].hasFocus) {
-        _checkClipboardForOtp();
-      }
-    });
-  }
-
-  Future<void> _checkClipboardForOtp() async {
-    try {
-      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-      if (clipboardData != null && clipboardData.text != null) {
-        final text = clipboardData.text!.trim();
-        // Check if clipboard contains a 6-digit number
-        if (RegExp(r'^\d{6}$').hasMatch(text)) {
-          _fillOtpFields(text);
-        }
-      }
-    } catch (e) {
-      // Ignore clipboard errors
-    }
-  }
-
-  void _fillOtpFields(String otp) {
-    for (int i = 0; i < 6 && i < otp.length; i++) {
-      _otpControllers[i].text = otp[i];
-    }
-    // Move focus to the last field
-    if (otp.length == 6) {
-      _focusNodes[5].requestFocus();
-    }
   }
 
   @override
@@ -106,33 +71,13 @@ class _ForgotPasswordOtpScreenState
 
   Future<void> _handleResendCode() async {
     if (!_canResend) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final authApi = ref.read(authApiProvider);
-      final message = await authApi.sendOtp(phoneNumber: widget.mobileNumber);
-
-      if (!mounted) return;
-
-      if (message == 'OTP sent successfully') {
-        _startTimer();
-        // Clear OTP fields
-        for (final controller in _otpControllers) {
-          controller.clear();
-        }
-        _focusNodes[0].requestFocus();
-        _showSnack('OTP sent successfully');
-      } else {
-        _showSnack(message);
+    await ref.read(forgotPasswordProvider.notifier).resendOtp();
+    if (mounted) {
+      _startTimer();
+      for (final controller in _otpControllers) {
+        controller.clear();
       }
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack(e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      _focusNodes[0].requestFocus();
     }
   }
 
@@ -157,53 +102,26 @@ class _ForgotPasswordOtpScreenState
   Future<void> _handleVerifyOtp() async {
     final otp = _otpValue;
     if (otp.length != 6) {
-      _showSnack('Please enter complete 6-digit OTP');
+      AppSnackbar.error(context, 'Please enter complete 6-digit OTP');
       return;
     }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final authApi = ref.read(authApiProvider);
-
-      // Call verify-otp API with phone_number and otp_code only
-      final message = await authApi.verifyOtpOnly(
-        phoneNumber: widget.mobileNumber,
-        otp: otp,
-      );
-
-      if (!mounted) return;
-
-      // Check if OTP verification was successful
-      if (message.toLowerCase().contains('success') ||
-          message.toLowerCase().contains('verified')) {
-        // Navigate to reset password screen
-        goToResetPassword(context, mobileNumber: widget.mobileNumber, otp: otp);
-      } else {
-        _showSnack(message);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack(e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    await ref.read(forgotPasswordProvider.notifier).verifyOtp(otp);
   }
 
-  void _showSnack(String msg) {
-    AppSnackbar.success(context, msg);
+  void _fillOtpFields(String otp) {
+    for (int i = 0; i < 6 && i < otp.length; i++) {
+      _otpControllers[i].text = otp[i];
+    }
+    if (otp.length == 6) {
+      _focusNodes[5].requestFocus();
+    }
   }
 
   void _onOtpFieldChanged(String value, int index) {
-    // Handle pasted full OTP code
     if (value.length > 1) {
       _fillOtpFields(value);
       return;
     }
-
-    // Handle single digit input
     if (value.length == 1 && index < 5) {
       _focusNodes[index + 1].requestFocus();
     } else if (value.isEmpty && index > 0) {
@@ -213,6 +131,17 @@ class _ForgotPasswordOtpScreenState
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ForgotPasswordState>(forgotPasswordProvider, (prev, next) {
+      if (!mounted) return;
+      if (next is FpOtpVerified) {
+        goToResetPassword(context, mobileNumber: next.phone, otp: next.otp);
+      } else if (next is FpError) {
+        AppSnackbar.error(context, next.message);
+      }
+    });
+
+    final isLoading = ref.watch(forgotPasswordProvider) is FpLoading;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -252,7 +181,6 @@ class _ForgotPasswordOtpScreenState
 
               SizedBox(height: 40.h),
 
-              // OTP Input Fields - 6 digits with autofill support
               AutofillGroup(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -263,7 +191,7 @@ class _ForgotPasswordOtpScreenState
                       child: TextFormField(
                         controller: _otpControllers[index],
                         focusNode: _focusNodes[index],
-                        enabled: !_isLoading,
+                        enabled: !isLoading,
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         maxLength: 1,
@@ -309,7 +237,6 @@ class _ForgotPasswordOtpScreenState
 
               SizedBox(height: 30.h),
 
-              // Timer and Resend
               Center(
                 child: Column(
                   children: [
@@ -332,7 +259,7 @@ class _ForgotPasswordOtpScreenState
                       ),
                     ] else ...[
                       GestureDetector(
-                        onTap: _isLoading ? null : _handleResendCode,
+                        onTap: isLoading ? null : _handleResendCode,
                         child: Text(
                           'Resend Code',
                           style: TextStyle(
@@ -351,8 +278,8 @@ class _ForgotPasswordOtpScreenState
               SizedBox(height: 40.h),
 
               GestureDetector(
-                onTap: _isLoading ? null : _handleVerifyOtp,
-                child: AppButton(text: 'Continue', loading: _isLoading),
+                onTap: isLoading ? null : _handleVerifyOtp,
+                child: AppButton(text: 'Continue', loading: isLoading),
               ),
 
               SizedBox(height: 100.h),
@@ -371,7 +298,7 @@ class _ForgotPasswordOtpScreenState
                         ),
                       ),
                       GestureDetector(
-                        onTap: _canResend && !_isLoading
+                        onTap: _canResend && !isLoading
                             ? _handleResendCode
                             : null,
                         child: Text(

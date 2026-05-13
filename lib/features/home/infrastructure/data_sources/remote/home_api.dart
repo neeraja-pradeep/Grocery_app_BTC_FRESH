@@ -1,7 +1,6 @@
 // lib/features/home/infrastructure/data_sources/remote/home_api.dart
 
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 
 import '../../../../../core/error/failure.dart';
 import '../../../../../core/network/api_client.dart';
@@ -12,6 +11,7 @@ import '../../../domain/entities/product.dart';
 import '../../../domain/entities/product_variant.dart';
 import '../../../domain/entities/user_address.dart';
 import '../../../domain/repositories/home_repository.dart';
+import '../../models/paginated_result.dart';
 
 abstract class HomeRemoteDataSource {
   Future<PaginatedResult<Category>> getCategories({int page = 1});
@@ -382,10 +382,3 @@ class HomeApiImpl implements HomeRemoteDataSource {
     }
   }
 }
-
-final homeRemoteDataSourceProvider = riverpod.Provider<HomeRemoteDataSource>((
-  ref,
-) {
-  final apiClient = ref.watch(apiClientProvider);
-  return HomeApiImpl(apiClient);
-});

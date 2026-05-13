@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
-import '../../../address/application/providers/address_provider.dart';
 import '../../../home/application/providers/home_provider.dart';
 import '../../../home/domain/entities/user_address.dart';
 import '../../application/providers/address_providers.dart';
@@ -220,11 +219,6 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
             // Update home screen with selected address
             ref.read(homeProvider.notifier).updateAddressInState(userAddress);
 
-            // Update profile address provider's local selection
-            ref
-                .read(profileAddressControllerProvider.notifier)
-                .setLocalSelectedAddressId(address.id.toString());
-
             // Close the bottom sheet
             Navigator.pop(context);
 
@@ -406,9 +400,6 @@ class _AddressSheetState extends ConsumerState<AddressSheet> {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(addressControllerProvider.notifier).deleteAddress(id);
-
-        // Sync profile address provider (just refresh, API delete already done)
-        ref.read(profileAddressControllerProvider.notifier).fetchAddresses();
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

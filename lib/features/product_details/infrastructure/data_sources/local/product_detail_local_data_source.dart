@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import './product_detail_cache_dto.dart';
 import '../../../../../core/storage/hive/boxes.dart';
 import '../../../../../core/storage/cache_config.dart';
+import '../../../../../core/utils/logger.dart';
 
 /// Local data source for caching ONLY HTTP conditional request metadata.
 ///
@@ -101,6 +103,9 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
       final json = _box.get(key) as Map<String, dynamic>?;
       return json != null ? ProductDetailCacheDto.fromJson(json) : null;
     } catch (e) {
+      if (kDebugMode) {
+        Logger.error('[ProductDetailCache] getCachedProductDetail failed', error: e);
+      }
       return null;
     }
   }
@@ -155,6 +160,9 @@ class ProductDetailLocalDataSourceImpl implements ProductDetailLocalDataSource {
       final json = _box.get(key) as Map<String, dynamic>?;
       return json != null ? ProductDetailCacheDto.fromJson(json) : null;
     } catch (e) {
+      if (kDebugMode) {
+        Logger.error('[ProductDetailCache] getCachedProductBase failed', error: e);
+      }
       return null;
     }
   }

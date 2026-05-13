@@ -1,84 +1,19 @@
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/network/api_client.dart';
 import '../../../../core/polling/polling_manager.dart';
 import '../../../../core/storage/cache_config.dart';
 
+import '../../../address/application/providers/address_provider.dart'
+    as profile_addr;
 import '../../domain/entities/address.dart';
 import '../../domain/repositories/address_repository.dart';
-import '../../infrastructure/data_sources/local/address_local_data_source.dart';
-import '../../infrastructure/data_sources/remote/address_remote_data_source.dart';
-import '../../infrastructure/repositories/address_repository_impl.dart';
+import '../../infrastructure/providers/address_infra_providers.dart';
 import '../states/address_state.dart';
 
-/// ============================================================================
-/// ADDRESS LIST POLLING SYSTEM - UNCONDITIONAL 30-SECOND UPDATES
-/// ============================================================================
-///
-/// This implementation uses HTTP conditional requests with unconditional polling
-/// to keep address list fresh and responsive.
-///
-/// FLOW:
-/// -----
-/// 1. INITIAL LOAD:
-///    - Fetch address list from server (200 OK response)
-///    - Extract Last-Modified header from response
-///    - Save cache + Last-Modified to Hive
-///    - Display addresses to user
-///
-/// 2. PERIODIC POLLING (every 30 seconds, UNCONDITIONAL):
-///    - Timer fires every 30 seconds without exception
-///    - Send conditional GET with If-Modified-Since header
-///    - Server returns 304: Keep using cached data, UI not refreshed
-///    - Server returns 200: New data available, update cache + Last-Modified + UI
-///
-/// 3. CACHE STORAGE (Hive):
-///    - address_list: AddressListResponse
-///    - last_synced_at: When we last synced with server
-///    - last_modified: Server's Last-Modified header (for If-Modified-Since)
-///    - etag: Alternate validation mechanism
-///
-/// SINGLETON POLLING:
-/// ------------------
-/// Uses regular Notifier (not AutoDispose) to maintain polling across navigation.
-/// Polling continues even when screen is not visible.
-/// Call ref.invalidate(addressControllerProvider) to stop polling.
-///
-/// REFRESH BEHAVIOR:
-/// ----------------
-/// Every 30 seconds: Unconditional network request (304 or 200)
-/// 304 Not Modified: Tiny response (< 1KB), keeps cache, no UI update
-/// 200 OK: New data, updates cache and triggers UI rebuild
-/// Safeguards: Skips refresh if already refreshing or still loading initial data
-/// ============================================================================
-
-/// Riverpod Providers for Address Feature
-
-/// Local data source provider
-final addressLocalDataSourceProvider = Provider<AddressLocalDataSource>((ref) {
-  return AddressLocalDataSourceImpl();
-});
-
-/// Remote data source provider
-final addressRemoteDataSourceProvider = Provider<AddressRemoteDataSource>((
-  ref,
-) {
-  final apiClient = ref.watch(apiClientProvider);
-  return AddressRemoteDataSourceImpl(apiClient);
-});
-
-/// Repository provider
-final addressRepositoryProvider = Provider<AddressRepository>((ref) {
-  final localDataSource = ref.watch(addressLocalDataSourceProvider);
-  final remoteDataSource = ref.watch(addressRemoteDataSourceProvider);
-
-  return AddressRepositoryImpl(
-    localDataSource: localDataSource,
-    remoteDataSource: remoteDataSource,
-    cacheTTL: const Duration(minutes: 10),
-  );
-});
+export '../../infrastructure/providers/address_infra_providers.dart'
+    show addressRepositoryProvider;
 
 /// Address list controller - manages address list state with 30-second polling
 class AddressController extends Notifier<AddressState> {
@@ -185,10 +120,12 @@ class AddressController extends Notifier<AddressState> {
 
       // 304 Not Modified - no changes on server
       if (addressListResult == null) {
-        developer.log(
-          'Polling addresses: 304 Not Modified (no UI update)',
-          name: 'AddressController',
-        );
+        if (kDebugMode) {
+          developer.log(
+            'Polling addresses: 304 Not Modified (no UI update)',
+            name: 'AddressController',
+          );
+        }
         state = state.copyWith(
           isRefreshing: false,
           refreshEndedAt: DateTime.now(),
@@ -198,10 +135,12 @@ class AddressController extends Notifier<AddressState> {
       }
 
       // 200 OK - new data from server
-      developer.log(
-        'Polling addresses: 200 OK (UI updated)',
-        name: 'AddressController',
-      );
+      if (kDebugMode) {
+        developer.log(
+          'Polling addresses: 200 OK (UI updated)',
+          name: 'AddressController',
+        );
+      }
 
       final newStatus = addressListResult.results.isEmpty
           ? AddressStatus.empty
@@ -217,10 +156,12 @@ class AddressController extends Notifier<AddressState> {
 
       _scheduleIndicatorReset();
     } catch (e) {
-      developer.log(
-        'Polling failed for addresses: $e',
-        name: 'AddressController',
-      );
+      if (kDebugMode) {
+        developer.log(
+          'Polling failed for addresses: $e',
+          name: 'AddressController',
+        );
+      }
 
       state = state.copyWith(
         status: AddressStatus.error,
@@ -264,8 +205,11 @@ class AddressController extends Notifier<AddressState> {
 
       // Refresh list after creating
       await refresh();
+      // Keep the profile address provider in sync so the profile address
+      // list reflects the newly created entry.
+      await _syncProfileAddressList();
     } catch (e) {
-      developer.log('Failed to create address: $e', name: 'AddressController');
+      if (kDebugMode) developer.log('Failed to create address: $e', name: 'AddressController');
       rethrow;
     }
   }
@@ -305,8 +249,9 @@ class AddressController extends Notifier<AddressState> {
 
       // Refresh list after updating
       await refresh();
+      await _syncProfileAddressList();
     } catch (e) {
-      developer.log('Failed to update address: $e', name: 'AddressController');
+      if (kDebugMode) developer.log('Failed to update address: $e', name: 'AddressController');
       rethrow;
     }
   }
@@ -319,8 +264,9 @@ class AddressController extends Notifier<AddressState> {
       // Force refresh to bypass 304 conditional request
       // After delete, we need fresh data from server
       await _forceRefresh();
+      await _syncProfileAddressList();
     } catch (e) {
-      developer.log('Failed to delete address: $e', name: 'AddressController');
+      if (kDebugMode) developer.log('Failed to delete address: $e', name: 'AddressController');
       rethrow;
     }
   }
@@ -358,7 +304,7 @@ class AddressController extends Notifier<AddressState> {
 
       _scheduleIndicatorReset();
     } catch (e) {
-      developer.log('Force refresh failed: $e', name: 'AddressController');
+      if (kDebugMode) developer.log('Force refresh failed: $e', name: 'AddressController');
       state = state.copyWith(
         isRefreshing: false,
         refreshEndedAt: DateTime.now(),
@@ -375,7 +321,7 @@ class AddressController extends Notifier<AddressState> {
       // Refresh list after selecting
       await refresh();
     } catch (e) {
-      developer.log('Failed to select address: $e', name: 'AddressController');
+      if (kDebugMode) developer.log('Failed to select address: $e', name: 'AddressController');
       rethrow;
     }
   }
@@ -384,6 +330,19 @@ class AddressController extends Notifier<AddressState> {
   /// This allows users to select an address for checkout without authentication
   void setLocalSelectedAddress(Address address) {
     state = state.copyWith(localSelectedAddress: address);
+  }
+
+  /// Refresh the profile address provider so the profile address list
+  /// reflects mutations performed via the cart/checkout flow.
+  /// Best-effort — failures here must not break the cart mutation.
+  Future<void> _syncProfileAddressList() async {
+    try {
+      await ref
+          .read(profile_addr.profileAddressControllerProvider.notifier)
+          .fetchAddresses();
+    } catch (_) {
+      // Best-effort — the cart-side data is already correct.
+    }
   }
 
   /// Start automatic polling every 30 seconds for address list.
@@ -428,11 +387,13 @@ class AddressController extends Notifier<AddressState> {
   /// Resume polling when user navigates back to cart/address screen
   void _resumePolling() {
     if (_pollingTimer == null) {
-      developer.log(
-        'Resuming polling for cart addresses',
-        name: 'AddressController',
-        level: 700,
-      );
+      if (kDebugMode) {
+        developer.log(
+          'Resuming polling for cart addresses',
+          name: 'AddressController',
+          level: 700,
+        );
+      }
       _startPollingTimer();
     }
   }
@@ -440,11 +401,13 @@ class AddressController extends Notifier<AddressState> {
   /// Pause polling when user navigates away from cart/address screen
   void _pausePolling() {
     if (_pollingTimer != null) {
-      developer.log(
-        'Pausing polling for cart addresses',
-        name: 'AddressController',
-        level: 700,
-      );
+      if (kDebugMode) {
+        developer.log(
+          'Pausing polling for cart addresses',
+          name: 'AddressController',
+          level: 700,
+        );
+      }
       _pollingTimer?.cancel();
       _pollingTimer = null;
     }

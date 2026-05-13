@@ -5,7 +5,6 @@ import '../../../../../app/theme/colors.dart';
 import '../../../../../core/widgets/app_text.dart';
 
 const String _rupeeSymbol = '₹';
-const double _checkoutThreshold = 150.0;
 
 /// Checkout section - Sticky bottom sheet with total price and cart action
 ///
@@ -34,9 +33,6 @@ class CheckoutSection extends StatelessWidget {
   /// Calculate total price based on unit price and quantity
   double get _totalPrice => unitPrice * quantity;
 
-  /// Check if total exceeds checkout threshold (150)
-  bool get _canCheckout => _totalPrice > _checkoutThreshold;
-
   /// Format price for display (remove trailing zeros)
   String _formatPrice(double price) {
     return price.toStringAsFixed(2).replaceAll(RegExp(r'\.?0+$'), '');
@@ -48,7 +44,7 @@ class CheckoutSection extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
-        color: AppColors.green10,
+        color: const Color(0xFFC9F4AA),
         boxShadow: [
           BoxShadow(
             color: AppColors.green50.withValues(alpha: 0.3),
@@ -111,34 +107,7 @@ class CheckoutSection extends StatelessWidget {
       );
     }
 
-    // State 2: Total > 150 - show Checkout button
-    if (_canCheckout) {
-      return GestureDetector(
-        onTap: onCheckout ?? onAddToCart,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 55.w, vertical: 18.h),
-          decoration: BoxDecoration(
-            color: AppColors.green50,
-            borderRadius: BorderRadius.circular(10.r),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.green100.withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: AppText(
-            text: 'Checkout',
-            fontSize: 16.sp,
-            color: AppColors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
-    }
-
-    // State 3: Total <= 150 - show View Cart button
+    // State 2: Quantity > 0 - show View Cart button
     return GestureDetector(
       onTap: onViewCart ?? onAddToCart,
       child: Container(

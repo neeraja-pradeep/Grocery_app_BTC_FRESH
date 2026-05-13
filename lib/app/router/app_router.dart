@@ -16,15 +16,36 @@ import '../../features/auth/presentation/screen/signup_password_screen.dart';
 import '../../features/auth/presentation/screen/signup_screen.dart';
 import '../../features/auth/presentation/screen/splash_screen.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
-import '../../features/cart/presentation/screen/cart_screen.dart';
 import '../../features/cart/presentation/screen/confirm_order_screen.dart';
+import '../../features/dev/presentation/screens/location_states_demo_screen.dart';
 import '../../features/cart/presentation/screen/failed_order_screen.dart';
 import '../../features/address/presentation/screens/address_list_screen.dart';
 import '../../features/home/presentation/screen/categories_with_sidebar_screen.dart';
 import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/product_details/presentation/screen/product_details_screen.dart';
+import '../../features/profile/presentation/screen/contact_us_screen.dart';
+import '../../features/profile/presentation/screen/profile_edit_screen.dart';
 import '../../features/profile/presentation/screen/profile_screen.dart';
 import 'auth_guard.dart';
+
+const _protectedRoutes = {
+  '/cart',
+  '/checkout',
+  '/profile',
+  '/orders',
+  '/account',
+};
+
+const _authRoutes = {
+  '/login',
+  '/signup',
+  '/otp',
+  '/sign-pass',
+  '/forgot-password',
+  '/forgot-password-otp',
+  '/reset-password',
+  '/password-changed',
+};
 
 /// Notifier class to refresh GoRouter when auth state changes
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -37,51 +58,26 @@ class GoRouterRefreshStream extends ChangeNotifier {
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = GoRouterRefreshStream(ref);
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    // Start with splash screen which checks auth state
     initialLocation: '/splash',
-
-    // Refresh router when auth state changes
     refreshListenable: refreshNotifier,
-
-    // Redirect logic for protected routes
     redirect: (context, state) {
       final location = state.matchedLocation;
       final authState = ref.read(authProvider);
       final isAuthenticated = authState is Authenticated;
       final isCheckingAuth = authState is AuthChecking;
 
-      // Skip redirect while checking auth (let splash screen handle it)
-      if (isCheckingAuth && location == '/splash') {
+      // Hold all routes until auth check completes
+      if (isCheckingAuth) {
         return null;
       }
 
-      // Protected routes that require authentication (guests will be redirected to OTP)
-      final protectedRoutes = [
-        '/cart',
-        '/checkout',
-        '/profile',
-        '/orders',
-        '/account',
-      ];
-
-      final isProtectedRoute = protectedRoutes.any(
+      final isProtectedRoute = _protectedRoutes.any(
         (route) => location.startsWith(route),
       );
-
-      // Auth routes (login, signup, otp, forgot password)
-      final authRoutes = [
-        '/login',
-        '/signup',
-        '/otp',
-        '/sign-pass',
-        '/forgot-password',
-        '/forgot-password-otp',
-        '/reset-password',
-        '/password-changed',
-      ];
-      final isAuthRoute = authRoutes.any((route) => location.startsWith(route));
+      final isAuthRoute = _authRoutes.any((route) => location.startsWith(route));
 
       // If authenticated → block auth screens (redirect to home)
       if (isAuthenticated && isAuthRoute) {
@@ -143,7 +139,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OTPScreen(),
-          transitionDuration: const Duration(seconds: 2),
+          transitionDuration: const Duration(milliseconds: 350),
           transitionsBuilder: (context, animation, secondary, child) =>
               FadeTransition(opacity: animation, child: child),
         ),
@@ -154,10 +150,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/address',
         redirect: (context, state) {
           final guard = AuthGuard(ref);
-          return guard.protect(redirectTo: '/number');
+          return guard.protect(redirectTo: '/otp');
         },
         builder: (context, state) {
-          final user = state.extra as UserEntity;
+          final user = state.extra;
+          if (user is! UserEntity) return const OTPScreen();
           return AddressScreen(user: user);
         },
       ),
@@ -166,7 +163,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             BottomNavigation(key: BottomNavigation.globalKey),
       ),
-      GoRoute(path: '/cart', builder: (_, state) => const CartScreen()),
       GoRoute(path: '/orders', builder: (_, state) => const OrdersScreen()),
       GoRoute(
         path: '/order-success',
@@ -187,8 +183,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/profile', builder: (_, state) => const ProfileScreen()),
       GoRoute(
+        path: '/profile/edit',
+        builder: (_, state) => const ProfileEditScreen(),
+      ),
+      GoRoute(
+        path: '/profile/contact',
+        builder: (_, state) => const ContactUsScreen(),
+      ),
+      GoRoute(
         path: '/address-list',
         builder: (_, state) => const AddressListScreen(),
+      ),
+      GoRoute(
+        path: '/dev/location-states',
+        builder: (_, state) => const LocationStatesDemoScreen(),
       ),
       GoRoute(
         path: '/product-details/:variantId',
@@ -206,7 +214,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/forgot-password-otp',
         builder: (context, state) {
-          final mobileNumber = state.extra as String;
+          final mobileNumber = state.extra as String?;
+          if (mobileNumber == null || mobileNumber.isEmpty) {
+            return const ForgotPasswordScreen();
+          }
           return ForgotPasswordOtpScreen(mobileNumber: mobileNumber);
         },
       ),

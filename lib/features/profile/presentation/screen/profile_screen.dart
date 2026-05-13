@@ -4,14 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
-import '../../../address/presentation/screens/address_list_screen.dart';
 import '../../../auth/application/providers/auth_provider.dart';
 import '../../application/providers/profile_provider.dart';
 import '../components/profile_header.dart';
 import '../components/profile_menu_item.dart';
 import '../components/profile_section_header.dart';
-import 'contact_us_screen.dart';
-import 'profile_edit_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -139,13 +136,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         mobileNumber:
                             profileState.profile?.mobileNumber ?? 'N/A',
                         profileImageUrl: profileState.profile?.profileImageUrl,
-                        onEditTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const ProfileEditScreen(),
-                            ),
-                          );
-                        },
+                        onEditTap: () => context.push('/profile/edit'),
                       ),
                       AppSpacing.h24,
                       ProfileMenuItem(
@@ -163,15 +154,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         title: 'Delivery Address',
                         titleFontSize: 14.sp,
                         titleFontWeight: FontWeight.w500,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const AddressListScreen(),
-                            ),
-                          );
-                          // Note: Address updates are handled optimistically
-                          // No need to clear cache - optimistic updates are already applied
-                        },
+                        onTap: () => context.push('/address-list'),
                       ),
                       AppSpacing.h24,
                       const ProfileSectionHeader(title: 'Support'),
@@ -181,14 +164,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         title: 'Contact Us',
                         titleFontSize: 14.sp,
                         titleFontWeight: FontWeight.w500,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ContactUsScreen(),
-                            ),
-                          );
-                        },
+                        onTap: () => context.push('/profile/contact'),
                       ),
                       AppSpacing.h12,
                       ProfileMenuItem(

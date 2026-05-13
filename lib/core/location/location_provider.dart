@@ -29,24 +29,32 @@ sealed class LocationState with _$LocationState {
 }
 
 /// Location state notifier for managing location state
-class LocationNotifier extends StateNotifier<LocationState> {
-  final LocationService _locationService;
+class LocationNotifier extends Notifier<LocationState> {
+  LocationService get _locationService => LocationService.instance;
 
-  LocationNotifier({LocationService? locationService})
-    : _locationService = locationService ?? LocationService.instance,
-      super(const LocationState.initial());
+  @override
+  LocationState build() {
+    return const LocationState.initial();
+  }
 
-  /// Initialize and check permission status
+  /// Initialize and check permission status.
+  ///
+  /// Hydrates from the Hive cache first so we have *something* on screen
+  /// instantly (offline-friendly), then revalidates against the OS.
   Future<void> initialize() async {
     state = const LocationState.loading();
+
+    final cached = await _locationService.getCachedLocation();
+    if (cached != null) {
+      state = LocationState.loaded(location: cached);
+    }
 
     final permissionStatus = await _locationService.checkPermissionStatus();
 
     if (permissionStatus == LocationPermissionStatus.granted) {
-      // Permission already granted, fetch location
       await fetchCurrentLocation();
-    } else {
-      // Permission needed
+    } else if (cached == null) {
+      // No cache to fall back on — surface the permission state.
       state = LocationState.permissionRequired(status: permissionStatus);
     }
   }
@@ -58,15 +66,17 @@ class LocationNotifier extends StateNotifier<LocationState> {
     final status = await _locationService.requestPermission();
 
     if (status == LocationPermissionStatus.granted) {
-      // Permission granted, fetch location
       await fetchCurrentLocation();
     } else {
       state = LocationState.permissionRequired(status: status);
     }
   }
 
-  /// Fetch current location
-  Future<void> fetchCurrentLocation() async {
+  /// Fetch current location.
+  ///
+  /// Pass [forceFresh] = true when callers must bypass the cached reading
+  /// (e.g. confirming a delivery address right before saving).
+  Future<void> fetchCurrentLocation({bool forceFresh = false}) async {
     // Preserve previous location if available
     LocationData? previousLocation;
     state.mapOrNull(
@@ -76,11 +86,12 @@ class LocationNotifier extends StateNotifier<LocationState> {
 
     state = const LocationState.loading();
 
-    final result = await _locationService.getCurrentLocation();
+    final result = await _locationService.getCurrentLocation(
+      forceFresh: forceFresh,
+    );
 
     result.fold(
       (failure) {
-        // Check if it's a permission-related failure
         if (failure is LocationPermissionDeniedFailure) {
           state = const LocationState.permissionRequired(
             status: LocationPermissionStatus.denied,
@@ -92,6 +103,13 @@ class LocationNotifier extends StateNotifier<LocationState> {
         } else if (failure is LocationServiceDisabledFailure) {
           state = const LocationState.permissionRequired(
             status: LocationPermissionStatus.serviceDisabled,
+          );
+        } else if (failure is LocationLowAccuracyFailure) {
+          // Expose the low-accuracy reading via previousLocation so consumers
+          // can still render the coords alongside the warning + refresh CTA.
+          state = LocationState.error(
+            failure: failure,
+            previousLocation: failure.location,
           );
         } else {
           state = LocationState.error(
@@ -116,9 +134,9 @@ class LocationNotifier extends StateNotifier<LocationState> {
     await _locationService.openLocationSettings();
   }
 
-  /// Refresh location
+  /// Refresh location — always bypasses the cache.
   Future<void> refresh() async {
-    await fetchCurrentLocation();
+    await fetchCurrentLocation(forceFresh: true);
   }
 
   /// Get current location data if available
@@ -131,10 +149,8 @@ class LocationNotifier extends StateNotifier<LocationState> {
 }
 
 /// Provider for LocationNotifier
-final locationProvider = StateNotifierProvider<LocationNotifier, LocationState>(
-  (ref) {
-    return LocationNotifier();
-  },
+final locationProvider = NotifierProvider<LocationNotifier, LocationState>(
+  LocationNotifier.new,
 );
 
 /// Provider for LocationService singleton
@@ -144,8 +160,8 @@ final locationServiceProvider = Provider<LocationService>((ref) {
 
 /// Selector for current location data
 final currentLocationProvider = Provider<LocationData?>((ref) {
-  final state = ref.watch(locationProvider);
-  return state.mapOrNull(
+  final locationState = ref.watch(locationProvider);
+  return locationState.mapOrNull(
     loaded: (s) => s.location,
     error: (s) => s.previousLocation,
   );

@@ -13,6 +13,7 @@ class CategoryProductDto {
     this.originalPrice,
     this.variantSku,
     this.weight,
+    this.unit,
     this.rating,
     this.imageUrl,
     this.thumbnailUrl,
@@ -32,6 +33,7 @@ class CategoryProductDto {
   final String? originalPrice;
   final String? variantSku;
   final String? weight;
+  final String? unit;
   final double? rating;
   final String? imageUrl;
   final String? thumbnailUrl;
@@ -97,6 +99,17 @@ class CategoryProductDto {
     final weightValue =
         variant?['weight'] ?? product['weight'] ?? variant?['weight_value'];
     final resolvedWeight = weightValue?.toString();
+
+    // Variant-level `unit` (e.g. "g"/"kg"/"pack"/"units") — prefer the variant
+    // field but fall back to the product-level one so older payloads still
+    // render a unit string alongside the weight.
+    final unitValue =
+        variant?['unit'] ??
+        product['unit'] ??
+        variant?['stock_unit'] ??
+        variant?['current_stock_unit'] ??
+        product['stock_unit'];
+    final resolvedUnit = unitValue?.toString();
 
     double? resolvedRating;
     final ratingValue = product['rating'];
@@ -209,6 +222,7 @@ class CategoryProductDto {
       price: variantPrice,
       originalPrice: originalPrice,
       weight: resolvedWeight,
+      unit: resolvedUnit,
       rating: resolvedRating,
       imageUrl: imageUrl,
       thumbnailUrl: thumbnailUrl,
@@ -293,6 +307,7 @@ class CategoryProductDto {
       price: displayPrice,
       originalPrice: originalPrice,
       weight: json['weight']?.toString(),
+      unit: json['unit']?.toString(),
       rating: rating,
       imageUrl: json['imageUrl']?.toString() ?? json['image_url']?.toString(),
       thumbnailUrl:
@@ -318,6 +333,7 @@ class CategoryProductDto {
     if (price != null) 'price': price,
     if (originalPrice != null) 'originalPrice': originalPrice,
     if (weight != null) 'weight': weight,
+    if (unit != null) 'unit': unit,
     if (rating != null) 'rating': rating,
     if (imageUrl != null) 'imageUrl': imageUrl,
     if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
@@ -338,6 +354,7 @@ class CategoryProductDto {
     price: price,
     originalPrice: originalPrice,
     weight: weight,
+    unit: unit,
     rating: rating,
     imageUrl: imageUrl,
     thumbnailUrl: thumbnailUrl,

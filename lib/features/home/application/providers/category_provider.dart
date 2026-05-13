@@ -3,7 +3,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/repositories/home_repository.dart';
-import '../../infrastructure/repositories/home_repostory_impl.dart';
+import 'home_repository_provider.dart';
 
 part 'category_provider.g.dart';
 
@@ -13,11 +13,8 @@ part 'category_provider.g.dart';
 class CategoryDetails extends _$CategoryDetails {
   late final HomeRepository _repository;
 
-  // Internal state to track current page since PaginatedResult stores URLs
-  int _currentPage = 1;
-
   @override
-  AsyncValue<PaginatedResult<Category>> build() {
+  AsyncValue<List<Category>> build() {
     _repository = ref.read(homeRepositoryProvider);
 
     // We trigger the initial load immediately upon creation
@@ -28,48 +25,13 @@ class CategoryDetails extends _$CategoryDetails {
   }
 
   Future<void> loadAllCategories({int page = 1}) async {
-    _currentPage = page;
     state = const AsyncValue.loading();
 
     final result = await _repository.getCategories(page: page);
 
     state = result.fold(
       (failure) => AsyncValue.error(failure, StackTrace.current),
-      (paginatedResult) => AsyncValue.data(paginatedResult),
-    );
-  }
-
-  Future<void> loadMore() async {
-    // 1. Check if we have valid data currently
-    if (!state.hasValue) return;
-    final currentData = state.value!;
-
-    // 2. Check if there is a next page (using the 'next' URL field)
-    if (currentData.next == null) return;
-
-    // 3. Fetch next page
-    final nextPage = _currentPage + 1;
-    final result = await _repository.getCategories(page: nextPage);
-
-    result.fold(
-      (failure) {
-        // On failure, we keep the current state (user can retry)
-        // Optionally, could set state to AsyncValue.error, but that wipes the list.
-        // Ideally, handle this with a side-effect/snackbar controller.
-      },
-      (newPageData) {
-        _currentPage = nextPage;
-
-        // 4. Merge the new results with the existing results
-        state = AsyncValue.data(
-          PaginatedResult(
-            count: newPageData.count,
-            next: newPageData.next,
-            previous: newPageData.previous,
-            results: [...currentData.results, ...newPageData.results],
-          ),
-        );
-      },
+      (categories) => AsyncValue.data(categories),
     );
   }
 }

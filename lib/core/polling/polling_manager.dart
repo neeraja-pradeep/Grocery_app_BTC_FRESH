@@ -73,6 +73,11 @@ class PollingManager {
   }) {
     final key = '$featureName:$resourceId';
 
+    assert(
+      !_pollers.containsKey(key),
+      'Poller $key registered twice without unregistering. Call unregisterPoller first.',
+    );
+
     _pollers[key] = _PollerInfo(
       featureName: featureName,
       resourceId: resourceId,
@@ -80,19 +85,23 @@ class PollingManager {
       onPause: onPause,
     );
 
-    developer.log(
-      'Poller registered: $key (activeFeature: $_activeFeature)',
-      name: 'PollingManager',
-      level: 500,
-    );
+    if (kDebugMode) {
+      developer.log(
+        'Poller registered: $key (activeFeature: $_activeFeature)',
+        name: 'PollingManager',
+        level: 500,
+      );
+    }
 
     // If this poller's feature is currently active, start it immediately
     if (_activeFeature == featureName) {
-      developer.log(
-        'Auto-starting poller $key (feature $featureName is active)',
-        name: 'PollingManager',
-        level: 700,
-      );
+      if (kDebugMode) {
+        developer.log(
+          'Auto-starting poller $key (feature $featureName is active)',
+          name: 'PollingManager',
+          level: 700,
+        );
+      }
       _startPoller(key);
     }
   }
@@ -105,7 +114,9 @@ class PollingManager {
     if (!_activePollerKeys.contains(key)) {
       _activePollerKeys.add(key);
       poller.onResume();
-      developer.log('Poller started: $key', name: 'PollingManager', level: 700);
+      if (kDebugMode) {
+        developer.log('Poller started: $key', name: 'PollingManager', level: 700);
+      }
     }
   }
 
@@ -117,7 +128,9 @@ class PollingManager {
     if (_activePollerKeys.contains(key)) {
       _activePollerKeys.remove(key);
       poller.onPause();
-      developer.log('Poller stopped: $key', name: 'PollingManager', level: 700);
+      if (kDebugMode) {
+        developer.log('Poller stopped: $key', name: 'PollingManager', level: 700);
+      }
     }
   }
 
@@ -130,19 +143,23 @@ class PollingManager {
   /// This will pause category/product_detail pollers and start cart pollers.
   void setActiveFeature(String featureName) {
     if (_activeFeature == featureName) {
-      developer.log(
-        'Feature already active: $featureName',
-        name: 'PollingManager',
-        level: 500,
-      );
+      if (kDebugMode) {
+        developer.log(
+          'Feature already active: $featureName',
+          name: 'PollingManager',
+          level: 500,
+        );
+      }
       return;
     }
 
-    developer.log(
-      'Setting active feature: $featureName (was: $_activeFeature)',
-      name: 'PollingManager',
-      level: 800,
-    );
+    if (kDebugMode) {
+      developer.log(
+        'Setting active feature: $featureName (was: $_activeFeature)',
+        name: 'PollingManager',
+        level: 800,
+      );
+    }
 
     // Pause all pollers from the previous feature
     _pauseAllPollersForFeature(_activeFeature);
@@ -164,11 +181,13 @@ class PollingManager {
         startedCount++;
       }
     }
-    developer.log(
-      'Started $startedCount pollers for feature: $featureName',
-      name: 'PollingManager',
-      level: 800,
-    );
+    if (kDebugMode) {
+      developer.log(
+        'Started $startedCount pollers for feature: $featureName',
+        name: 'PollingManager',
+        level: 800,
+      );
+    }
   }
 
   /// Pause all pollers for a specific feature
@@ -182,11 +201,13 @@ class PollingManager {
         pausedCount++;
       }
     }
-    developer.log(
-      'Paused $pausedCount pollers for feature: $featureName',
-      name: 'PollingManager',
-      level: 800,
-    );
+    if (kDebugMode) {
+      developer.log(
+        'Paused $pausedCount pollers for feature: $featureName',
+        name: 'PollingManager',
+        level: 800,
+      );
+    }
   }
 
   /// Get the currently active feature
@@ -204,11 +225,13 @@ class PollingManager {
 
     _pollers.remove(key);
 
-    developer.log(
-      'Poller unregistered: $key',
-      name: 'PollingManager',
-      level: 500,
-    );
+    if (kDebugMode) {
+      developer.log(
+        'Poller unregistered: $key',
+        name: 'PollingManager',
+        level: 500,
+      );
+    }
   }
 
   /// Activate a poller (user navigated to this screen)
@@ -240,11 +263,13 @@ class PollingManager {
 
   /// Pause all active polling (e.g., when app goes to background)
   void pauseAllPolling() {
-    developer.log(
-      'Pausing all polling (${_activePollerKeys.length} active)',
-      name: 'PollingManager',
-      level: 800,
-    );
+    if (kDebugMode) {
+      developer.log(
+        'Pausing all polling (${_activePollerKeys.length} active)',
+        name: 'PollingManager',
+        level: 800,
+      );
+    }
 
     // Stop all active pollers
     for (final key in _activePollerKeys.toList()) {
@@ -260,19 +285,23 @@ class PollingManager {
   /// Resume polling for the active feature (e.g., when app comes to foreground)
   void resumeActiveFeaturePolling() {
     if (_activeFeature == null) {
-      developer.log(
-        'No active feature to resume',
-        name: 'PollingManager',
-        level: 500,
-      );
+      if (kDebugMode) {
+        developer.log(
+          'No active feature to resume',
+          name: 'PollingManager',
+          level: 500,
+        );
+      }
       return;
     }
 
-    developer.log(
-      'Resuming polling for feature: $_activeFeature',
-      name: 'PollingManager',
-      level: 800,
-    );
+    if (kDebugMode) {
+      developer.log(
+        'Resuming polling for feature: $_activeFeature',
+        name: 'PollingManager',
+        level: 800,
+      );
+    }
 
     // Resume ALL pollers for the active feature
     _startAllPollersForFeature(_activeFeature!);

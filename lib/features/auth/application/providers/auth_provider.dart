@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../category/application/providers/category_providers.dart';
+import '../../../product_details/infrastructure/data_sources/local/product_detail_local_data_source.dart';
 import '../../../wishlist/application/providers/wishlist_provider.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../states/auth_state.dart';
@@ -42,12 +44,17 @@ class Auth extends _$Auth {
         final user = await _repository.getSavedUser();
 
         if (user != null) {
-          state = Authenticated(user: user, isNewUser: false);
-          return;
+          final isValid = await _repository.validateSession();
+          if (isValid) {
+            state = Authenticated(user: user, isNewUser: false);
+            return;
+          }
+          // Server rejected the session — clear stale local data
+          await _repository.logout();
         }
       }
 
-      // No session found - user can browse as guest
+      // No valid session found - user can browse as guest
       state = const GuestMode();
     } catch (e) {
       // Handle corrupted Hive data or malformed cookies
@@ -176,7 +183,7 @@ class Auth extends _$Auth {
   void _startOtpExpiryTimer() {
     _otpExpiryTimer?.cancel();
     _otpExpiryTimer = Timer(const Duration(seconds: 300), () {
-      if (state is OtpSent) {
+      if (state is OtpSent || state is OtpVerifying) {
         state = const AuthError(
           failure: AppFailure('OTP Expired'),
           previousState: GuestMode(),
@@ -218,56 +225,27 @@ class Auth extends _$Auth {
   // --------------------------------------------------------
   // CLEAR USER-SPECIFIC DATA
   // --------------------------------------------------------
-  /// Clears cached data that belongs to authenticated users
-  /// This includes cart, wishlist, and refreshes categories
   Future<void> _clearUserData() async {
     try {
-      // Import providers at the top of the file if needed
-      // We'll use ref.read to access other providers
-
-      // Clear wishlist cache and refresh
-      final wishlistNotifier = ref.read(wishlistProvider.notifier);
-      await wishlistNotifier.clearCacheAndRefresh();
-
-      // Clear cart cache (checkout lines need to be re-fetched for guest)
-      // Cart will be empty for guests or show different data
-      final checkoutLineController = ref.read(
-        checkoutLineControllerProvider.notifier,
-      );
-      await checkoutLineController.refresh();
-
-      // Refresh category data to show guest version
-      final categoryController = ref.read(categoryControllerProvider.notifier);
-      await categoryController.refresh(force: true);
+      ref.invalidate(wishlistProvider);
+      ref.invalidate(checkoutLineControllerProvider);
+      ref.invalidate(categoryControllerProvider);
+      await ProductDetailLocalDataSourceImpl().clearAllCache();
     } catch (e) {
-      // Log error but don't fail the logout/guest mode
-      // Guest mode should still work even if data clearing fails
+      debugPrint('[Auth] Failed to clear user data: $e');
     }
   }
 
   // --------------------------------------------------------
   // REFRESH USER-SPECIFIC DATA
   // --------------------------------------------------------
-  /// Refreshes user-specific data after successful login
-  /// This loads the authenticated user's cart, wishlist, and category preferences
   Future<void> _refreshUserData() async {
     try {
-      // Refresh wishlist to load user's saved items
-      final wishlistNotifier = ref.read(wishlistProvider.notifier);
-      await wishlistNotifier.refresh();
-
-      // Refresh cart to load user's cart items
-      final checkoutLineController = ref.read(
-        checkoutLineControllerProvider.notifier,
-      );
-      await checkoutLineController.refresh();
-
-      // Refresh category data to show user's preferences (liked products, etc.)
-      final categoryController = ref.read(categoryControllerProvider.notifier);
-      await categoryController.refresh(force: true);
+      ref.invalidate(wishlistProvider);
+      ref.invalidate(checkoutLineControllerProvider);
+      ref.invalidate(categoryControllerProvider);
     } catch (e) {
-      // Log error but don't fail the login
-      // User should still be logged in even if data refresh fails
+      debugPrint('[Auth] Failed to refresh user data: $e');
     }
   }
 }

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
+import '../../../../../core/storage/cache_config.dart';
 import '../../models/profile_dto.dart';
 import 'profile_cache_dto.dart';
 
@@ -17,7 +19,6 @@ class ProfileLocalDs {
   final Box<dynamic> _box;
 
   static const String _kProfileKey = 'cached_profile';
-  static const int _kCacheValidityHours = 24;
 
   /// Retrieves the cached profile if available (returns even if stale).
   /// Never deletes cache - always returns data with staleness flag.
@@ -32,13 +33,13 @@ class ProfileLocalDs {
 
       // Check cache age
       final age = DateTime.now().difference(cacheDto.cachedAt);
-      final isStale = age.inHours > _kCacheValidityHours;
+      final isStale = age > CacheConfig.staleCacheThreshold;
 
       // Always return data, even if stale
       return CachedProfileResult(profile: cacheDto.toDto(), isStale: isStale);
-    } catch (_) {
-      // If data is corrupted, return null but don't delete
-      // User can still try API to recover
+    } catch (e, st) {
+      debugPrint('[ProfileLocalDs] corrupted cache entry, deleting: $e\n$st');
+      await _box.delete(_kProfileKey);
       return null;
     }
   }
@@ -54,8 +55,8 @@ class ProfileLocalDs {
     try {
       final cacheDto = ProfileCacheDto.fromDto(profile);
       await _box.put(_kProfileKey, cacheDto.toJson());
-    } catch (_) {
-      // Silently fail - cache is not critical
+    } catch (e, st) {
+      debugPrint('[ProfileLocalDs] cache write failed: $e\n$st');
     }
   }
 

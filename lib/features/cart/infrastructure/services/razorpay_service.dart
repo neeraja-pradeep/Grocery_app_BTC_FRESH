@@ -1,12 +1,11 @@
-import 'dart:developer' as developer;
-
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 /// Razorpay configuration constants
 class RazorpayConfig {
-  static const String keyId = 'rzp_test_RZlZ38QcLdQOEK';
-  // Note: Key secret should NOT be used in client-side code
-  // It's only used on the server for signature verification
+  static const String keyId = String.fromEnvironment(
+    'RAZORPAY_KEY_ID',
+    defaultValue: 'rzp_test_RZlZ38QcLdQOEK',
+  );
 }
 
 /// Result of a Razorpay payment attempt
@@ -116,23 +115,9 @@ class RazorpayService {
       },
     };
 
-    // Debug log the options being sent to Razorpay
-    developer.log('========== RAZORPAY OPTIONS ==========');
-    developer.log('Key: ${RazorpayConfig.keyId}');
-    developer.log('Amount: $amount');
-    developer.log('Currency: $currency');
-    developer.log('Order ID: $razorpayOrderId');
-    developer.log('Customer Name: $customerName');
-    developer.log('Customer Email: $customerEmail');
-    developer.log('Customer Phone (original): $customerPhone');
-    developer.log('Customer Phone (formatted): $formattedPhone');
-    developer.log('Full Options: $options');
-    developer.log('=======================================');
-
     try {
       _razorpay!.open(options);
     } catch (e) {
-      developer.log('Razorpay Error: $e');
       _onComplete?.call(
         RazorpayPaymentResult.failure(
           errorCode: 'OPEN_ERROR',
@@ -143,7 +128,6 @@ class RazorpayService {
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    developer.log('Payment Success: ${response.paymentId}');
     _onComplete?.call(
       RazorpayPaymentResult.success(
         paymentId: response.paymentId ?? '',
@@ -154,8 +138,6 @@ class RazorpayService {
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
-    developer.log('Payment Error: ${response.code} - ${response.message}');
-
     // Check if user cancelled
     if (response.code == Razorpay.PAYMENT_CANCELLED) {
       _onComplete?.call(RazorpayPaymentResult.cancelled());
@@ -170,7 +152,6 @@ class RazorpayService {
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
-    developer.log('External Wallet: ${response.walletName}');
     // External wallet selected - payment will continue in wallet app
     // The success/failure will come through the respective handlers
   }

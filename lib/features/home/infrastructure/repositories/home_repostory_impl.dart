@@ -1,7 +1,6 @@
 // lib/features/home/infrastructure/repositories/home_repository_impl.dart
 
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/utils/logger.dart';
@@ -25,29 +24,24 @@ class HomeRepositoryImpl implements HomeRepository {
        _localDataSource = localDataSource;
 
   /// Converts exceptions to appropriate failures
-  // Failure _handleException(Object exception) {
-  //   if (exception is NetworkException || exception is TimeoutException) {
-  //     return NetworkFailure(exception.toString());
-  //   } else if (exception is ServerException) {
-  //     return ServerFailure(
-  //       exception.toString(),
-  //       statusCode: exception.statusCode,
-  //     );
-  //   } else if (exception is DataParsingException) {
-  //     return DataParsingFailure(exception.toString());
-  //   } else if (exception is CacheException) {
-  //     return CacheFailure(exception.toString());
-  //   } else if (exception is NotFoundException) {
-  //     return ServerFailure(exception.toString(), statusCode: 404);
-  //   } else if (exception is UnauthorizedException) {
-  //     return ServerFailure(exception.toString(), statusCode: 401);
-  //   } else {
-  //     return UnknownFailure('Unexpected error: ${exception.toString()}');
-  //   }
-  // }
+  Failure _handleException(Object exception) {
+    if (exception is NetworkException) {
+      return NetworkFailure(exception.toString());
+    } else if (exception is ServerException) {
+      return ServerFailure(exception.toString(), statusCode: exception.statusCode);
+    } else if (exception is DataParsingException) {
+      return DataParsingFailure(exception.toString());
+    } else if (exception is NotFoundException) {
+      return ServerFailure(exception.toString(), statusCode: 404);
+    } else if (exception is UnauthorizedException) {
+      return ServerFailure(exception.toString(), statusCode: 401);
+    } else {
+      return UnknownFailure('Unexpected error: ${exception.toString()}');
+    }
+  }
 
   @override
-  Future<Either<Failure, PaginatedResult<Category>>> getCategories({
+  Future<Either<Failure, List<Category>>> getCategories({
     int page = 1,
   }) async {
     // 1. Try Local Cache first (only for first page)
@@ -55,14 +49,9 @@ class HomeRepositoryImpl implements HomeRepository {
       try {
         final cachedContainer = await _localDataSource.getCategories();
         if (cachedContainer != null &&
-            cachedContainer.isFresh(const Duration(hours: 1))) {
+            cachedContainer.isFresh(const Duration(minutes: 10))) {
           Logger.debug('Categories loaded from cache');
-          return Right(
-            PaginatedResult(
-              count: cachedContainer.data.length,
-              results: cachedContainer.data,
-            ),
-          );
+          return Right(cachedContainer.data);
         }
       } on HiveError catch (e) {
         Logger.error('Hive cache read error for categories', error: e);
@@ -93,7 +82,7 @@ class HomeRepositoryImpl implements HomeRepository {
         }
       }
 
-      return Right(result);
+      return Right(result.results);
     } on NetworkException catch (e) {
       Logger.warning('Network error fetching categories', error: e);
       // 4. On Network Error: Try to return stale cache if available
@@ -102,24 +91,19 @@ class HomeRepositoryImpl implements HomeRepository {
           final cachedContainer = await _localDataSource.getCategories();
           if (cachedContainer != null) {
             Logger.info('Returning stale cache due to network error');
-            return Right(
-              PaginatedResult(
-                count: cachedContainer.data.length,
-                results: cachedContainer.data,
-              ),
-            );
+            return Right(cachedContainer.data);
           }
         } catch (cacheError) {
           Logger.error('Failed to retrieve stale cache', error: cacheError);
         }
       }
-      return Left(NetworkFailure(e.toString()));
+      return Left(_handleException(e));
     } on ServerException catch (e) {
       Logger.error('Server error fetching categories', error: e);
-      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+      return Left(_handleException(e));
     } catch (e) {
       Logger.error('Unexpected error fetching categories', error: e);
-      return Left(UnknownFailure('Unexpected error: $e'));
+      return Left(_handleException(e));
     }
   }
 
@@ -180,13 +164,13 @@ class HomeRepositoryImpl implements HomeRepository {
       return Right(result);
     } on NetworkException catch (e) {
       Logger.warning('Network error fetching discounted products', error: e);
-      return Left(NetworkFailure(e.toString()));
+      return Left(_handleException(e));
     } on ServerException catch (e) {
       Logger.error('Server error fetching discounted products', error: e);
-      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+      return Left(_handleException(e));
     } catch (e) {
       Logger.error('Unexpected error fetching discounted products', error: e);
-      return Left(UnknownFailure('Unexpected error: $e'));
+      return Left(_handleException(e));
     }
   }
 
@@ -242,13 +226,13 @@ class HomeRepositoryImpl implements HomeRepository {
           );
         }
       }
-      return Left(NetworkFailure(e.toString()));
+      return Left(_handleException(e));
     } on ServerException catch (e) {
       Logger.error('Server error fetching banners', error: e);
-      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+      return Left(_handleException(e));
     } catch (e) {
       Logger.error('Unexpected error fetching banners', error: e);
-      return Left(UnknownFailure('Unexpected error: $e'));
+      return Left(_handleException(e));
     }
   }
 
@@ -300,13 +284,13 @@ class HomeRepositoryImpl implements HomeRepository {
           error: cacheError,
         );
       }
-      return Left(NetworkFailure(e.toString()));
+      return Left(_handleException(e));
     } on ServerException catch (e) {
       Logger.error('Server error fetching best deals', error: e);
-      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+      return Left(_handleException(e));
     } catch (e) {
       Logger.error('Unexpected error fetching best deals', error: e);
-      return Left(UnknownFailure('Unexpected error: $e'));
+      return Left(_handleException(e));
     }
   }
 
@@ -325,16 +309,16 @@ class HomeRepositoryImpl implements HomeRepository {
       return Right(result);
     } on NetworkException catch (e) {
       Logger.warning('Network error searching products for "$query"', error: e);
-      return Left(NetworkFailure(e.toString()));
+      return Left(_handleException(e));
     } on ServerException catch (e) {
       Logger.error('Server error searching products for "$query"', error: e);
-      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+      return Left(_handleException(e));
     } catch (e) {
       Logger.error(
         'Unexpected error searching products for "$query"',
         error: e,
       );
-      return Left(UnknownFailure('Unexpected error: $e'));
+      return Left(_handleException(e));
     }
   }
 
@@ -349,18 +333,18 @@ class HomeRepositoryImpl implements HomeRepository {
       return Right(address);
     } on NetworkException catch (e) {
       Logger.warning('Network error fetching selected address', error: e);
-      return Left(NetworkFailure(e.toString()));
+      return Left(_handleException(e));
     } on ServerException catch (e) {
       Logger.error('Server error fetching selected address', error: e);
-      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+      return Left(_handleException(e));
     } catch (e) {
       Logger.error('Unexpected error fetching selected address', error: e);
-      return Left(UnknownFailure('Unexpected error: $e'));
+      return Left(_handleException(e));
     }
   }
 
   @override
-  Future<Either<Failure, PaginatedResult<Product>>> searchProductsWithVariants({
+  Future<Either<Failure, List<Product>>> searchProductsWithVariants({
     required String query,
     int page = 1,
   }) async {
@@ -373,19 +357,19 @@ class HomeRepositoryImpl implements HomeRepository {
         'Product search results for "$query": ${result.results.length} items',
       );
 
-      return Right(result);
+      return Right(result.results);
     } on NetworkException catch (e) {
       Logger.warning('Network error searching products for "$query"', error: e);
-      return Left(NetworkFailure(e.toString()));
+      return Left(_handleException(e));
     } on ServerException catch (e) {
       Logger.error('Server error searching products for "$query"', error: e);
-      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+      return Left(_handleException(e));
     } catch (e) {
       Logger.error(
         'Unexpected error searching products for "$query"',
         error: e,
       );
-      return Left(UnknownFailure('Unexpected error: $e'));
+      return Left(_handleException(e));
     }
   }
 
@@ -402,13 +386,13 @@ class HomeRepositoryImpl implements HomeRepository {
       return Right(product);
     } on NetworkException catch (e) {
       Logger.warning('Network error fetching product by id', error: e);
-      return Left(NetworkFailure(e.toString()));
+      return Left(_handleException(e));
     } on ServerException catch (e) {
       Logger.error('Server error fetching product by id', error: e);
-      return Left(ServerFailure(e.toString(), statusCode: e.statusCode));
+      return Left(_handleException(e));
     } catch (e) {
       Logger.error('Unexpected error fetching product by id', error: e);
-      return Left(UnknownFailure('Unexpected error: $e'));
+      return Left(_handleException(e));
     }
   }
 
@@ -426,12 +410,3 @@ class HomeRepositoryImpl implements HomeRepository {
     }
   }
 }
-
-final homeRepositoryProvider = riverpod.Provider<HomeRepository>((ref) {
-  final remoteDs = ref.watch(homeRemoteDataSourceProvider);
-  final localDs = ref.watch(homeLocalDataSourceProvider);
-  return HomeRepositoryImpl(
-    remoteDataSource: remoteDs,
-    localDataSource: localDs,
-  );
-});

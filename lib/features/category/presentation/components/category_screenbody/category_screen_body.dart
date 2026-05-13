@@ -140,7 +140,6 @@ class CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
                   categories: categories,
                   selectedCategoryIndex: widget.selectedCategoryIndex,
                   onCategoryInViewChanged: widget.onCategorySelected,
-                  onAddToCart: (product) {},
                 ),
               ),
             ],

@@ -1,3 +1,6 @@
+import 'dart:developer' as developer;
+
+import 'package:flutter/foundation.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import '../../models/address_dto.dart';
@@ -48,8 +51,10 @@ class AddressLocalDs {
 
       // Always return data, even if stale
       return CachedAddressListResult(addresses: addressDtos, isStale: isStale);
-    } catch (_) {
-      // If data is corrupted, return null but don't delete
+    } catch (e) {
+      if (kDebugMode) {
+        developer.log('Address cache read failed: $e', name: 'AddressLocalDs');
+      }
       return null;
     }
   }
@@ -73,8 +78,10 @@ class AddressLocalDs {
       };
 
       await _box.put(_kAddressListKey, cacheData);
-    } catch (_) {
-      // Silently fail - cache is not critical
+    } catch (e) {
+      if (kDebugMode) {
+        developer.log('Address cache write failed: $e', name: 'AddressLocalDs');
+      }
     }
   }
 

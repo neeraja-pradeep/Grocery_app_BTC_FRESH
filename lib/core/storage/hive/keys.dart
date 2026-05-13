@@ -16,4 +16,7 @@ class HiveKeys {
   static const String homeBestDeals = 'home_best_deals';
   static const String homeAdvertisement = 'home_ad';
   static const String userSelectedAddress = 'user_selected_address';
+
+  // Location cache key
+  static const String lastKnownLocation = 'last_known_location';
 }

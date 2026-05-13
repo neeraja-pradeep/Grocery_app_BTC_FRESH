@@ -49,9 +49,6 @@ import '../../../../core/location/location_provider.dart';
 import '../../../../core/utils/logger.dart';
 // Components
 import '../../../../core/widgets/app_snackbar.dart';
-import '../../../address/presentation/screens/address_list_screen.dart';
-import '../../../auth/application/providers/auth_provider.dart';
-import '../../../auth/application/states/auth_state.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../application/providers/delivery_status_provider.dart';
 // Application Layer
@@ -61,7 +58,7 @@ import '../../domain/entities/banner.dart' as entities;
 import '../../domain/entities/category.dart';
 import '../../domain/entities/product_variant.dart';
 import '../../domain/entities/user_address.dart';
-import '../../infrastructure/repositories/home_repostory_impl.dart';
+import '../../application/providers/home_repository_provider.dart';
 import '../components/advertisement_card.dart';
 import '../components/category_discount_section.dart';
 import '../components/category_grid.dart';
@@ -72,7 +69,7 @@ import '../components/product_card.dart';
 import '../components/section_header.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  final ValueChanged<Category> onCategoryNavigate;
+  final ValueChanged<int> onCategoryNavigate;
   const HomeScreen({super.key, required this.onCategoryNavigate});
 
   @override
@@ -82,8 +79,10 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   late final RefreshController _refreshController;
-  bool _showAllCategories = false; // Track if all categories are shown
-  bool _showAllBestDeals = false; // Track if all best deals are shown
+  bool _showAllCategories = false;
+  bool _showAllBestDeals = false;
+  bool _hasLoggedFirstLoad = false;
+  double _lastLoggedScrollPixels = 0.0;
 
   @override
   void initState() {
@@ -113,16 +112,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _onScroll() {
-    // Analytics: Track scroll behavior for UX insights
-    final scrollPosition = _scrollController.position;
-    if (scrollPosition.pixels > 0 && scrollPosition.pixels % 1000 < 50) {
+    final pixels = _scrollController.position.pixels;
+    if ((pixels - _lastLoggedScrollPixels).abs() >= 1000) {
+      _lastLoggedScrollPixels = pixels;
       Logger.debug(
         'User scrolled',
         data: {
-          'scroll_position': scrollPosition.pixels.round(),
-          'max_scroll': scrollPosition.maxScrollExtent.round(),
+          'scroll_position': pixels.round(),
+          'max_scroll': _scrollController.position.maxScrollExtent.round(),
           'scroll_percentage':
-              ((scrollPosition.pixels / scrollPosition.maxScrollExtent) * 100)
+              ((pixels / _scrollController.position.maxScrollExtent) * 100)
                   .round(),
         },
       );
@@ -141,6 +140,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Listen for state changes to handle side effects (SnackBars)
     ref.listen<HomeState>(homeProvider, (previous, next) {
       next.mapOrNull(
+        loaded: (_) {
+          if (!_hasLoggedFirstLoad) {
+            _hasLoggedFirstLoad = true;
+            Logger.info('Home screen loaded successfully');
+          }
+        },
         error: (errorState) {
           // Only show SnackBar if we have previous data (partial failure)
           if (errorState.previousState != null && context.mounted) {
@@ -156,9 +161,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Watch the HomeNotifier state
     final homeState = ref.watch(homeProvider);
 
-    // Check if user is in guest mode
-    final authState = ref.watch(authProvider);
-    final isGuest = authState is GuestMode;
+    final isGuest = ref.watch(isGuestProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -228,18 +231,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           dealLoad,
                           discLoad,
                         ) {
-                          // Analytics: Track successful load
-                          Logger.info(
-                            'Home screen loaded successfully',
-                            data: {
-                              'categories_count': categories.length,
-                              'deals_count': deals.length,
-                              'discount_groups_count': discounts.length,
-                              'has_address': address != null,
-                              'has_ad': ad != null,
-                            },
-                          );
-
                           return _buildScrollContent(
                             categories: categories,
                             selectedAddress: address,
@@ -361,12 +352,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onSeeAllClick: _toggleCategoryView,
                   seeAllText: _showAllCategories ? 'Show Less' : 'See All',
                 ),
-                CategoryGrid(
-                  categories: _showAllCategories
-                      ? categories
-                      : categories.take(8).toList(),
-                  onCategoryClick: (category) =>
-                      _navigateToCategoryProducts(category),
+                Builder(
+                  builder: (context) {
+                    final sortedCategories = [...categories]..sort(
+                      (a, b) =>
+                          a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+                    );
+                    return CategoryGrid(
+                      categories: _showAllCategories
+                          ? sortedCategories
+                          : sortedCategories.take(8).toList(),
+                      onCategoryClick: (categoryId) =>
+                          _navigateToCategoryProducts(categoryId),
+                    );
+                  },
                 ),
               ],
             ),
@@ -386,12 +385,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
-          SliverToBoxAdapter(
-            child: Container(
-              color: Colors.white,
-              child: _buildBestDealsGrid(bestDeals),
-            ),
-          ),
+          _buildBestDealsGrid(bestDeals),
         ],
 
         // 5. Advertisement Card
@@ -631,28 +625,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
         break;
       case 'category':
-        widget.onCategoryNavigate(
-          Category(
-            id: targetId,
-            name: '',
-            slug: '',
-            description: '',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        );
+        widget.onCategoryNavigate(targetId);
         break;
     }
   }
 
   // --- Navigation ---
-
-  // void _navigateToSearchResults() {
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
-  //   );
-  // }
 
   void _toggleCategoryView() {
     setState(() {
@@ -665,17 +643,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _navigateToCategoryProducts(Category category) {
+  void _navigateToCategoryProducts(int categoryId) {
     Logger.info(
       'User navigated to category products',
-      data: {
-        'category_id': category.id,
-        'category_name': category.name,
-        'category_slug': category.slug,
-      },
+      data: {'category_id': categoryId},
     );
 
-    widget.onCategoryNavigate(category);
+    widget.onCategoryNavigate(categoryId);
   }
 
   void _toggleBestDealsView() {
@@ -690,32 +664,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildBestDealsGrid(List<ProductVariant> bestDeals) {
-    // Number of products per row
     const int productsPerRow = 3;
-    // Show only 1 row (3 products) initially, all rows when expanded
-    final int itemsToShow = _showAllBestDeals
-        ? bestDeals.length
-        : productsPerRow;
+    final int itemsToShow = _showAllBestDeals ? bestDeals.length : productsPerRow;
     final displayProducts = bestDeals.take(itemsToShow).toList();
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: productsPerRow,
-          crossAxisSpacing: 12.w,
-          mainAxisSpacing: 12.h,
-          childAspectRatio: 0.65,
+    return DecoratedSliver(
+      decoration: const BoxDecoration(color: Colors.white),
+      sliver: SliverPadding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        sliver: SliverGrid(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => ProductCard(
+              product: displayProducts[index],
+              onTap: () => _navigateToProductDetails(displayProducts[index]),
+            ),
+            childCount: displayProducts.length,
+          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: productsPerRow,
+            crossAxisSpacing: 12.w,
+            mainAxisSpacing: 12.h,
+            childAspectRatio: 0.65,
+          ),
         ),
-        itemCount: displayProducts.length,
-        itemBuilder: (context, index) {
-          return ProductCard(
-            product: displayProducts[index],
-            onTap: () => _navigateToProductDetails(displayProducts[index]),
-          );
-        },
       ),
     );
   }
@@ -736,12 +707,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _navigateToAddressSelection() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddressListScreen()),
-    );
-    // Note: Address updates are handled optimistically in AddressListScreen
-    // No need to refresh here - the optimistic update is already applied
+    context.push('/address-list');
   }
 
   void _navigateToProfile() {
@@ -753,9 +719,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _handleAddToCart(ProductVariant product) async {
-    // Block guests from adding to cart
-    final authState = ref.read(authProvider);
-    final isGuest = authState is GuestMode;
+    final isGuest = ref.read(isGuestProvider);
 
     if (isGuest) {
       AppSnackbar.info(context, 'Please login to add items to cart');

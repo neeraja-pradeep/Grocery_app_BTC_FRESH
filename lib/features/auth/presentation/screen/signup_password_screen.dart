@@ -203,7 +203,7 @@ class _SignupPasswordScreenState extends ConsumerState<SignupPasswordScreen> {
     final confirm = confirmPasswordController.text.trim();
 
     // Check if fields are empty
-    if ([password].any((e) => e.isEmpty)) {
+    if (password.isEmpty || confirm.isEmpty) {
       _showError('All fields are required');
       return;
     }

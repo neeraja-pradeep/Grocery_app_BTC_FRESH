@@ -1,9 +1,8 @@
 // lib/features/home/infrastructure/data_sources/local/home_local_ds.dart
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import '../../../../../core/constants/hive_boxes.dart';
 import '../../../../../core/storage/hive/keys.dart';
+import '../../../../../core/utils/logger.dart';
 import '../../../domain/entities/banner.dart';
 import '../../../domain/entities/category.dart';
 import '../../../domain/entities/product_variant.dart';
@@ -49,43 +48,17 @@ abstract class HomeLocalDataSource {
 
   // Address
   Future<UserAddress?> getSelectedAddress();
-  Future<void> saveSelectedAddress(UserAddress address);
-  Future<void> clearSelectedAddress();
 
   // Utility
   Future<void> clearAllHomeCache();
 }
 
 class HomeLocalDataSourceImpl implements HomeLocalDataSource {
-  Box? _box;
+  final Box _box;
 
-  HomeLocalDataSourceImpl([this._box]);
+  HomeLocalDataSourceImpl(Box box) : _box = box;
 
-  /// Safely get the Hive box with proper error handling
-  Future<Box> get box async {
-    // If we already have an open box, return it
-    if (_box != null && _box!.isOpen) {
-      return _box!;
-    }
-
-    // Check if the box is already open globally
-    if (Hive.isBoxOpen(HiveBoxes.homeBox)) {
-      _box = Hive.box(HiveBoxes.homeBox);
-      return _box!;
-    }
-
-    // If not open, try to open it
-    try {
-      _box = await Hive.openBox(HiveBoxes.homeBox);
-      return _box!;
-    } catch (e) {
-      throw StateError(
-        'Failed to open Hive box "${HiveBoxes.homeBox}". '
-        'Error: $e. '
-        'Ensure Hive.initFlutter() is called before accessing the box.',
-      );
-    }
-  }
+  Box get _hiveBox => _box;
 
   // --- Helper to wrap data as JSON ---
   // Store entities as JSON maps to avoid Hive adapter issues
@@ -98,8 +71,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
   @override
   Future<CachedData<List<Category>>?> getCategories() async {
-    final b = await box;
-    final raw = b.get(HiveKeys.homeCategories);
+    final raw = _hiveBox.get(HiveKeys.homeCategories);
     if (raw == null) return null;
 
     try {
@@ -114,14 +86,13 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
       return CachedData(data: categories, cachedAt: timestamp);
     } catch (e) {
-      // If parsing fails, return null to force fresh fetch
+      Logger.error('Cache parse failure for categories', error: e);
       return null;
     }
   }
 
   @override
   Future<void> saveCategories(List<Category> categories) async {
-    final b = await box;
     // Convert categories to JSON before storing
     final jsonList = categories
         .map(
@@ -139,16 +110,15 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         )
         .toList();
 
-    await b.put(HiveKeys.homeCategories, _wrapJson(jsonList));
+    await _hiveBox.put(HiveKeys.homeCategories, _wrapJson(jsonList));
   }
 
   @override
   Future<CachedData<DiscountedProductsResult>?> getDiscountedProducts({
     required String cacheKey,
   }) async {
-    final b = await box;
     final fullKey = '${HiveKeys.homeDiscounts}$cacheKey';
-    final raw = b.get(fullKey);
+    final raw = _hiveBox.get(fullKey);
     if (raw == null) return null;
 
     try {
@@ -187,6 +157,7 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         cachedAt: timestamp,
       );
     } catch (e) {
+      Logger.error('Cache parse failure for discounted products', error: e);
       return null;
     }
   }
@@ -196,7 +167,6 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
     required String cacheKey,
     required DiscountedProductsResult result,
   }) async {
-    final b = await box;
     final fullKey = '${HiveKeys.homeDiscounts}$cacheKey';
     // Convert to JSON - simplified version, you may need to expand this
     final jsonList = result.variants
@@ -241,14 +211,13 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
       (productId, categoryId) => MapEntry(productId.toString(), categoryId),
     );
 
-    await b.put(fullKey, wrapped);
+    await _hiveBox.put(fullKey, wrapped);
   }
 
   @override
   Future<CachedData<List<Banner>>?> getBanners() async {
-    final b = await box;
     // Using the Advertisement key for Banners
-    final raw = b.get(HiveKeys.homeAdvertisement);
+    final raw = _hiveBox.get(HiveKeys.homeAdvertisement);
     if (raw == null) return null;
 
     try {
@@ -261,13 +230,13 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
       return CachedData(data: banners, cachedAt: timestamp);
     } catch (e) {
+      Logger.error('Cache parse failure for banners', error: e);
       return null;
     }
   }
 
   @override
   Future<void> saveBanners(List<Banner> banners) async {
-    final b = await box;
     final jsonList = banners
         .map(
           (banner) => {
@@ -282,13 +251,12 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         )
         .toList();
 
-    await b.put(HiveKeys.homeAdvertisement, _wrapJson(jsonList));
+    await _hiveBox.put(HiveKeys.homeAdvertisement, _wrapJson(jsonList));
   }
 
   @override
   Future<CachedData<List<ProductVariant>>?> getBestDeals() async {
-    final b = await box;
-    final raw = b.get(HiveKeys.homeBestDeals);
+    final raw = _hiveBox.get(HiveKeys.homeBestDeals);
     if (raw == null) return null;
 
     try {
@@ -303,13 +271,13 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
 
       return CachedData(data: deals, cachedAt: timestamp);
     } catch (e) {
+      Logger.error('Cache parse failure for best deals', error: e);
       return null;
     }
   }
 
   @override
   Future<void> saveBestDeals(List<ProductVariant> deals) async {
-    final b = await box;
     // Convert to JSON - same structure as discounted products
     final jsonList = deals
         .map(
@@ -348,61 +316,26 @@ class HomeLocalDataSourceImpl implements HomeLocalDataSource {
         )
         .toList();
 
-    await b.put(HiveKeys.homeBestDeals, _wrapJson(jsonList));
+    await _hiveBox.put(HiveKeys.homeBestDeals, _wrapJson(jsonList));
   }
 
   @override
   Future<UserAddress?> getSelectedAddress() async {
-    final b = await box;
-    final raw = b.get(HiveKeys.userSelectedAddress);
+    final raw = _hiveBox.get(HiveKeys.userSelectedAddress);
     if (raw == null) return null;
 
     try {
-      final json = raw as Map<String, dynamic>;
+      final json = Map<String, dynamic>.from(raw as Map);
       return UserAddress.fromJson(json);
     } catch (e) {
+      Logger.error('Cache parse failure for selected address', error: e);
       return null;
     }
   }
 
   @override
-  Future<void> saveSelectedAddress(UserAddress address) async {
-    final b = await box;
-    final json = {
-      'id': address.id,
-      'first_name': address.firstName,
-      'last_name': address.lastName,
-      'street_address_1': address.streetAddress1,
-      'street_address_2': address.streetAddress2,
-      'city': address.city,
-      'state': address.state,
-      'postal_code': address.postalCode,
-      'country': address.country,
-      'latitude': address.latitude,
-      'longitude': address.longitude,
-      'address_type': address.addressType,
-      'selected': address.selected,
-      'created_at': address.createdAt.toIso8601String(),
-    };
-
-    await b.put(HiveKeys.userSelectedAddress, json);
-  }
-
-  @override
-  Future<void> clearSelectedAddress() async {
-    final b = await box;
-    await b.delete(HiveKeys.userSelectedAddress);
-  }
-
-  @override
   Future<void> clearAllHomeCache() async {
-    final b = await box;
     // Clear all cache including address (address always fetched from API now)
-    await b.clear();
+    await _hiveBox.clear();
   }
 }
-
-final homeLocalDataSourceProvider = Provider<HomeLocalDataSource>((ref) {
-  // Safe provider that handles box initialization gracefully
-  return HomeLocalDataSourceImpl();
-});

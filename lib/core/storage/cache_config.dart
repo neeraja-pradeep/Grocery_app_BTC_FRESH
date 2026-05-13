@@ -24,6 +24,52 @@ class CacheConfig {
   const CacheConfig._();
 
   // ============================================================================
+  // MEMORY CACHE LIMITS
+  // ============================================================================
+
+  /// Maximum number of entries in the in-memory (L1) cache.
+  static const int memoryCacheMaxEntries = 500;
+
+  /// Maximum size of the in-memory (L1) cache in bytes (50 MB).
+  static const int memoryCacheMaxSizeBytes = 50 * 1024 * 1024;
+
+  // ============================================================================
+  // HIVE CACHE LIMITS
+  // ============================================================================
+
+  /// Maximum size of all Hive boxes combined in bytes (200 MB).
+  static const int hiveCacheMaxSizeBytes = 200 * 1024 * 1024;
+
+  // ============================================================================
+  // CACHE VALIDITY THRESHOLDS
+  // ============================================================================
+
+  /// Cache is considered fresh and returned without any API check.
+  static const Duration validCacheThreshold = Duration(hours: 12);
+
+  /// Cache is considered stale — shown immediately but refreshed in background.
+  static const Duration staleCacheThreshold = Duration(hours: 24);
+
+  // ============================================================================
+  // NETWORK TIMEOUTS
+  // ============================================================================
+
+  /// API request timeout (connect / receive / send).
+  /// Mirrors AppConfig timeouts — keep in sync.
+  static const Duration apiTimeout = Duration(seconds: 10);
+
+  // ============================================================================
+  // RETRY POLICY
+  // ============================================================================
+
+  /// Maximum number of retry attempts for transient network errors.
+  static const int maxRetryAttempts = 4;
+
+  /// Base delay for exponential backoff between retries.
+  /// Delays: 2s → 4s → 8s for attempts 1–3.
+  static const Duration retryBaseDelay = Duration(seconds: 2);
+
+  // ============================================================================
   // GLOBAL TIMING CONFIGURATION (used by all features)
   // ============================================================================
 
@@ -99,6 +145,16 @@ class CacheConfig {
   /// Format: 'cat:products_meta:{categoryId}'
   /// Stores: lastSyncedAt, lastModified, eTag, product list
   static const String categoryProductMetadataPrefix = 'cat:products_meta:';
+
+  // ============================================================================
+  // WISHLIST FEATURE - Cache Key & TTL
+  // ============================================================================
+
+  /// Hive cache key for the persisted wishlist item list.
+  static const String wishlistCacheKey = 'wishlist:data';
+
+  /// Wishlist cache TTL — consistent with other feature TTLs.
+  static const Duration wishlistCacheTtl = Duration(minutes: 10);
 
   // ============================================================================
   // ADD NEW FEATURES HERE

@@ -3,6 +3,8 @@
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import '../utils/logger.dart';
+
 /// Service class for handling speech-to-text functionality
 class VoiceSearchService {
   final SpeechToText _speechToText = SpeechToText();
@@ -20,12 +22,13 @@ class VoiceSearchService {
 
     _isInitialized = await _speechToText.initialize(
       onError: (error) {
-        // Log error for debugging
-        // print('Speech recognition error: ${error.errorMsg}');
+        Logger.error(
+          'Voice search recognition error',
+          error: {'error': error.errorMsg, 'permanent': error.permanent},
+        );
       },
       onStatus: (status) {
-        // Log status for debugging
-        // print('Speech recognition status: $status');
+        Logger.debug('Voice search status changed', data: {'status': status});
       },
     );
 

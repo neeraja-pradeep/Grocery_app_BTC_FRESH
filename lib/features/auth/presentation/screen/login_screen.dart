@@ -26,8 +26,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController userNameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  bool _rememberMe = false;
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -113,49 +111,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   SizedBox(height: 15.h),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            height: 24.h,
-                            width: 24.w,
-                            child: Checkbox(
-                              value: _rememberMe,
-                              onChanged: (value) {
-                                setState(() {
-                                  _rememberMe = value ?? false;
-                                });
-                              },
-                              activeColor: AppColors.borderColor,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.r),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'Remember Me',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () => goToForgotPassword(context),
-                        child: Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: AppColors.darkGrey,
-                            fontWeight: FontWeight.w600,
-                          ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () => goToForgotPassword(context),
+                      child: Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: AppColors.darkGrey,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
+                    ),
                   ),
 
                   SizedBox(height: 25.h),

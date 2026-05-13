@@ -392,9 +392,11 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
 
                     const Spacer(),
 
-                    // 3. Price per kg (e.g., "3,45 / kg")
+                    // 3. Price per unit (uses the variant's actual unit from
+                    //    the API instead of a hardcoded "kg" — falls back to
+                    //    "unit" when the backend doesn't return one).
                     Text(
-                      '${product.pricePerKg} / kg',
+                      '${product.pricePerKg} / ${product.stockUnit ?? 'unit'}',
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w500,
@@ -424,9 +426,11 @@ extension ProductVariantMegaOffer on ProductVariant {
   bool get hasDiscount => discountedPrice != null && discountedPrice! < price;
 
   String get pricePerKg {
-    // Use discounted price if available, otherwise use regular price
+    // Use discounted price if available, otherwise use regular price.
+    // Keep a period as the decimal separator (the previous `.replaceAll('.', ',')`
+    // forced European-style commas regardless of locale).
     final effectivePrice = hasDiscount ? (discountedPrice ?? price) : price;
-    return effectivePrice.toStringAsFixed(2).replaceAll('.', ',');
+    return effectivePrice.toStringAsFixed(2);
   }
 
   String? get weight {

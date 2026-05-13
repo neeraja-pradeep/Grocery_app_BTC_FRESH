@@ -1,5 +1,5 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_ce/hive.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/network_exceptions.dart';
@@ -11,8 +11,7 @@ import '../../infrastructure/repositories/profile_repository_impl.dart';
 import '../states/profile_state.dart';
 
 final profileLocalDsProvider = Provider<ProfileLocalDs>((ref) {
-  final box = Hive.box<dynamic>(AppHiveBoxes.profile);
-  return ProfileLocalDs(box: box);
+  return ProfileLocalDs(box: Boxes.profileBox);
 });
 
 final profileApiProvider = Provider<ProfileApi>((ref) {
@@ -23,7 +22,6 @@ final profileApiProvider = Provider<ProfileApi>((ref) {
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   final remoteDs = ref.watch(profileApiProvider);
   final localDs = ref.watch(profileLocalDsProvider);
-
   return ProfileRepositoryImpl(remoteDs: remoteDs, localDs: localDs);
 });
 
@@ -42,17 +40,13 @@ class ProfileController extends Notifier<ProfileState> {
   /// 1. Shows cached data immediately (even if stale)
   /// 2. Always triggers background API refresh when showing cached data
   Future<void> fetchProfile() async {
-    // Only show loading if no data exists
     if (state.profile == null) {
       state = state.copyWith(status: ProfileStatus.loading, clearError: true);
     }
 
     try {
-      // Import the repository implementation to access fetchProfileWithCache
-      final repoImpl = _repository as ProfileRepositoryImpl;
-      final result = await repoImpl.fetchProfileWithCache();
+      final result = await _repository.fetchProfileWithCache();
 
-      // Update UI immediately with cached/fresh data
       state = state.copyWith(
         status: ProfileStatus.data,
         profile: result.profile,
@@ -60,8 +54,6 @@ class ProfileController extends Notifier<ProfileState> {
         clearError: true,
       );
 
-      // Always trigger background refresh when showing cached data
-      // This ensures backend changes are fetched even if cache is fresh
       if (result.fromCache) {
         _refreshInBackground();
       }
@@ -75,14 +67,11 @@ class ProfileController extends Notifier<ProfileState> {
     }
   }
 
-  /// Background refresh without blocking UI
   void _refreshInBackground() {
-    final repoImpl = _repository as ProfileRepositoryImpl;
-    repoImpl
+    _repository
         .refreshProfileFromApi()
         .then((freshProfile) {
           if (freshProfile != null) {
-            // Update state with fresh data
             state = state.copyWith(
               profile: freshProfile,
               isStale: false,
@@ -90,16 +79,14 @@ class ProfileController extends Notifier<ProfileState> {
             );
           }
         })
-        .catchError((_) {
-          // Silently fail - user already has cached data
+        .catchError((Object e, StackTrace st) {
+          debugPrint('[ProfileController] background refresh failed: $e\n$st');
         });
   }
 
-  /// Manual refresh for pull-to-refresh
   Future<void> refreshProfile() async {
     try {
-      final repoImpl = _repository as ProfileRepositoryImpl;
-      final freshProfile = await repoImpl.refreshProfileFromApi();
+      final freshProfile = await _repository.refreshProfileFromApi();
 
       if (freshProfile != null) {
         state = state.copyWith(
@@ -109,7 +96,6 @@ class ProfileController extends Notifier<ProfileState> {
           clearError: true,
         );
       } else {
-        // API failed, but keep existing data
         throw Exception('Failed to refresh profile');
       }
     } catch (error) {
@@ -170,7 +156,6 @@ class ProfileController extends Notifier<ProfileState> {
       await _repository.logout();
       state = ProfileState.initial();
     } catch (error) {
-      // Even if logout fails, reset the state
       state = ProfileState.initial();
       rethrow;
     }

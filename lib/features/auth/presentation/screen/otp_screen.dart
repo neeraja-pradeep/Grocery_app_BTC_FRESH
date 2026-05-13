@@ -18,7 +18,12 @@ class OTPScreen extends ConsumerStatefulWidget {
   ConsumerState<OTPScreen> createState() => _OTPScreenState();
 }
 
-class _OTPScreenState extends ConsumerState<OTPScreen> {
+class _OTPScreenState extends ConsumerState<OTPScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _welcomeController;
+  late final Animation<Offset> _slideAnimation;
+  late final Animation<double> _fadeAnimation;
+
   final TextEditingController numberController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -39,6 +44,25 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
   @override
   void initState() {
     super.initState();
+
+    _welcomeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, -3.5),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _welcomeController, curve: Curves.easeOutBack),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _welcomeController, curve: Curves.easeIn),
+    );
+
+    _welcomeController.forward();
+
     // Add listeners to track OTP input changes
     for (var controller in _otpControllers) {
       controller.addListener(_onOtpChanged);
@@ -47,6 +71,7 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
 
   @override
   void dispose() {
+    _welcomeController.dispose();
     numberController.dispose();
     for (var controller in _otpControllers) {
       controller.removeListener(_onOtpChanged);
@@ -137,10 +162,16 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
                             color: AppColors.loaderGreen,
                           ),
                         ),
-                        Image.asset(
-                          'assets/images/hand.png',
-                          height: 30.h,
-                          width: 40.h,
+                        SlideTransition(
+                          position: _slideAnimation,
+                          child: FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: Image.asset(
+                              'assets/images/hand.png',
+                              height: 30.h,
+                              width: 40.h,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -296,71 +327,58 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
         return SizedBox(
           width: 48.w,
           height: 56.h,
-          child: KeyboardListener(
-            focusNode: FocusNode(),
-            onKeyEvent: (event) {
-              // Handle backspace on empty field
-              if (event is KeyDownEvent &&
-                  event.logicalKey == LogicalKeyboardKey.backspace &&
-                  _otpControllers[index].text.isEmpty &&
-                  index > 0) {
-                _otpFocusNodes[index - 1].requestFocus();
-              }
-            },
-            child: TextFormField(
-              controller: _otpControllers[index],
-              focusNode: _otpFocusNodes[index],
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              maxLength: 1,
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w600,
-                color: _hasOtpError ? Colors.red : AppColors.black,
-              ),
-              decoration: InputDecoration(
-                counterText: '', // Hide character counter
-                contentPadding: EdgeInsets.zero,
-                filled: true,
-                fillColor: _hasOtpError
-                    ? Colors.red.withValues(alpha: 0.05)
-                    : AppColors.white,
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                  borderSide: BorderSide(
-                    color: _hasOtpError ? Colors.red : AppColors.loaderGreen,
-                    width: 2,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                  borderSide: BorderSide(
-                    color: _hasOtpError ? Colors.red : AppColors.borderColor,
-                    width: 1,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                  borderSide: const BorderSide(color: Colors.red, width: 1),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                  borderSide: const BorderSide(color: Colors.red, width: 2),
-                ),
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(1),
-              ],
-              onChanged: (value) => _handleOtpDigitChange(index, value),
-              onTap: () {
-                // Select all text when tapping on a field
-                _otpControllers[index].selection = TextSelection(
-                  baseOffset: 0,
-                  extentOffset: _otpControllers[index].text.length,
-                );
-              },
+          child: TextFormField(
+            controller: _otpControllers[index],
+            focusNode: _otpFocusNodes[index],
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            maxLength: 1,
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w600,
+              color: _hasOtpError ? Colors.red : AppColors.black,
             ),
+            decoration: InputDecoration(
+              counterText: '',
+              contentPadding: EdgeInsets.zero,
+              filled: true,
+              fillColor: _hasOtpError
+                  ? Colors.red.withValues(alpha: 0.05)
+                  : AppColors.white,
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+                borderSide: BorderSide(
+                  color: _hasOtpError ? Colors.red : AppColors.loaderGreen,
+                  width: 2,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+                borderSide: BorderSide(
+                  color: _hasOtpError ? Colors.red : AppColors.borderColor,
+                  width: 1,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+                borderSide: const BorderSide(color: Colors.red, width: 1),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+                borderSide: const BorderSide(color: Colors.red, width: 2),
+              ),
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(1),
+            ],
+            onChanged: (value) => _handleOtpDigitChange(index, value),
+            onTap: () {
+              _otpControllers[index].selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: _otpControllers[index].text.length,
+              );
+            },
           ),
         );
       }),
@@ -370,13 +388,13 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
   /// Handle OTP digit input change with auto-focus navigation
   void _handleOtpDigitChange(int index, String value) {
     if (value.isNotEmpty) {
-      // Move to next field if not the last one
       if (index < 5) {
         _otpFocusNodes[index + 1].requestFocus();
       } else {
-        // Last field - unfocus keyboard
         _otpFocusNodes[index].unfocus();
       }
+    } else if (index > 0) {
+      _otpFocusNodes[index - 1].requestFocus();
     }
   }
 
@@ -517,11 +535,8 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
       });
       _clearOtpFields();
 
-      // Focus on first OTP field after a short delay
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          _otpFocusNodes[0].requestFocus();
-        }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _otpFocusNodes[0].requestFocus();
       });
 
       // Show success message
@@ -531,7 +546,7 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
     if (state is Authenticated) {
       setState(() => _isSubmitting = false);
       if (state.isNewUser) {
-        // goToAddress(context,);
+        goToAddress(context, state.user);
       } else {
         goToHome(context);
       }
@@ -573,11 +588,8 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
         _otpErrorMessage = _getOtpErrorMessage(failure);
       });
 
-      // Allow user to re-edit OTP - focus on first field
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          _otpFocusNodes[0].requestFocus();
-        }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _otpFocusNodes[0].requestFocus();
       });
     } else {
       // Show snackbar for other errors

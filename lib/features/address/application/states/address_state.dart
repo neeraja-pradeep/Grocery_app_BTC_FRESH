@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../domain/entities/address.dart';
 
 enum AddressStatus { initial, loading, data, error }
@@ -39,6 +41,32 @@ class AddressState {
   bool get hasData => addresses.isNotEmpty;
   bool get isLoading => status == AddressStatus.loading;
   bool get isError => status == AddressStatus.error;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is AddressState &&
+        other.status == status &&
+        listEquals(other.addresses, addresses) &&
+        other.errorMessage == errorMessage &&
+        other.isCreating == isCreating &&
+        other.isUpdating == isUpdating &&
+        other.isDeleting == isDeleting &&
+        other.isStale == isStale &&
+        other.localSelectedAddressId == localSelectedAddressId;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        status,
+        Object.hashAll(addresses),
+        errorMessage,
+        isCreating,
+        isUpdating,
+        isDeleting,
+        isStale,
+        localSelectedAddressId,
+      );
 
   AddressState copyWith({
     AddressStatus? status,

@@ -83,7 +83,9 @@ class _ProductCardState extends ConsumerState<ProductCard> {
         // --- Main Card Content ---
         GestureDetector(
           onTap: widget.onTap,
-          child: Container(
+          child: Opacity(
+            opacity: inStock ? 1.0 : 0.45,
+            child: Container(
             width: widget.width.w,
             decoration: BoxDecoration(
               color: cardBgColor, // Everything else is green
@@ -263,6 +265,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
               ),
             ),
           ),
+          ),
         ),
 
         // --- Floating Add Button (+) ---
@@ -354,12 +357,22 @@ extension ProductVariantDisplay on ProductVariant {
   bool get hasDiscount => discountedPrice != null && discountedPrice! < price;
 
   String get displayWeight {
-    // Enhanced weight parsing with multiple fallback strategies
-    if (stockUnit != null && stockUnit!.isNotEmpty && stockUnit != 'null') {
-      final cleaned = stockUnit!.trim();
-      if (cleaned.isNotEmpty) {
-        return _formatWeight(cleaned);
-      }
+    // Primary path: combine numeric weight + unit from the API
+    // (e.g. weight="200.00" + unit="units"  ->  "200 units").
+    final number = _normalizeWeightNumber(weight);
+    final unitRaw =
+        (stockUnit != null && stockUnit!.trim().isNotEmpty && stockUnit != 'null')
+            ? stockUnit!.trim()
+            : null;
+
+    if (number != null && unitRaw != null) {
+      return _formatWeight('$number $unitRaw');
+    }
+    if (unitRaw != null) {
+      return _formatWeight(unitRaw);
+    }
+    if (number != null) {
+      return number;
     }
 
     // Fallback strategies based on product name analysis
@@ -440,5 +453,21 @@ extension ProductVariantDisplay on ProductVariant {
       RegExp(r'(\d+(?:\.\d+)?)([a-z]+)'),
       (match) => '${match.group(1)} ${match.group(2)}',
     );
+  }
+
+  /// Parses the raw `weight` field (e.g. "200.00", "1.25", "0") and returns
+  /// a cleaned-up numeric string ("200", "1.25"). Returns null for missing,
+  /// zero, or unparseable values so the caller can fall back.
+  String? _normalizeWeightNumber(String? raw) {
+    if (raw == null) return null;
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    final value = double.tryParse(trimmed);
+    if (value == null || value <= 0) return null;
+    if (value % 1 == 0) return value.toInt().toString();
+    return value
+        .toString()
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 }

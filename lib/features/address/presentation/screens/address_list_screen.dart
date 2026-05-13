@@ -5,9 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
-import '../../../cart/application/providers/address_providers.dart';
-import '../../../home/application/providers/home_provider.dart';
-import '../../../home/domain/entities/user_address.dart';
 import '../../application/providers/address_provider.dart';
 import 'address_form_screen.dart';
 
@@ -91,85 +88,71 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
             : RefreshIndicator(
                 color: AppColors.green,
                 onRefresh: () async {
-                  await ref
-                      .read(profileAddressControllerProvider.notifier)
-                      .refreshAddresses();
+                  try {
+                    await ref
+                        .read(profileAddressControllerProvider.notifier)
+                        .refreshAddresses();
+                  } catch (_) {
+                    // Error is already stored in state; don't let it bubble to
+                    // RefreshIndicator which would crash the indicator animation.
+                  }
                 },
                 child: Column(
                   children: [
                     Expanded(
-                      child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.all(16.w),
-                        children: [
-                          // Stale warning at top
-                          if (addressState.isStale)
-                            Container(
-                              padding: EdgeInsets.all(12.w),
-                              margin: EdgeInsets.only(bottom: 16.h),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(8.r),
-                                border: Border.all(
-                                  color: Colors.orange.shade200,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.orange.shade700,
-                                    size: 20.sp,
-                                  ),
-                                  AppSpacing.w12,
-                                  Expanded(
-                                    child: Text(
-                                      'Showing offline data. Pull to refresh for latest updates.',
-                                      style: TextStyle(
-                                        fontSize: 12.sp,
-                                        color: Colors.orange.shade900,
-                                      ),
+                      child: addressState.addresses.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: EdgeInsets.all(16.w),
+                              children: [
+                                if (addressState.isStale)
+                                  _buildStaleBanner(context),
+                                Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(top: 100.h),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.location_off_outlined,
+                                          size: 64.sp,
+                                          color: AppColors.grey,
+                                        ),
+                                        AppSpacing.h16,
+                                        Text(
+                                          'No addresses yet',
+                                          style: TextStyle(
+                                            fontSize: 16.sp,
+                                            color: AppColors.grey,
+                                          ),
+                                        ),
+                                        AppSpacing.h8,
+                                        Text(
+                                          'Add your first address below',
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            color: AppColors.grey,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-
-                          // Address list
-                          if (addressState.addresses.isEmpty)
-                            Center(
-                              child: Padding(
-                                padding: EdgeInsets.only(top: 100.h),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.location_off_outlined,
-                                      size: 64.sp,
-                                      color: AppColors.grey,
-                                    ),
-                                    AppSpacing.h16,
-                                    Text(
-                                      'No addresses yet',
-                                      style: TextStyle(
-                                        fontSize: 16.sp,
-                                        color: AppColors.grey,
-                                      ),
-                                    ),
-                                    AppSpacing.h8,
-                                    Text(
-                                      'Add your first address below',
-                                      style: TextStyle(
-                                        fontSize: 14.sp,
-                                        color: AppColors.grey,
-                                      ),
-                                    ),
-                                  ],
                                 ),
-                              ),
+                              ],
                             )
-                          else
-                            ...addressState.addresses.map(
-                              (address) => GestureDetector(
+                          : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: EdgeInsets.all(16.w),
+                              itemCount: addressState.addresses.length +
+                                  (addressState.isStale ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (addressState.isStale && index == 0) {
+                                  return _buildStaleBanner(context);
+                                }
+                                final addressIndex =
+                                    addressState.isStale ? index - 1 : index;
+                                final address =
+                                    addressState.addresses[addressIndex];
+                                return GestureDetector(
                                 onTap: address.selected
                                     ? null
                                     : () => _handleSelectAddress(address.id),
@@ -301,10 +284,9 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                        ],
-                      ),
+                              );
+                          },
+                        ),
                     ),
                     // Add new addresses button at bottom
                     Container(
@@ -348,42 +330,35 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen> {
     );
   }
 
+  Widget _buildStaleBanner(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      margin: EdgeInsets.only(bottom: 16.h),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.orange.shade700, size: 20.sp),
+          AppSpacing.w12,
+          Expanded(
+            child: Text(
+              'Showing offline data. Pull to refresh for latest updates.',
+              style: TextStyle(fontSize: 12.sp, color: Colors.orange.shade900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleSelectAddress(String id) async {
     try {
-      // Select address and get the response directly from PATCH API
-      // This avoids the buggy GET endpoint that returns wrong selected address
-      final selectedAddress = await ref
+      await ref
           .read(profileAddressControllerProvider.notifier)
           .selectAddress(id);
-
-      // Convert Address to UserAddress and update home screen directly
-      final userAddress = UserAddress(
-        id: int.tryParse(selectedAddress.id) ?? 0,
-        firstName: selectedAddress.firstName,
-        lastName: selectedAddress.lastName,
-        streetAddress1: selectedAddress.streetAddress1,
-        streetAddress2: selectedAddress.streetAddress2,
-        city: selectedAddress.city ?? '',
-        state: selectedAddress.state ?? '',
-        postalCode: selectedAddress.postalCode ?? '',
-        country: selectedAddress.country ?? '',
-        latitude: selectedAddress.latitude,
-        longitude: selectedAddress.longitude,
-        addressType: selectedAddress.addressType ?? 'home',
-        selected: true,
-        createdAt: selectedAddress.createdAt != null
-            ? DateTime.tryParse(selectedAddress.createdAt!) ?? DateTime.now()
-            : DateTime.now(),
-      );
-
-      // Update home screen with the address from PATCH response
-      ref.read(homeProvider.notifier).updateAddressInState(userAddress);
-
-      // Also update cart provider to keep it in sync
-      final addressId = int.tryParse(selectedAddress.id);
-      if (addressId != null) {
-        ref.read(addressControllerProvider.notifier).selectAddress(addressId);
-      }
 
       if (mounted) {
         AppSnackbar.success(context, 'Address selected successfully');

@@ -39,6 +39,7 @@ abstract class AuthRepository {
     String? city,
     String? state,
     String? postalCode,
+    String? country,
   });
 
   Future<Cookie?> getCurrentSession();
@@ -49,7 +50,14 @@ abstract class AuthRepository {
     required String otp,
   });
 
-  Future<Either<Failure, String>> resetPassword({required String newPassword});
+  Future<Either<Failure, String>> resetPassword({
+    required String newPassword,
+    String? otp,
+  });
+
+  /// Validates the stored session against the server. Returns true if still
+  /// valid, false if the server returns 401 (session expired/revoked).
+  Future<bool> validateSession();
 
   /// Clears all user data, cookies, and session
   Future<void> logout();

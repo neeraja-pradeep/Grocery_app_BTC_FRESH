@@ -6,7 +6,8 @@ import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
-import '../../application/providers/auth_repository_provider.dart';
+import '../../application/providers/forgot_password_provider.dart';
+import '../../application/states/forgot_password_state.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String mobileNumber;
@@ -29,7 +30,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -47,46 +47,31 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     if (password.isEmpty || confirmPassword.isEmpty) {
-      _showSnack('Please fill all fields');
+      AppSnackbar.error(context, 'Please fill all fields');
       return;
     }
 
     if (password != confirmPassword) {
-      _showSnack('Passwords do not match');
+      AppSnackbar.error(context, 'Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
-      _showSnack('Password must be at least 6 characters');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final repo = ref.read(authRepositoryProvider);
-
-      final result = await repo.resetPassword(newPassword: password);
-
-      if (!mounted) return;
-
-      result.fold((failure) => _showSnack(failure.message), (message) {
-        goToPasswordChanged(context);
-      });
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack(e.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showSnack(String msg) {
-    AppSnackbar.error(context, msg);
+    await ref.read(forgotPasswordProvider.notifier).resetPassword(password);
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ForgotPasswordState>(forgotPasswordProvider, (prev, next) {
+      if (!mounted) return;
+      if (next is FpPasswordReset) {
+        goToPasswordChanged(context);
+      } else if (next is FpError) {
+        AppSnackbar.error(context, next.message);
+      }
+    });
+
+    final isLoading = ref.watch(forgotPasswordProvider) is FpLoading;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -132,7 +117,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     SizedBox(height: 12.h),
 
                     Text(
-                      'Please type something you’ll remember',
+                      "Please type something you'll remember",
                       style: TextStyle(
                         fontSize: 14.sp,
                         color: Colors.grey[600],
@@ -141,7 +126,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
                     SizedBox(height: 40.h),
 
-                    // New Password Field
                     Text(
                       'New Password',
                       style: TextStyle(
@@ -154,7 +138,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
-                      enabled: !_isLoading,
+                      enabled: !isLoading,
                       decoration: InputDecoration(
                         hintText: 'Enter new password',
                         hintStyle: TextStyle(
@@ -195,8 +179,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         if (value?.isEmpty ?? true) {
                           return 'Password is required';
                         }
-                        if (value!.length < 6) {
-                          return 'Password must be at least 6 characters';
+                        if (value!.length < 8) {
+                          return 'Password must be at least 8 characters';
                         }
                         return null;
                       },
@@ -204,7 +188,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
                     SizedBox(height: 20.h),
 
-                    // Confirm Password Field
                     Text(
                       'Confirm New Password',
                       style: TextStyle(
@@ -217,7 +200,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     TextFormField(
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirmPassword,
-                      enabled: !_isLoading,
+                      enabled: !isLoading,
                       decoration: InputDecoration(
                         hintText: 'Confirm your password',
                         hintStyle: TextStyle(
@@ -269,16 +252,15 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     SizedBox(height: 40.h),
 
                     GestureDetector(
-                      onTap: _isLoading ? null : _handleResetPassword,
+                      onTap: isLoading ? null : _handleResetPassword,
                       child: AppButton(
-                        text: _isLoading ? 'Resetting...' : 'Reset Password',
-                        loading: _isLoading,
+                        text: isLoading ? 'Resetting...' : 'Reset Password',
+                        loading: isLoading,
                       ),
                     ),
 
                     SizedBox(height: 20.h),
 
-                    // Password requirements hint
                     Container(
                       padding: EdgeInsets.all(12.w),
                       decoration: BoxDecoration(
@@ -297,7 +279,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             ),
                           ),
                           SizedBox(height: 4.h),
-                          _buildRequirement('Be at least 6 characters long'),
+                          _buildRequirement('Be at least 8 characters long'),
                           _buildRequirement('Match the confirm password field'),
                         ],
                       ),

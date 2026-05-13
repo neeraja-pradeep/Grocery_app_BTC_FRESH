@@ -145,7 +145,7 @@ class _QuantitySelector extends StatelessWidget {
         // Decrement button
         GestureDetector(
           onTap: onDecrement,
-          child: const Icon(Icons.remove, color: AppColors.green100, size: 28),
+          child: Icon(Icons.remove, color: AppColors.green100, size: 28.sp),
         ),
         // Quantity display
         Container(
@@ -172,7 +172,7 @@ class _QuantitySelector extends StatelessWidget {
             child: Icon(
               Icons.add,
               color: isEnabled ? AppColors.green100 : AppColors.grey,
-              size: 28,
+              size: 28.sp,
             ),
           ),
         ),

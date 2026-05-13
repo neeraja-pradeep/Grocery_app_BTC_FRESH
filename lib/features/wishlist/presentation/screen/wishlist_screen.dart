@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/theme/colors.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/socket_provider.dart';
 import '../../../../core/utils/logger.dart';
@@ -13,12 +14,12 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../bottomnavbar/bottom_navbar.dart';
 import '../../../home/application/providers/home_provider.dart';
 import '../../../home/domain/entities/banner.dart' as entities;
-import '../../../home/domain/entities/category.dart';
 import '../../../home/domain/entities/product_variant.dart';
-import '../../../home/infrastructure/repositories/home_repostory_impl.dart';
+import '../../../home/application/providers/home_repository_provider.dart';
 import '../../../home/presentation/components/advertisement_card.dart';
 import '../../../home/presentation/components/product_card.dart';
 import '../../application/providers/wishlist_provider.dart';
+import '../../application/states/wishlist_state.dart';
 import '../../domain/entities/wishlist_item.dart';
 
 class WishlistScreen extends ConsumerStatefulWidget {
@@ -92,9 +93,18 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
   Widget build(BuildContext context) {
     final wishlistState = ref.watch(wishlistProvider);
 
+    ref.listen<WishlistState>(wishlistProvider, (_, next) {
+      next.whenOrNull(
+        error: (failure, _) => Logger.error(
+          'Wishlist error: ${failure.runtimeType}',
+          error: failure,
+        ),
+      );
+    });
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFcaf5ac),
+        statusBarColor: AppColors.lightGreen,
         statusBarIconBrightness: Brightness.dark,
       ),
       child: SafeArea(
@@ -134,8 +144,16 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
       return _buildEmptyState(context, ref);
     }
 
-    // Convert wishlist items to product variants
-    final products = items.map((item) => item.toProductVariant()).toList();
+    final products = ref.watch(wishlistProductsProvider);
+
+    const int maxPerRow = 5;
+    final rows = <List<ProductVariant>>[];
+    for (int i = 0; i < products.length; i += maxPerRow) {
+      final end = (i + maxPerRow < products.length)
+          ? i + maxPerRow
+          : products.length;
+      rows.add(products.sublist(i, end));
+    }
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -144,29 +162,34 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
         children: [
           SizedBox(height: 10.h),
 
-          // Horizontal scrolling product list (same as Best Deals)
-          SizedBox(
-            height: 220,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-              clipBehavior: Clip.none,
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return Padding(
-                  padding: EdgeInsets.only(right: 12.w),
-                  child: ProductCard(
-                    product: product,
-                    onTap: () => _handleProductTap(context, product),
-                    width: 140,
-                  ),
-                );
-              },
+          for (final row in rows) ...[
+            SizedBox(
+              height: 220.h,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16.w,
+                  vertical: 10.h,
+                ),
+                clipBehavior: Clip.none,
+                itemCount: row.length,
+                itemBuilder: (context, index) {
+                  final product = row[index];
+                  return Padding(
+                    padding: EdgeInsets.only(right: 12.w),
+                    child: ProductCard(
+                      product: product,
+                      onTap: () => _handleProductTap(context, product),
+                      width: 140,
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
+            SizedBox(height: 8.h),
+          ],
 
-          SizedBox(height: 24.h),
+          SizedBox(height: 16.h),
 
           // Advertisement Banner
           Padding(
@@ -276,16 +299,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
       case 'category':
         // Switch to the Categories tab via the bottom nav and pre-select
         // the banner's target category.
-        BottomNavigation.globalKey.currentState?.navigateToCategories(
-          Category(
-            id: targetId,
-            name: '',
-            slug: '',
-            description: '',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        );
+        BottomNavigation.globalKey.currentState?.navigateToCategories(targetId);
         break;
     }
   }
@@ -299,12 +313,6 @@ class _WishlistErrorView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Log technical details for debugging (not shown to user)
-    Logger.error(
-      'Wishlist error: ${failure.runtimeType} - ${failure.message}',
-      error: failure,
-    );
-
     return Center(
       child: Padding(
         padding: EdgeInsets.all(24.w),

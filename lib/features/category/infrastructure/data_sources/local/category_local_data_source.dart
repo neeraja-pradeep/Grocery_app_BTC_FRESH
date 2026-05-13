@@ -2,13 +2,13 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import '../../../../../core/storage/hive/boxes.dart';
 import '../../../../../core/storage/cache_config.dart';
+import '../../../../../core/utils/logger.dart';
 import 'category_cache_dto.dart';
 
 /// Manages local caching of category data using Hive.
 class CategoryLocalDataSource {
   CategoryLocalDataSource();
 
-  // Use global cache key prefix for consistency with all features
   static String get _cacheKey => CacheConfig.categoryMetadataKey;
 
   Box<dynamic> get _box => Hive.box<dynamic>(Boxes.cache);
@@ -19,13 +19,22 @@ class CategoryLocalDataSource {
       final cached = _box.get(_cacheKey);
       if (cached == null) return null;
 
-      // Hive stores Maps as Map<dynamic, dynamic>, not Map<String, dynamic>
       if (cached is Map) {
         final jsonMap = Map<String, dynamic>.from(cached);
         return CategoryCacheDto.fromJson(jsonMap);
       }
       return null;
+    } on HiveError catch (e) {
+      Logger.error('Hive error reading category cache', error: e);
+      try {
+        _box.delete(_cacheKey);
+      } catch (_) {}
+      return null;
     } catch (e) {
+      Logger.warning('Failed to parse category cache — entry deleted', error: e);
+      try {
+        _box.delete(_cacheKey);
+      } catch (_) {}
       return null;
     }
   }
@@ -34,8 +43,10 @@ class CategoryLocalDataSource {
   Future<void> save(CategoryCacheDto dto) async {
     try {
       await _box.put(_cacheKey, dto.toJson());
+    } on HiveError catch (e) {
+      Logger.error('Failed to save category cache', error: e);
     } catch (e) {
-      rethrow;
+      Logger.warning('Unexpected error saving category cache', error: e);
     }
   }
 
@@ -55,8 +66,10 @@ class CategoryLocalDataSource {
         );
         await _box.put(_cacheKey, updated.toJson());
       }
+    } on HiveError catch (e) {
+      Logger.error('Failed to update category cache timestamp', error: e);
     } catch (e) {
-      rethrow;
+      Logger.warning('Unexpected error updating category cache timestamp', error: e);
     }
   }
 
@@ -64,8 +77,10 @@ class CategoryLocalDataSource {
   Future<void> clear() async {
     try {
       await _box.delete(_cacheKey);
+    } on HiveError catch (e) {
+      Logger.error('Failed to clear category cache', error: e);
     } catch (e) {
-      rethrow;
+      Logger.warning('Unexpected error clearing category cache', error: e);
     }
   }
 }

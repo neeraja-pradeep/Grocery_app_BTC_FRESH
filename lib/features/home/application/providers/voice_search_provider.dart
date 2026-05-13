@@ -5,10 +5,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 
 import '../../../../core/services/voice_search_service.dart';
+import '../../../../core/utils/logger.dart';
 import '../states/voice_search_state.dart';
 
 /// Provider for VoiceSearchService singleton
-final voiceSearchServiceProvider = Provider<VoiceSearchService>((ref) {
+final voiceSearchServiceProvider = Provider.autoDispose<VoiceSearchService>((
+  ref,
+) {
   final service = VoiceSearchService();
   ref.onDispose(() => service.dispose());
   return service;
@@ -67,11 +70,18 @@ class VoiceSearchNotifier extends StateNotifier<VoiceSearchState> {
     state = const VoiceSearchState.listening();
     _lastRecognizedText = '';
 
-    await _service.startListening(
-      onResult: _onSpeechResult,
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
-    );
+    try {
+      await _service.startListening(
+        onResult: _onSpeechResult,
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 3),
+      );
+    } catch (e) {
+      Logger.error('Voice search start failed', error: e);
+      state = const VoiceSearchState.error(
+        message: 'Failed to start listening. Please try again.',
+      );
+    }
   }
 
   /// Handle speech recognition results

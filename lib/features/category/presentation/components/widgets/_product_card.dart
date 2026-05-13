@@ -28,13 +28,11 @@ class ProductCard extends ConsumerStatefulWidget {
     super.key,
     required this.product,
     required this.colorScheme,
-    required this.onAddToCart,
     this.onTap,
   });
 
   final CategoryProduct product;
   final ColorScheme colorScheme;
-  final VoidCallback onAddToCart;
   final VoidCallback? onTap;
 
   @override
@@ -79,9 +77,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       AppSnackbar.info(context, 'Please login to add items to cart');
       return;
     }
-
-    // Also call the parent callback for any additional behavior
-    widget.onAddToCart();
 
     // Add to cart via API
     if (variantId > 0) {
@@ -135,7 +130,10 @@ class _ProductCardState extends ConsumerState<ProductCard> {
   @override
   Widget build(BuildContext context) {
     final image = widget.product.imageUrl ?? widget.product.thumbnailUrl;
-    final formattedWeight = _formatWeight(widget.product.weight);
+    final formattedWeight = _formatWeight(
+      widget.product.weight,
+      widget.product.unit,
+    );
 
     // Watch cart state to check if product is in cart
     final cartState = ref.watch(checkoutLineControllerProvider);
@@ -201,62 +199,65 @@ class _ProductCardState extends ConsumerState<ProductCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(10.r),
-                        ),
-                        color: AppColors.white,
-                      ),
-                      child: ClipRRect(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: _ProductImage(image: image),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 4.h,
-                    right: 4.w,
-                    child: isInCart
-                        ? _QuantitySelector(
-                            quantity: cartQuantity,
-                            onDecrease: () =>
-                                _handleDecreaseQuantity(context, cartLineId),
-                            onIncrease: () =>
-                                _handleIncreaseQuantity(context, cartLineId),
-                          )
-                        : _AnimatedAddButton(
-                            onTap: () => _handleAddToCart(context, inStock),
-                            primaryColor: inStock
-                                ? AppColors.green
-                                : AppColors.grey,
-                            isEnabled: inStock,
-                          ),
-                  ),
-                  // Real-time update indicator
-                  if (priceEvent != null || inventoryEvent != null)
-                    Positioned(
-                      top: 8.h,
-                      left: 5.w,
+              child: Opacity(
+                opacity: inStock ? 1.0 : 0.45,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
                       child: Container(
-                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.7),
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(10.r),
+                          ),
+                          color: AppColors.white,
                         ),
-                        child: const Icon(
-                          Icons.sync,
-                          color: Colors.white,
-                          size: 12,
+                        child: ClipRRect(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.r),
+                            child: _ProductImage(image: image),
+                          ),
                         ),
                       ),
                     ),
-                ],
+                    Positioned(
+                      top: 4.h,
+                      right: 4.w,
+                      child: isInCart
+                          ? _QuantitySelector(
+                              quantity: cartQuantity,
+                              onDecrease: () =>
+                                  _handleDecreaseQuantity(context, cartLineId),
+                              onIncrease: () =>
+                                  _handleIncreaseQuantity(context, cartLineId),
+                            )
+                          : _AnimatedAddButton(
+                              onTap: () => _handleAddToCart(context, inStock),
+                              primaryColor: inStock
+                                  ? AppColors.green
+                                  : AppColors.grey,
+                              isEnabled: inStock,
+                            ),
+                    ),
+                    // Real-time update indicator
+                    if (priceEvent != null || inventoryEvent != null)
+                      Positioned(
+                        top: 8.h,
+                        left: 5.w,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.sync,
+                            color: Colors.white,
+                            size: 12.sp,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             Padding(
@@ -264,88 +265,100 @@ class _ProductCardState extends ConsumerState<ProductCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppText.pageTitle(
-                    text: widget.product.variantName,
-                    maxLines: 1,
-                  ),
-
-                  AppSpacing.h8,
-                  if (formattedWeight != null)
-                    AppText(
-                      text: formattedWeight,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.grey,
-                    ),
-                  if (formattedWeight != null) AppSpacing.h8,
-                  // Price row with wishlist icon
-                  Row(
-                    children: [
-                      if (priceValue != null) ...[
-                        const AppText.pageTitle(text: _rupeeSymbol),
-                        AppSpacing.w4,
-                        AppText.pageTitle(text: priceValue),
-                        if (originalPriceValue != null &&
-                            originalPriceValue != priceValue) ...[
-                          AppSpacing.w8,
+                  Opacity(
+                    opacity: inStock ? 1.0 : 0.45,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppText.pageTitle(
+                          text: widget.product.variantName,
+                          maxLines: 1,
+                        ),
+                        AppSpacing.h8,
+                        if (formattedWeight != null)
                           AppText(
-                            text: '$_rupeeSymbol$originalPriceValue',
-                            fontSize: 10.sp,
+                            text: formattedWeight,
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.w500,
                             color: AppColors.grey,
-                            decoration: TextDecoration.lineThrough,
                           ),
-                        ],
-                      ] else ...[
-                        const AppText.pageTitle(text: 'N/A'),
-                      ],
-                      const Spacer(),
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final isInWishlist = ref.watch(
-                            isInWishlistProvider(widget.product.variantId),
-                          );
-                          return GestureDetector(
-                            onTap: () async {
-                              // Block guests from adding to wishlist
-                              final authState = ref.read(authProvider);
-                              final isGuest = authState is GuestMode;
-
-                              if (isGuest) {
-                                AppSnackbar.info(
-                                  context,
-                                  'Please login to add items to wishlist',
+                        if (formattedWeight != null) AppSpacing.h8,
+                        // Price row with wishlist icon
+                        Row(
+                          children: [
+                            if (priceValue != null) ...[
+                              const AppText.pageTitle(text: _rupeeSymbol),
+                              AppSpacing.w4,
+                              AppText.pageTitle(text: priceValue),
+                              if (originalPriceValue != null &&
+                                  originalPriceValue != priceValue) ...[
+                                AppSpacing.w8,
+                                AppText(
+                                  text: '$_rupeeSymbol$originalPriceValue',
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.grey,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ],
+                            ] else ...[
+                              const AppText.pageTitle(text: 'N/A'),
+                            ],
+                            const Spacer(),
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final isInWishlist = ref.watch(
+                                  isInWishlistProvider(
+                                    widget.product.variantId,
+                                  ),
                                 );
-                                return;
-                              }
+                                return GestureDetector(
+                                  onTap: () async {
+                                    // Block guests from adding to wishlist
+                                    final authState = ref.read(authProvider);
+                                    final isGuest = authState is GuestMode;
 
-                              final wishlistNotifier = ref.read(
-                                wishlistProvider.notifier,
-                              );
-                              final success = await wishlistNotifier
-                                  .toggleWishlist(widget.product.variantId);
-                              if (context.mounted && success) {
-                                AppSnackbar.success(
-                                  context,
-                                  isInWishlist
-                                      ? 'Removed from wishlist'
-                                      : 'Added to wishlist',
+                                    if (isGuest) {
+                                      AppSnackbar.info(
+                                        context,
+                                        'Please login to add items to wishlist',
+                                      );
+                                      return;
+                                    }
+
+                                    final wishlistNotifier = ref.read(
+                                      wishlistProvider.notifier,
+                                    );
+                                    final success = await wishlistNotifier
+                                        .toggleWishlist(
+                                          widget.product.variantId,
+                                        );
+                                    if (context.mounted && success) {
+                                      AppSnackbar.success(
+                                        context,
+                                        isInWishlist
+                                            ? 'Removed from wishlist'
+                                            : 'Added to wishlist',
+                                      );
+                                    }
+                                  },
+                                  child: Icon(
+                                    isInWishlist
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    size: 22.sp,
+                                    color: isInWishlist
+                                        ? Colors.red
+                                        : AppColors.green100,
+                                  ),
                                 );
-                              }
-                            },
-                            child: Icon(
-                              isInWishlist
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              size: 22.sp,
-                              color: isInWishlist
-                                  ? Colors.red
-                                  : AppColors.green100,
+                              },
                             ),
-                          );
-                        },
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                   // Stock status indicator - shown below price
                   if (showStockBadge) ...[
@@ -424,26 +437,31 @@ class _ProductImage extends StatelessWidget {
   }
 }
 
-String? _formatWeight(String? weight) {
+String? _formatWeight(String? weight, [String? unit]) {
   if (weight == null) return null;
 
   final trimmed = weight.trim();
   if (trimmed.isEmpty) return null;
+
+  final unitLabel = unit?.trim();
+  final hasUnitFromBackend = unitLabel != null && unitLabel.isNotEmpty;
 
   final numeric = double.tryParse(trimmed);
   if (numeric != null) {
     final value = numeric % 1 == 0
         ? numeric.toInt().toString()
         : _trimTrailingZeros(numeric.toStringAsFixed(2));
-    return '$value g';
+    return hasUnitFromBackend ? '$value $unitLabel' : '$value g';
   }
 
-  final hasUnit = RegExp(r'[A-Za-z]').hasMatch(trimmed);
-  if (hasUnit) {
+  // Non-numeric value (e.g. "200 g" already) — pass through, but only fall
+  // back to appending "g" when the weight string has no embedded unit AND
+  // the backend didn't give us one either.
+  final hasEmbeddedUnit = RegExp(r'[A-Za-z]').hasMatch(trimmed);
+  if (hasEmbeddedUnit) {
     return trimmed;
   }
-
-  return '$trimmed g';
+  return hasUnitFromBackend ? '$trimmed $unitLabel' : '$trimmed g';
 }
 
 String? _formatPriceValue(String? price) {
@@ -538,38 +556,32 @@ class _AnimatedAddButtonState extends State<_AnimatedAddButton>
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,
-            child: Opacity(
-              opacity: widget.isEnabled ? 1.0 : 0.5,
-              child: Container(
-                width: 29.w,
-                height: 29.w,
-                decoration: BoxDecoration(
-                  color: widget.primaryColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.white.withValues(
-                      alpha: widget.isEnabled
-                          ? _glowAnimation.value * 0.8
-                          : 0.3,
-                    ),
-                    width:
-                        2.5 * (widget.isEnabled ? _glowAnimation.value : 0.5),
+            child: Container(
+              width: 29.w,
+              height: 29.w,
+              decoration: BoxDecoration(
+                color: widget.primaryColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.white.withValues(
+                    alpha: widget.isEnabled ? _glowAnimation.value * 0.8 : 0.3,
                   ),
-                  boxShadow: widget.isEnabled
-                      ? [
-                          BoxShadow(
-                            color: widget.primaryColor.withValues(
-                              alpha: 0.3 + (_glowAnimation.value * 0.4),
-                            ),
-                            blurRadius: 4 + (_glowAnimation.value * 8),
-                            spreadRadius: _glowAnimation.value * 2,
-                          ),
-                        ]
-                      : [],
+                  width: 2.5 * (widget.isEnabled ? _glowAnimation.value : 0.5),
                 ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.add, color: AppColors.white, size: 20),
+                boxShadow: widget.isEnabled
+                    ? [
+                        BoxShadow(
+                          color: widget.primaryColor.withValues(
+                            alpha: 0.3 + (_glowAnimation.value * 0.4),
+                          ),
+                          blurRadius: 4 + (_glowAnimation.value * 8),
+                          spreadRadius: _glowAnimation.value * 2,
+                        ),
+                      ]
+                    : [],
               ),
+              alignment: Alignment.center,
+              child: const Icon(Icons.add, color: AppColors.white, size: 20),
             ),
           );
         },

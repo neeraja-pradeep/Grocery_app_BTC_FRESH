@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../auth/application/providers/auth_provider.dart';
 import '../../application/providers/profile_provider.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
@@ -18,7 +20,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _fullNameController;
   late TextEditingController _mobileNumberController;
-  late TextEditingController _locationController;
 
   @override
   void initState() {
@@ -28,14 +29,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     _mobileNumberController = TextEditingController(
       text: profile?.mobileNumber ?? '',
     );
-    _locationController = TextEditingController(text: profile?.location ?? '');
   }
 
   @override
   void dispose() {
     _fullNameController.dispose();
     _mobileNumberController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -142,13 +141,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     return null;
                   },
                 ),
-                AppSpacing.h24,
-                _buildTextField(
-                  label: 'Location',
-                  controller: _locationController,
-                  maxLines: 4,
-                  validator: null,
-                ),
                 AppSpacing.h32,
                 SizedBox(
                   width: double.infinity,
@@ -168,8 +160,8 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                         ? SizedBox(
                             height: 20.h,
                             width: 20.w,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.r,
                             ),
                           )
                         : Text(
@@ -202,8 +194,8 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                         ? SizedBox(
                             height: 20.h,
                             width: 20.w,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.r,
                               color: Colors.red,
                             ),
                           )
@@ -414,11 +406,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     if (confirmed == true && mounted) {
       try {
         await ref.read(profileControllerProvider.notifier).deleteAccount();
+        await ref.read(authProvider.notifier).logout();
 
         if (mounted) {
           AppSnackbar.success(context, 'Account deleted successfully');
-          // Navigate to login screen
-          // Navigator.of(context).pushReplacementNamed('/login');
+          context.go('/otp');
         }
       } catch (error) {
         if (mounted) {

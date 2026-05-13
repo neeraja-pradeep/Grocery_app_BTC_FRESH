@@ -6,6 +6,8 @@ import '../../../../../core/widgets/app_text.dart';
 import '../../../domain/entities/product_variant.dart';
 
 /// Product reviews section with stagger animation
+const _kMaxVisibleReviews = 5;
+
 class ProductReviews extends StatefulWidget {
   const ProductReviews({super.key, required this.reviews});
 
@@ -18,6 +20,7 @@ class ProductReviews extends StatefulWidget {
 class _ProductReviewsState extends State<ProductReviews>
     with TickerProviderStateMixin {
   late List<AnimationController> _controllers;
+  bool _showAll = false;
 
   @override
   void initState() {
@@ -26,7 +29,7 @@ class _ProductReviewsState extends State<ProductReviews>
   }
 
   void _initializeAnimations() {
-    final reviewCount = widget.reviews?.length ?? 0;
+    final reviewCount = (widget.reviews?.length ?? 0).clamp(0, _kMaxVisibleReviews);
     _controllers = List.generate(
       reviewCount,
       (index) => AnimationController(
@@ -35,7 +38,6 @@ class _ProductReviewsState extends State<ProductReviews>
       ),
     );
 
-    // Stagger animation - each card animates with delay
     for (int i = 0; i < _controllers.length; i++) {
       Future.delayed(Duration(milliseconds: i * 100), () {
         if (mounted && i < _controllers.length) {
@@ -79,6 +81,12 @@ class _ProductReviewsState extends State<ProductReviews>
       );
     }
 
+    final allReviews = widget.reviews!;
+    final visibleReviews = _showAll
+        ? allReviews
+        : allReviews.take(_kMaxVisibleReviews).toList();
+    final hasMore = !_showAll && allReviews.length > _kMaxVisibleReviews;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -92,16 +100,30 @@ class _ProductReviewsState extends State<ProductReviews>
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: widget.reviews!.length,
+          itemCount: visibleReviews.length,
           separatorBuilder: (_, _) =>
               Divider(height: 16.h, thickness: 1, color: AppColors.green10),
           itemBuilder: (context, index) {
             return _AnimatedReviewCard(
-              review: widget.reviews![index],
+              review: visibleReviews[index],
               animation: _controllers[index],
             );
           },
         ),
+        if (hasMore) ...[
+          SizedBox(height: 12.h),
+          GestureDetector(
+            onTap: () => setState(() => _showAll = true),
+            child: Center(
+              child: AppText(
+                text: 'Show all ${allReviews.length} reviews',
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.green100,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

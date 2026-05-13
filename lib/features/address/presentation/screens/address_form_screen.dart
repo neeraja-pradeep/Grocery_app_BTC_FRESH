@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/location/location_provider.dart';
+import '../../../../core/location/location_service.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../profile/application/providers/profile_provider.dart';
 import '../../application/providers/address_provider.dart';
@@ -25,6 +26,10 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _houseController;
   late TextEditingController _apartmentController;
+  late TextEditingController _cityController;
+  late TextEditingController _stateController;
+  late TextEditingController _postalCodeController;
+  late TextEditingController _countryController;
   String _addressType = 'home';
 
   // Store selected location coordinates from map
@@ -47,31 +52,71 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
     _apartmentController = TextEditingController(
       text: address?.streetAddress2 ?? '',
     );
+    _cityController = TextEditingController(text: address?.city ?? '');
+    _stateController = TextEditingController(text: address?.state ?? '');
+    _postalCodeController = TextEditingController(
+      text: address?.postalCode ?? '',
+    );
+    _countryController = TextEditingController(text: address?.country ?? '');
     _addressType = address?.addressType ?? 'home';
 
-    // If location was selected from map, store the coordinates and address
+    // If location was selected from map, store the coordinates and prefill
+    // city/state/postal_code/country from the map's reverse-geocoded data.
     if (selectedLocation != null) {
-      _selectedLatitude = selectedLocation.latitude.toStringAsFixed(6);
-      _selectedLongitude = selectedLocation.longitude.toStringAsFixed(6);
-      _selectedAddress = selectedLocation.address;
+      _applySelectedLocation(selectedLocation);
+    }
+  }
 
-      // Split the selected address between both fields
-      if (selectedLocation.address != null &&
-          selectedLocation.address!.isNotEmpty) {
-        final fullAddress = selectedLocation.address!;
-        // Split by comma to get address parts
-        final parts = fullAddress.split(',').map((e) => e.trim()).toList();
+  /// Apply a [SelectedLocation] (from the map picker) to the form: store
+  /// lat/lng, prefill the structured city/state/postal/country fields, and
+  /// seed house/apartment from the address string when those text fields
+  /// are still empty.
+  void _applySelectedLocation(SelectedLocation selected) {
+    _selectedLatitude = selected.latitude.toStringAsFixed(5);
+    _selectedLongitude = selected.longitude.toStringAsFixed(5);
+    _selectedAddress = selected.address;
 
-        if (parts.isNotEmpty) {
-          // First part goes to house/flat field
-          _houseController.text = parts.first;
+    // Only overwrite the structured fields when the picker actually provided
+    // a value — preserves anything the user has already typed.
+    if (selected.city != null && selected.city!.isNotEmpty) {
+      _cityController.text = selected.city!;
+    }
+    if (selected.state != null && selected.state!.isNotEmpty) {
+      _stateController.text = selected.state!;
+    }
+    if (selected.postalCode != null && selected.postalCode!.isNotEmpty) {
+      _postalCodeController.text = selected.postalCode!;
+    }
+    if (selected.country != null && selected.country!.isNotEmpty) {
+      _countryController.text = selected.country!;
+    }
 
-          // Remaining parts go to apartment/road field
-          if (parts.length > 1) {
-            _apartmentController.text = parts.sublist(1).join(', ');
-          }
-        }
+    // Seed house/apartment from the picker's full address string only if
+    // they're still empty — never clobber user-typed values.
+    if (selected.address != null && selected.address!.isNotEmpty) {
+      final parts = selected.address!
+          .split(',')
+          .map((e) => e.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      if (_houseController.text.isEmpty && parts.isNotEmpty) {
+        _houseController.text = parts.first;
       }
+      if (_apartmentController.text.isEmpty && parts.length > 1) {
+        _apartmentController.text = parts.sublist(1).join(', ');
+      }
+    }
+  }
+
+  Future<void> _pickOnMap() async {
+    final result = await Navigator.of(context).push<SelectedLocation>(
+      MaterialPageRoute<SelectedLocation>(
+        builder: (_) => const LocationSelectionScreen(returnLocationOnly: true),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _applySelectedLocation(result));
     }
   }
 
@@ -79,14 +124,16 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   void dispose() {
     _houseController.dispose();
     _apartmentController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _postalCodeController.dispose();
+    _countryController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final addressState = ref.watch(profileAddressControllerProvider);
-    // Profile state watched for reactivity, not directly used
-    ref.watch(profileControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -224,6 +271,76 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                   contentPadding: EdgeInsets.symmetric(vertical: 12.h),
                 ),
               ),
+              AppSpacing.h24,
+
+              // City
+              TextFormField(
+                controller: _cityController,
+                textCapitalization: TextCapitalization.words,
+                decoration: _underlineDecoration('City'),
+              ),
+              AppSpacing.h24,
+
+              // State
+              TextFormField(
+                controller: _stateController,
+                textCapitalization: TextCapitalization.words,
+                decoration: _underlineDecoration('State'),
+              ),
+              AppSpacing.h24,
+
+              // Postal Code
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _postalCodeController,
+                      keyboardType: TextInputType.number,
+                      decoration: _underlineDecoration('Postal Code'),
+                    ),
+                  ),
+                  AppSpacing.w16,
+                  Expanded(
+                    child: TextFormField(
+                      controller: _countryController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: _underlineDecoration('Country'),
+                    ),
+                  ),
+                ],
+              ),
+              AppSpacing.h24,
+
+              // Pick on map — captures precise lat/lng and pre-fills the
+              // city/state/postal/country fields above.
+              SizedBox(
+                width: double.infinity,
+                height: 44.h,
+                child: OutlinedButton.icon(
+                  onPressed: _pickOnMap,
+                  icon: Icon(
+                    Icons.map_outlined,
+                    color: AppColors.green,
+                    size: 18.sp,
+                  ),
+                  label: Text(
+                    _selectedLatitude == null
+                        ? 'Pick exact location on map'
+                        : 'Update location on map',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.green,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.green),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                  ),
+                ),
+              ),
               AppSpacing.h32,
 
               // Save As section
@@ -285,6 +402,24 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _underlineDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: 14.sp, color: AppColors.grey),
+      filled: false,
+      border: const UnderlineInputBorder(
+        borderSide: BorderSide(color: AppColors.grey),
+      ),
+      enabledBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: AppColors.grey),
+      ),
+      focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: AppColors.green, width: 2),
+      ),
+      contentPadding: EdgeInsets.symmetric(vertical: 12.h),
     );
   }
 
@@ -359,18 +494,53 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
     String? latitude = _selectedLatitude;
     String? longitude = _selectedLongitude;
 
-    // If no location was selected from map, get current location
+    // If no location was selected from map, fall back to whatever the
+    // location provider already has cached/loaded. We deliberately do NOT
+    // trigger a force-fresh fetch here: that would block the Save action on
+    // an OS permission popup and a 15-second GPS timeout, freezing the form.
+    // The home screen's initialize() already hydrates the cache on launch,
+    // so the loaded state is usually fresh enough.
+    bool locationTimedOut = false;
     if (latitude == null || longitude == null) {
       final locationState = ref.read(locationProvider);
       locationState.mapOrNull(
         loaded: (state) {
-          // Round to 6 decimal places (max_digits=9, decimal_places=6)
-          // Format: XXX.XXXXXX (3 digits before decimal, 6 after)
-          latitude = state.location.latitude.toStringAsFixed(6);
-          longitude = state.location.longitude.toStringAsFixed(6);
+          latitude = state.location.latitude.toStringAsFixed(5);
+          longitude = state.location.longitude.toStringAsFixed(5);
+        },
+        error: (errorState) {
+          locationTimedOut = errorState.failure is LocationTimeoutFailure;
+          // LowAccuracy still exposes a reading via previousLocation — use it
+          // rather than dropping the coordinates entirely.
+          final fallback = errorState.previousLocation;
+          if (fallback != null) {
+            latitude = fallback.latitude.toStringAsFixed(5);
+            longitude = fallback.longitude.toStringAsFixed(5);
+          }
         },
       );
     }
+
+    // Warn user when no coordinates are available so they know delivery
+    // precision may be affected (coordinates are optional on the backend).
+    if ((latitude == null || longitude == null) && mounted) {
+      AppSnackbar.warning(
+        context,
+        locationTimedOut
+            ? 'Location lookup timed out — saved without coordinates. Reopen this address and tap the map pin to retry.'
+            : 'Location unavailable — address will be saved without coordinates.',
+      );
+    }
+
+    String? trimmedOrNull(TextEditingController c) {
+      final v = c.text.trim();
+      return v.isEmpty ? null : v;
+    }
+
+    final cityValue = trimmedOrNull(_cityController);
+    final stateValue = trimmedOrNull(_stateController);
+    final postalCodeValue = trimmedOrNull(_postalCodeController);
+    final countryValue = trimmedOrNull(_countryController);
 
     try {
       if (isEditing) {
@@ -381,9 +551,11 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
               firstName: firstName,
               lastName: lastName,
               streetAddress1: _houseController.text.trim(),
-              streetAddress2: _apartmentController.text.trim().isEmpty
-                  ? null
-                  : _apartmentController.text.trim(),
+              streetAddress2: trimmedOrNull(_apartmentController),
+              city: cityValue,
+              stateProvince: stateValue,
+              postalCode: postalCodeValue,
+              country: countryValue,
               latitude: latitude,
               longitude: longitude,
               addressType: _addressType,
@@ -395,9 +567,11 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
               firstName: firstName,
               lastName: lastName,
               streetAddress1: _houseController.text.trim(),
-              streetAddress2: _apartmentController.text.trim().isEmpty
-                  ? null
-                  : _apartmentController.text.trim(),
+              streetAddress2: trimmedOrNull(_apartmentController),
+              city: cityValue,
+              stateProvince: stateValue,
+              postalCode: postalCodeValue,
+              country: countryValue,
               latitude: latitude,
               longitude: longitude,
               addressType: _addressType,

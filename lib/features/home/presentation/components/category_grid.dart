@@ -8,7 +8,7 @@ import 'category_tile.dart';
 
 class CategoryGrid extends StatelessWidget {
   final List<Category> categories;
-  final ValueChanged<Category> onCategoryClick;
+  final ValueChanged<int> onCategoryClick;
 
   const CategoryGrid({
     super.key,
@@ -20,31 +20,26 @@ class CategoryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
 
-    // Calculate number of rows needed (4 items per row)
-    final rowCount = (categories.length / 4).ceil();
-    // Each row is approximately 140.h (item height + spacing)
-    final dynamicHeight = rowCount * 140.h;
-
-    return Container(
-      height: dynamicHeight,
+    return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: GridView.builder(
+        shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 4,
-          mainAxisSpacing: 14.h,
+          mainAxisSpacing: 6.h,
           crossAxisSpacing: 10.w,
-          childAspectRatio:
-              0.65, // Lower value = taller cells for more text space
+          childAspectRatio: 0.55,
         ),
         itemCount: categories.length,
         itemBuilder: (context, index) {
           return CategoryTile(
             category: categories[index],
-            onTap: () => onCategoryClick(categories[index]),
+            onTap: () => onCategoryClick(categories[index].id),
           );
         },
       ),
     );
   }
 }
+

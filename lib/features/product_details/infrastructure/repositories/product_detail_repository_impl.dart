@@ -174,57 +174,14 @@ class ProductDetailRepositoryImpl implements ProductDetailRepository {
 
   @override
   Future<List<ProductVariantReview>> getProductReviews(String productId) async {
-    try {
-      // Fetch reviews from remote (no local caching)
-      final remoteReviews = await _remoteDataSource.getProductReviews(
-        productId,
-      );
-      return remoteReviews.map((e) => e.toDomain()).toList();
-    } catch (e) {
-      rethrow;
-    }
+    final remoteReviews = await _remoteDataSource.getProductReviews(productId);
+    return remoteReviews.map((e) => e.toDomain()).toList();
   }
 
   @override
   Future<ProductVariant> getProductVariant(String variantId) async {
-    try {
-      // Fetch from remote API
-      final remoteVariant = await _remoteDataSource.getProductVariant(
-        variantId,
-      );
-      return remoteVariant.toDomain();
-    } catch (e) {
-      rethrow;
-    }
+    final remoteVariant = await _remoteDataSource.getProductVariant(variantId);
+    return remoteVariant.toDomain();
   }
 
-  @override
-  Future<bool> isInWishlist(String productId) async {
-    try {
-      // Check remote (no local caching)
-      return await _remoteDataSource.isInWishlist(productId);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> addToWishlist(String productId) async {
-    try {
-      // Add to remote (no local caching)
-      await _remoteDataSource.addToWishlist(productId);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> removeFromWishlist(String productId) async {
-    try {
-      // Remove from remote (no local caching)
-      await _remoteDataSource.removeFromWishlist(productId);
-    } catch (e) {
-      rethrow;
-    }
-  }
 }

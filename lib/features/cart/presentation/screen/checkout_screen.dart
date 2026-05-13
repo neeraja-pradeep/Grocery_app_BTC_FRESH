@@ -19,6 +19,7 @@ import '../../infrastructure/data_sources/remote/checkout_line_data_source.dart'
 import '../../../category/application/providers/price_update_notifier.dart';
 import '../../../category/application/providers/inventory_update_notifier.dart';
 import '../components/address_sheet.dart';
+import 'address_screen.dart';
 import '../components/cart_item_card.dart';
 import '../components/checkout_order_summary.dart';
 
@@ -48,9 +49,9 @@ class CheckoutScreen extends ConsumerWidget {
     // Calculate order totals with socket prices
     final itemTotal = _calculateTotalWithSocketPrices(cartItems, priceUpdates);
 
-    // Calculate discount from applied coupon (or 0 if no coupon)
+    // Calculate discount purely from state — avoids calling notifier in build().
     final discount = appliedCouponState.hasCoupon
-        ? ref.read(appliedCouponProvider.notifier).calculateDiscount(itemTotal)
+        ? itemTotal * (appliedCouponState.discountPercentage / 100)
         : 0.0;
 
     // GST calculation (18% on amount after discount)
@@ -84,9 +85,13 @@ class CheckoutScreen extends ConsumerWidget {
                         socketPriceUpdate,
                       );
                       // Use socket original price if available, otherwise use API price
-                      final originalPrice =
-                          socketPriceUpdate?.oldPrice?.toStringAsFixed(2) ??
-                          product.price;
+                      final originalPriceUnit =
+                          socketPriceUpdate?.oldPrice ??
+                          double.tryParse(product.price) ??
+                          0.0;
+                      final originalPrice = (originalPriceUnit * line.quantity)
+                          .toStringAsFixed(2);
+                      final lineTotal = effectivePrice * line.quantity;
                       // Check if has discount from socket or API
                       final hasDiscount = socketPriceUpdate != null
                           ? (socketPriceUpdate.discountedPrice != null &&
@@ -107,7 +112,7 @@ class CheckoutScreen extends ConsumerWidget {
                             : null,
                         name: product.name,
                         weight: product.weight,
-                        pricePerKg: effectivePrice.toStringAsFixed(2),
+                        pricePerKg: lineTotal.toStringAsFixed(2),
                         quantity: line.quantity,
                         originalPrice: originalPrice,
                         hasDiscount: hasDiscount,
@@ -215,17 +220,30 @@ class CheckoutScreen extends ConsumerWidget {
 
           SizedBox(width: 8.w),
 
+          // When the user has zero saved addresses, sending them to the
+          // bottom sheet (which would only show an empty list + an "Add"
+          // button anyway) wastes a tap. Go straight to the create-address
+          // screen instead. Once at least one address exists, fall back to
+          // the bottom sheet so they can pick or switch.
           GestureDetector(
             onTap: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => const AddressSheet(),
-              );
+              if (addressState.addresses.isEmpty) {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AddressScreen(),
+                  ),
+                );
+              } else {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const AddressSheet(),
+                );
+              }
             },
             child: AppText(
-              text: 'Change',
+              text: addressState.addresses.isEmpty ? 'Add' : 'Change',
               fontSize: 13.sp,
               fontWeight: FontWeight.w600,
               color: AppColors.green100,
@@ -361,6 +379,13 @@ class CheckoutScreen extends ConsumerWidget {
   }
 
   Future<void> _handlePlaceOrder(BuildContext context, WidgetRef ref) async {
+    // Auth guard — must be authenticated to place an order
+    final authState = ref.read(authProvider);
+    if (authState is! Authenticated) {
+      AppSnackbar.warning(context, 'Please log in to place an order');
+      return;
+    }
+
     final addressState = ref.read(addressControllerProvider);
     final selectedAddress = addressState.selectedAddress;
 

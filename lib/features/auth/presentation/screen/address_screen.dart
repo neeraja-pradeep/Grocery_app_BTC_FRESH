@@ -6,6 +6,7 @@ import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/utils/address_enum.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../home/presentation/components/location_selection_screen.dart';
 import '../../application/providers/address_provider.dart';
 import '../../application/states/address_states.dart';
 import '../../domain/entities/user.dart';
@@ -25,8 +26,17 @@ class AddressScreen extends ConsumerStatefulWidget {
 class _AddressScreenState extends ConsumerState<AddressScreen> {
   final houseController = TextEditingController();
   final areaController = TextEditingController();
+  final cityController = TextEditingController();
+  final stateController = TextEditingController();
+  final postalCodeController = TextEditingController();
+  final countryController = TextEditingController();
 
   AddressType selectedType = AddressType.home;
+
+  // 5-decimal-rounded strings (auth provider expects strings on the wire).
+  String? _selectedLatitude;
+  String? _selectedLongitude;
+  String? _selectedAddressLabel;
 
   @override
   void initState() {
@@ -37,7 +47,60 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
   void dispose() {
     houseController.dispose();
     areaController.dispose();
+    cityController.dispose();
+    stateController.dispose();
+    postalCodeController.dispose();
+    countryController.dispose();
     super.dispose();
+  }
+
+  void _applySelectedLocation(SelectedLocation selected) {
+    _selectedLatitude = selected.latitude.toStringAsFixed(5);
+    _selectedLongitude = selected.longitude.toStringAsFixed(5);
+    _selectedAddressLabel = selected.address;
+
+    if (selected.city != null && selected.city!.isNotEmpty) {
+      cityController.text = selected.city!;
+    }
+    if (selected.state != null && selected.state!.isNotEmpty) {
+      stateController.text = selected.state!;
+    }
+    if (selected.postalCode != null && selected.postalCode!.isNotEmpty) {
+      postalCodeController.text = selected.postalCode!;
+    }
+    if (selected.country != null && selected.country!.isNotEmpty) {
+      countryController.text = selected.country!;
+    }
+
+    if (selected.address != null && selected.address!.isNotEmpty) {
+      final parts = selected.address!
+          .split(',')
+          .map((e) => e.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+      if (houseController.text.isEmpty && parts.isNotEmpty) {
+        houseController.text = parts.first;
+      }
+      if (areaController.text.isEmpty && parts.length > 1) {
+        areaController.text = parts.sublist(1).join(', ');
+      }
+    }
+  }
+
+  Future<void> _pickOnMap() async {
+    final result = await Navigator.of(context).push<SelectedLocation>(
+      MaterialPageRoute<SelectedLocation>(
+        builder: (_) => const LocationSelectionScreen(returnLocationOnly: true),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _applySelectedLocation(result));
+    }
+  }
+
+  String? _trimmedOrNull(TextEditingController c) {
+    final v = c.text.trim();
+    return v.isEmpty ? null : v;
   }
 
   @override
@@ -108,6 +171,83 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                 ),
 
                 SizedBox(height: 30.h),
+
+                // CITY
+                AddressField(hint: 'City', controller: cityController),
+
+                SizedBox(height: 30.h),
+
+                // STATE
+                AddressField(hint: 'State', controller: stateController),
+
+                SizedBox(height: 30.h),
+
+                // POSTAL + COUNTRY
+                Row(
+                  children: [
+                    Expanded(
+                      child: AddressField(
+                        hint: 'Postal Code',
+                        controller: postalCodeController,
+                      ),
+                    ),
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: AddressField(
+                        hint: 'Country',
+                        controller: countryController,
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 24.h),
+
+                // Pick on map — captures precise lat/lng and pre-fills the
+                // city/state/postal/country fields above when blank.
+                SizedBox(
+                  width: double.infinity,
+                  height: 44.h,
+                  child: OutlinedButton.icon(
+                    onPressed: _pickOnMap,
+                    icon: Icon(
+                      Icons.map_outlined,
+                      color: AppColors.titleColor,
+                      size: 18.sp,
+                    ),
+                    label: Text(
+                      _selectedLatitude == null
+                          ? 'Pick exact location on map'
+                          : 'Update location on map',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.titleColor,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.titleColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                    ),
+                  ),
+                ),
+
+                if (_selectedAddressLabel != null) ...[
+                  SizedBox(height: 8.h),
+                  Text(
+                    'Pinned: $_selectedAddressLabel',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: AppColors.titleColor,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+
+                SizedBox(height: 24.h),
 
                 Text(
                   'Save As',
@@ -220,11 +360,12 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
           streetAddress: house,
           streetAddress2: area,
           addressType: selectedType,
-          latitude: null,
-          longitude: null,
-          city: null,
-          state: null,
-          postalCode: null,
+          latitude: _selectedLatitude,
+          longitude: _selectedLongitude,
+          city: _trimmedOrNull(cityController),
+          state: _trimmedOrNull(stateController),
+          postalCode: _trimmedOrNull(postalCodeController),
+          country: _trimmedOrNull(countryController),
         );
   }
 

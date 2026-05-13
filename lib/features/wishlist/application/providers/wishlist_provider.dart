@@ -2,48 +2,59 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/wishlist_item.dart';
-import '../../domain/repositories/wishlist_repository.dart';
-import '../../infrastructure/repositories/wishlist_repository_impl.dart';
 import '../../../auth/application/providers/auth_provider.dart';
 import '../../../auth/application/states/auth_state.dart';
+import '../../../home/domain/entities/product_variant.dart';
+import '../../domain/entities/wishlist_item.dart';
+import '../../domain/repositories/wishlist_repository.dart';
+import '../../infrastructure/data_sources/wishlist_api.dart';
+import '../../infrastructure/data_sources/wishlist_local_ds.dart';
+import '../../infrastructure/repositories/wishlist_repository_impl.dart';
 import '../states/wishlist_state.dart';
 
 // ----------------------------------------------------------------------
-// 1. Wishlist Notifier (Manages the entire Wishlist State)
+// Infrastructure providers wired at the application layer (C10/C12)
 // ----------------------------------------------------------------------
 
-class WishlistNotifier extends StateNotifier<WishlistState> {
-  final WishlistRepository _repository;
-  final Ref _ref;
+final wishlistRepositoryProvider = Provider<WishlistRepository>((ref) {
+  final remoteDs = ref.watch(wishlistRemoteDataSourceProvider);
+  final localDs = ref.watch(wishlistLocalDataSourceProvider);
+  return WishlistRepositoryImpl(
+    remoteDataSource: remoteDs,
+    localDataSource: localDs,
+  );
+});
 
-  WishlistNotifier({required WishlistRepository repository, required Ref ref})
-    : _repository = repository,
-      _ref = ref,
-      super(const WishlistState.initial()) {
-    // Listen to auth state changes
-    _ref.listen<AuthState>(authProvider, (previous, next) {
-      // When user becomes authenticated (from any previous state), reload wishlist
+// ----------------------------------------------------------------------
+// WishlistNotifier — migrated from StateNotifier to Notifier (C1/H1)
+// ----------------------------------------------------------------------
+
+class WishlistNotifier extends Notifier<WishlistState> {
+  WishlistRepository get _repository => ref.read(wishlistRepositoryProvider);
+
+  @override
+  WishlistState build() {
+    // Listen to auth state changes with lifecycle-managed listener (C1)
+    ref.listen<AuthState>(authProvider, (previous, next) {
       if (next is Authenticated && previous is! Authenticated) {
         _loadWishlist();
-      }
-      // When user logs out (becomes guest from authenticated), clear wishlist
-      else if (next is GuestMode && previous is Authenticated) {
-        state = const WishlistState.initial();
+      } else if (next is GuestMode && previous is Authenticated) {
+        _clearAndReset();
       }
     });
 
-    // Only load wishlist if user is authenticated
-    final currentAuthState = _ref.read(authProvider);
+    // Initial load if user is already authenticated
+    final currentAuthState = ref.read(authProvider);
     if (currentAuthState is Authenticated) {
-      _loadWishlist();
+      Future.microtask(_loadWishlist);
     }
+
+    return const WishlistState.initial();
   }
 
   Future<void> _loadWishlist() async {
-    // Only set loading if we are in initial or error state
     state.maybeMap(
-      refreshing: (_) {}, // Don't overwrite refreshing state with loading
+      refreshing: (_) {},
       orElse: () => state = const WishlistState.loading(),
     );
 
@@ -53,7 +64,7 @@ class WishlistNotifier extends StateNotifier<WishlistState> {
       (failure) {
         state = WishlistState.error(
           failure: failure,
-          previousState: state, // Keep old data visible if available
+          previousState: state,
         );
       },
       (items) {
@@ -62,48 +73,63 @@ class WishlistNotifier extends StateNotifier<WishlistState> {
     );
   }
 
+  Future<void> _clearAndReset() async {
+    await _repository.clearCache();
+    state = const WishlistState.initial();
+  }
+
+  // Fixed: properly awaits _loadWishlist (C2)
   Future<void> refresh() async {
-    // Only refresh if we have data loaded
-    state.mapOrNull(
-      loaded: (loadedState) {
-        state = WishlistState.refreshing(items: loadedState.items);
-        _loadWishlist();
-      },
-      error: (_) => _loadWishlist(), // Retry on error
-    );
+    final currentState = state;
+    if (currentState is WishlistLoaded) {
+      state = WishlistState.refreshing(items: currentState.items);
+    } else if (currentState is! WishlistError) {
+      return;
+    }
+    await _loadWishlist();
   }
 
   Future<void> clearCacheAndRefresh() async {
-    // Clear cache first
     await _repository.clearCache();
-
-    // Then refresh data
     await refresh();
   }
 
   Future<bool> addToWishlist(String productId) async {
-    // Check if item is already in wishlist to prevent duplicates
-    if (isInWishlist(productId)) {
-      return false; // Already in wishlist
-    }
+    if (isInWishlist(productId)) return false;
+
+    final previousState = state;
+    state.mapOrNull(
+      loaded: (loadedState) {
+        state = WishlistState.loaded(
+          items: [
+            ...loadedState.items,
+            WishlistItem(
+              id: -1,
+              productId: productId,
+              name: '',
+              price: 0.0,
+              mrp: 0.0,
+              imageUrl: '',
+              unitLabel: '',
+              discountPct: 0,
+              addedAt: DateTime.now(),
+            ),
+          ],
+        );
+      },
+    );
 
     final result = await _repository.addToWishlist(productId);
 
     return result.fold(
       (failure) {
-        // Update state to show error but don't change the items
-        state.mapOrNull(
-          loaded: (loadedState) {
-            state = WishlistState.error(
-              failure: failure,
-              previousState: loadedState,
-            );
-          },
+        state = WishlistState.error(
+          failure: failure,
+          previousState: previousState,
         );
         return false;
       },
-      (item) {
-        // Reload the wishlist to get updated data
+      (_) {
         _loadWishlist();
         return true;
       },
@@ -115,7 +141,6 @@ class WishlistNotifier extends StateNotifier<WishlistState> {
 
     return result.fold(
       (failure) {
-        // Update state to show error but don't change the items
         state.mapOrNull(
           loaded: (loadedState) {
             state = WishlistState.error(
@@ -127,7 +152,6 @@ class WishlistNotifier extends StateNotifier<WishlistState> {
         return false;
       },
       (_) {
-        // Reload the wishlist to get updated data
         _loadWishlist();
         return true;
       },
@@ -135,23 +159,28 @@ class WishlistNotifier extends StateNotifier<WishlistState> {
   }
 
   Future<bool> removeFromWishlistByProductId(String productId) async {
+    final previousState = state;
+    state.mapOrNull(
+      loaded: (loadedState) {
+        state = WishlistState.loaded(
+          items: loadedState.items
+              .where((item) => item.productId != productId)
+              .toList(),
+        );
+      },
+    );
+
     final result = await _repository.removeFromWishlistByProductId(productId);
 
     return result.fold(
       (failure) {
-        // Update state to show error but don't change the items
-        state.mapOrNull(
-          loaded: (loadedState) {
-            state = WishlistState.error(
-              failure: failure,
-              previousState: loadedState,
-            );
-          },
+        state = WishlistState.error(
+          failure: failure,
+          previousState: previousState,
         );
         return false;
       },
       (_) {
-        // Reload the wishlist to get updated data
         _loadWishlist();
         return true;
       },
@@ -160,9 +189,9 @@ class WishlistNotifier extends StateNotifier<WishlistState> {
 
   Future<bool> toggleWishlist(String productId) async {
     if (isInWishlist(productId)) {
-      return await removeFromWishlistByProductId(productId);
+      return removeFromWishlistByProductId(productId);
     } else {
-      return await addToWishlist(productId);
+      return addToWishlist(productId);
     }
   }
 
@@ -184,37 +213,38 @@ class WishlistNotifier extends StateNotifier<WishlistState> {
 }
 
 // ----------------------------------------------------------------------
-// 2. Providers Definition
+// Main provider
 // ----------------------------------------------------------------------
 
-final wishlistProvider = StateNotifierProvider<WishlistNotifier, WishlistState>(
-  (ref) {
-    final repository = ref.watch(wishlistRepositoryProvider);
-    return WishlistNotifier(repository: repository, ref: ref);
-  },
-);
+final wishlistProvider =
+    NotifierProvider<WishlistNotifier, WishlistState>(WishlistNotifier.new);
 
 // ----------------------------------------------------------------------
-// 3. Selectors (Helpers for UI optimization)
+// Derived selectors
 // ----------------------------------------------------------------------
 
-// Watch only wishlist items to avoid rebuilding entire screens
+/// Cached list of wishlist items — avoids full widget rebuild on unrelated state changes.
 final wishlistItemsProvider = Provider.autoDispose<List<WishlistItem>>((ref) {
-  final wishlistState = ref.watch(wishlistProvider);
-  return wishlistState.items;
+  return ref.watch(wishlistProvider).items;
 });
 
-// Check if a specific product is in wishlist
+/// Pre-computed ProductVariant list for the wishlist screen (M3 — moved out of build()).
+final wishlistProductsProvider =
+    Provider.autoDispose<List<ProductVariant>>((ref) {
+      return ref.watch(wishlistItemsProvider)
+          .map((item) => item.toProductVariant())
+          .toList();
+    });
+
+/// Whether a specific product is in the wishlist.
 final isInWishlistProvider = Provider.autoDispose.family<bool, String>((
   ref,
   productId,
 ) {
-  final wishlistState = ref.watch(wishlistProvider);
-  return wishlistState.isInWishlist(productId);
+  return ref.watch(wishlistProvider).isInWishlist(productId);
 });
 
-// Get wishlist item count
+/// Count of items in the wishlist.
 final wishlistCountProvider = Provider.autoDispose<int>((ref) {
-  final wishlistState = ref.watch(wishlistProvider);
-  return wishlistState.itemCount;
+  return ref.watch(wishlistProvider).itemCount;
 });

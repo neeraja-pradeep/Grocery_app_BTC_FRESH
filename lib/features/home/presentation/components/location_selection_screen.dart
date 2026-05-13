@@ -84,6 +84,10 @@ class _LocationSelectionScreenState
   static const Color _primaryGreen = Color(0xFF0b6866);
   static const Color _lightGreen = Color(0xFFcaf5ac);
 
+  // Bottom-panel height used to position floating controls above it
+  static const double _bottomPanelHeight = 200.0;
+  static const double _zoomControlsOffset = 270.0;
+
   @override
   void initState() {
     super.initState();
@@ -531,12 +535,16 @@ class _LocationSelectionScreenState
             // Current Location FAB
             Positioned(
               right: 16.w,
-              bottom: 200.h,
+              bottom: _bottomPanelHeight.h,
               child: _buildCurrentLocationButton(),
             ),
 
             // Zoom Controls
-            Positioned(right: 16.w, bottom: 270.h, child: _buildZoomControls()),
+            Positioned(
+              right: 16.w,
+              bottom: _zoomControlsOffset.h,
+              child: _buildZoomControls(),
+            ),
           ],
         ),
       ),

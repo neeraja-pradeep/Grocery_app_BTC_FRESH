@@ -1,11 +1,9 @@
 import '../entities/category_product.dart';
 
-enum CategoryProductDataSource { cache, remote }
-
 class CategoryProductRepositoryResult {
   const CategoryProductRepositoryResult({
     required this.products,
-    required this.source,
+    required this.isFromCache,
     required this.lastSyncedAt,
     required this.isStale,
     this.totalCount,
@@ -16,7 +14,9 @@ class CategoryProductRepositoryResult {
   });
 
   final List<CategoryProduct> products;
-  final CategoryProductDataSource source;
+
+  /// True when data came from local cache; false when fetched from the remote API.
+  final bool isFromCache;
   final DateTime? lastSyncedAt;
   final bool isStale;
   final int? totalCount;

@@ -4,16 +4,11 @@ import 'package:dio/dio.dart';
 import '../../../../../core/network/api_client.dart';
 import '../../../../../core/network/network_exceptions.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import '../../../../cart/domain/exceptions/cart_exceptions.dart';
 import '../../models/checkout_line_dto.dart';
 
-/// Exception thrown when there's insufficient stock for a product
-class InsufficientStockException implements Exception {
-  InsufficientStockException(this.message);
-  final String message;
-
-  @override
-  String toString() => message;
-}
+export '../../../../cart/domain/exceptions/cart_exceptions.dart'
+    show InsufficientStockException;
 
 /// Response model for checkout lines with cache headers
 class CheckoutLinesRemoteResponse {
@@ -350,9 +345,17 @@ class CheckoutLineDataSource {
     }
   }
 
+  /// Returns the cache box, opening it only if not already open.
+  Future<Box<String>> get _cacheBox async {
+    if (Hive.isBoxOpen(_cacheBoxName)) {
+      return Hive.box<String>(_cacheBoxName);
+    }
+    return Hive.openBox<String>(_cacheBoxName);
+  }
+
   /// Get cached metadata (Last-Modified, ETag)
   Future<Map<String, String?>> getCacheMetadata() async {
-    final box = await Hive.openBox<String>(_cacheBoxName);
+    final box = await _cacheBox;
     return {
       'lastModified': box.get(_lastModifiedKey),
       'etag': box.get(_etagKey),
@@ -361,7 +364,7 @@ class CheckoutLineDataSource {
 
   /// Save cache metadata
   Future<void> saveCacheMetadata({String? lastModified, String? etag}) async {
-    final box = await Hive.openBox<String>(_cacheBoxName);
+    final box = await _cacheBox;
     if (lastModified != null) {
       await box.put(_lastModifiedKey, lastModified);
     }
@@ -372,7 +375,7 @@ class CheckoutLineDataSource {
 
   /// Clear cache metadata
   Future<void> clearCacheMetadata() async {
-    final box = await Hive.openBox<String>(_cacheBoxName);
+    final box = await _cacheBox;
     await box.clear();
   }
 }

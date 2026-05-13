@@ -112,6 +112,27 @@ class OrderEntity {
   }
 
   bool get isCancelled => status.toLowerCase() == 'cancelled';
+
+  /// Human-readable label for the order status, shared across all UI consumers.
+  String get displayStatus {
+    switch (status.toLowerCase()) {
+      case 'active':
+      case 'shipped':
+      case 'on_delivery':
+      case 'out_for_delivery':
+        return 'On Delivery';
+      case 'pending':
+      case 'processing':
+        return 'Processing';
+      case 'completed':
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status;
+    }
+  }
 }
 
 /// Order line item entity

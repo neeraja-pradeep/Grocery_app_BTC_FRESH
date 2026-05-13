@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../core/storage/hive/adapters/address.dart';
@@ -26,5 +27,16 @@ class HiveInit {
     await Boxes.openHiveBoxes();
 
     _initialized = true;
+  }
+
+  /// Reset Hive state — for use in integration tests only.
+  ///
+  /// Closes all open boxes and clears the initialization flag so
+  /// [initialize] can be called again with a fresh state.
+  @visibleForTesting
+  static Future<void> reset() async {
+    if (!_initialized) return;
+    await Boxes.closeHiveBoxes();
+    _initialized = false;
   }
 }

@@ -8,7 +8,7 @@ import '../../infrastructure/repositories/auth_repository_impl.dart';
 
 part 'auth_repository_provider.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 AuthRepository authRepository(Ref ref) {
   final api = ref.watch(authApiProvider); // Inject AuthApi
   final local = ref.watch(authLocalDsProvider); // Inject AuthLocalDs

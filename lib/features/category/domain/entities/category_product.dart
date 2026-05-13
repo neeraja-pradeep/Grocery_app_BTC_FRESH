@@ -10,6 +10,7 @@ class CategoryProduct {
     this.price,
     this.originalPrice,
     this.weight,
+    this.unit,
     this.rating,
     this.imageUrl,
     this.thumbnailUrl,
@@ -29,6 +30,9 @@ class CategoryProduct {
   final String? price;
   final String? originalPrice;
   final String? weight;
+  // Backend `unit` value attached to the variant (e.g. "g", "kg", "pack",
+  // "units"). Rendered alongside `weight` on the product card.
+  final String? unit;
   final double? rating;
   final String? imageUrl;
   final String? thumbnailUrl;

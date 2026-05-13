@@ -159,43 +159,54 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   /// Build empty state UI - shown when cart is empty
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset('assets/images/trolley.png', width: 120.w, height: 120.h),
-          SizedBox(height: 24.h),
-          AppText(
-            text: 'Your cart is empty',
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-            color: AppColors.loaderGreen,
-          ),
-          SizedBox(height: 32.h),
-          SizedBox(
-            width: 230.w,
-            height: 48.h,
-            child: ElevatedButton(
-              onPressed: () {
-                // Switch to categories tab (index 1) using bottom nav global key
-                BottomNavigation.globalKey.currentState?.navigateToTab(1);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.green50,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/bg.png'),
+          repeat: ImageRepeat.repeat,
+          opacity: 0.7,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const _AnimatedTrolley(),
+            SizedBox(height: 24.h),
+            AppText(
+              text: 'Your cart is empty',
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.loaderGreen,
+            ),
+            SizedBox(height: 32.h),
+            SizedBox(
+              width: 230.w,
+              height: 48.h,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Switch to categories tab (index 1) using bottom nav global key
+                  BottomNavigation.globalKey.currentState?.navigateToTab(1);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.green50,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  elevation: 0,
                 ),
-                elevation: 0,
-              ),
-              child: AppText(
-                text: 'Continue Shopping',
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.white,
+                child: AppText(
+                  text: 'Continue Shopping',
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -407,9 +418,6 @@ class _CartScreenState extends ConsumerState<CartScreen>
     );
     final meetsMinimum = currentTotal >= _minimumOrderValue;
 
-    // Join rooms for any new cart items
-    _joinCartItemRooms();
-
     // Handle loading state
     if (checkoutState.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -467,9 +475,13 @@ class _CartScreenState extends ConsumerState<CartScreen>
                 socketPriceUpdate,
               );
               // Use socket original price if available, otherwise use API price
-              final originalPrice =
-                  socketPriceUpdate?.oldPrice?.toStringAsFixed(2) ??
-                  product.price;
+              final originalPriceUnit =
+                  socketPriceUpdate?.oldPrice ??
+                  double.tryParse(product.price) ??
+                  0.0;
+              final originalPrice = (originalPriceUnit * line.quantity)
+                  .toStringAsFixed(2);
+              final lineTotal = effectivePrice * line.quantity;
               // Check if has discount from socket or API
               final hasDiscount = socketPriceUpdate != null
                   ? (socketPriceUpdate.discountedPrice != null &&
@@ -493,7 +505,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
                       : null,
                   name: product.name,
                   weight: product.weight,
-                  pricePerKg: effectivePrice.toStringAsFixed(2),
+                  pricePerKg: lineTotal.toStringAsFixed(2),
                   quantity: line.quantity,
                   originalPrice: originalPrice,
                   hasDiscount: hasDiscount,
@@ -509,30 +521,8 @@ class _CartScreenState extends ConsumerState<CartScreen>
             },
           ),
 
-          // View suggested products link
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            child: GestureDetector(
-              onTap: _handleViewSuggestedProducts,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AppText(
-                    text: 'View suggested products',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.green100,
-                  ),
-                  SizedBox(width: 4.w),
-                  Icon(
-                    Icons.arrow_forward,
-                    color: AppColors.green100,
-                    size: 16.sp,
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Suggested products row is hidden until the feature is implemented.
+          const SizedBox.shrink(),
 
           // Extra padding for bottom sheet
           SizedBox(height: 100.h),
@@ -614,21 +604,108 @@ class _CartScreenState extends ConsumerState<CartScreen>
     }
   }
 
-  void _handleViewSuggestedProducts() {
-    AppSnackbar.info(context, 'Suggested products coming soon');
+  void _handleCheckout() {
+    _tabController.animateTo(1);
+  }
+}
+
+/// Trolley illustration for the empty-cart state.
+///
+/// Behavior:
+/// - On mount, slides in from off-screen-right to its centered position over
+///   ~800 ms (ease-out — gives it a "rolling and settling" feel).
+/// - Once the slide finishes, runs a perpetual subtle wobble (rotation + bob)
+///   so the trolley looks alive while the user sits on an empty cart.
+///
+/// Because the empty state is gated by `isCartEmpty ? _buildEmptyState() : ...`,
+/// the widget unmounts whenever the cart becomes non-empty and remounts when
+/// it becomes empty again — so the entry animation re-fires every time the
+/// empty UI appears.
+class _AnimatedTrolley extends StatefulWidget {
+  const _AnimatedTrolley();
+
+  @override
+  State<_AnimatedTrolley> createState() => _AnimatedTrolleyState();
+}
+
+class _AnimatedTrolleyState extends State<_AnimatedTrolley>
+    with TickerProviderStateMixin {
+  late final AnimationController _entryController;
+  late final AnimationController _wobbleController;
+  late final Animation<double> _slide;
+  late final Animation<double> _rotation;
+  late final Animation<double> _bob;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _slide = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOutCubic,
+    );
+
+    _wobbleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _rotation = Tween<double>(begin: -0.025, end: 0.025).animate(
+      CurvedAnimation(parent: _wobbleController, curve: Curves.easeInOut),
+    );
+    _bob = Tween<double>(begin: -2.0, end: 2.0).animate(
+      CurvedAnimation(parent: _wobbleController, curve: Curves.easeInOut),
+    );
+
+    _entryController.forward().whenComplete(() {
+      if (mounted) _wobbleController.repeat(reverse: true);
+    });
   }
 
-  void _handleCheckout() {
-    final currentTotal = ref.read(checkoutLineControllerProvider).totalAmount;
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _wobbleController.dispose();
+    super.dispose();
+  }
 
-    if (currentTotal >= _minimumOrderValue) {
-      // Switch to checkout tab
-      _tabController.animateTo(1);
-    } else {
-      AppSnackbar.warning(
-        context,
-        'Add more items to meet ₹${_minimumOrderValue.toStringAsFixed(0)} minimum',
-      );
-    }
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    // Start position is upper-right corner of the screen and the trolley
+    // travels diagonally down-left into its final centered spot. A ~30% screen
+    // height vertical drop gives a noticeable diagonal angle without making
+    // the start point feel like it came from a different screen.
+    final startX = screenSize.width;
+    final startY = -screenSize.height * 0.3;
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([_entryController, _wobbleController]),
+      builder: (context, child) {
+        // Interpolate from (startX, startY) at t=0 to (0, 0) at t=1.
+        final progress = _slide.value;
+        final slideX = (1 - progress) * startX;
+        final slideY = (1 - progress) * startY;
+
+        // Wobble only kicks in after the entry animation completes — keeps the
+        // arrival clean and lets the wobble feel like settled idle motion.
+        final isWobbling = _entryController.isCompleted;
+        final rotation = isWobbling ? _rotation.value : 0.0;
+        final bobY = isWobbling ? _bob.value : 0.0;
+
+        return Transform.translate(
+          offset: Offset(slideX, slideY + bobY),
+          child: Transform.rotate(angle: rotation, child: child),
+        );
+      },
+      child: Image.asset(
+        'assets/images/trolley.png',
+        width: 180.w,
+        height: 180.h,
+      ),
+    );
   }
 }

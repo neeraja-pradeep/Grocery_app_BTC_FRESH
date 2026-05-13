@@ -28,6 +28,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = await remote.login(username: username, password: password);
 
+      await local.clearAllUserData();
       await local.saveUser(user);
 
       final session = await local.getValidSession(ApiClient.baseUrl);
@@ -175,9 +176,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, String>> resetPassword({
     required String newPassword,
+    String? otp,
   }) async {
     try {
-      final message = await remote.resetPassword(newPassword: newPassword);
+      final message = await remote.resetPassword(newPassword: newPassword, otp: otp);
 
       if (message == 'Password reset successfully') {
         return Right(message);
@@ -204,6 +206,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? city,
     String? state,
     String? postalCode,
+    String? country,
   }) async {
     try {
       final address = await remote.sendAddress(
@@ -217,6 +220,7 @@ class AuthRepositoryImpl implements AuthRepository {
         city: city,
         state: state,
         postalCode: postalCode,
+        country: country,
       );
 
       await local.saveAddress(address);
@@ -233,9 +237,18 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> logout() async {
     try {
-      await local.clearAllUserData();
-    } catch (e) {
-      rethrow;
+      await remote.logoutFromServer();
+    } catch (_) {
+      // Server logout failure must not block local cleanup
     }
+    await local.clearAllUserData();
+  }
+
+  // ----------------------------------------------------------
+  // VALIDATE SESSION
+  // ----------------------------------------------------------
+  @override
+  Future<bool> validateSession() async {
+    return remote.validateSession();
   }
 }

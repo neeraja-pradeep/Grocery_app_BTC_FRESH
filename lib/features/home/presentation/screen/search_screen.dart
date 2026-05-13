@@ -120,8 +120,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color.fromRGBO(223, 248, 205, 1.0),
-              Color.fromRGBO(247, 253, 243, 1.0),
+              Color(0xFFDFF8CC),
+              Color(0xFFFFFFFF),
             ],
           ),
         ),
@@ -135,7 +135,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Padding(
                 padding: EdgeInsets.only(left: 16.w, bottom: 16.h),
                 child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => context.pop(),
                   child: Container(
                     color: Colors.transparent,
                     padding: EdgeInsets.all(4.w),
@@ -175,7 +175,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           autofocus: true,
                           style: TextStyle(fontSize: 14.sp),
                           decoration: InputDecoration(
-                            hintText: "Search For 'Cooker'",
+                            hintText: 'Search products...',
                             hintStyle: TextStyle(
                               color: Colors.grey[400],
                               fontSize: 14.sp,
@@ -211,7 +211,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               // --- 3. DYNAMIC CONTENT SECTION ---
               Expanded(
                 child: showSearchResults
-                    ? _buildSearchResults(searchState)
+                    ? _buildSearchResults(
+                        searchState,
+                        recentSearches,
+                        trendingProducts,
+                      )
                     : _buildHistoryAndTrending(
                         recentSearches,
                         trendingProducts,
@@ -224,18 +228,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildSearchResults(SearchState searchState) {
+  Widget _buildSearchResults(
+    SearchState searchState,
+    List<String> recentSearches,
+    List<ProductVariant> trendingProducts,
+  ) {
     return searchState.when(
-      initial: () => _buildHistoryAndTrending(
-        ref.watch(simpleSearchHistoryProvider),
-        ref
-            .watch(homeProvider)
-            .maybeMap(
-              loaded: (state) => state.bestDeals,
-              refreshing: (state) => state.bestDeals,
-              orElse: () => <ProductVariant>[],
-            ),
-      ),
+      initial: () => _buildHistoryAndTrending(recentSearches, trendingProducts),
       listening: (isVoice) => const Center(child: CircularProgressIndicator()),
       loading: (query, isVoice) =>
           const Center(child: CircularProgressIndicator()),
@@ -361,9 +360,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           else
             ProductHorizontalList(
               products: trendingProducts,
-              onProductClick: (product) {
-                // Navigate to product detail
-              },
+              onProductClick: (product) =>
+                context.push('/product-details/${product.id}'),
             ),
         ],
       ),
@@ -381,9 +379,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       itemBuilder: (context, index) {
         if (index == variants.length) {
           // Load more indicator
-          return const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: CircularProgressIndicator()),
+          return Padding(
+            padding: EdgeInsets.all(16.r),
+            child: const Center(child: CircularProgressIndicator()),
           );
         }
 

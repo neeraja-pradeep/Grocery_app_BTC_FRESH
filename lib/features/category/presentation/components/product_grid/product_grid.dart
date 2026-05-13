@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -25,13 +23,11 @@ class ProductGrid extends ConsumerStatefulWidget {
     required this.categories,
     required this.selectedCategoryIndex,
     required this.onCategoryInViewChanged,
-    required this.onAddToCart,
   });
 
   final List<CategoryItem> categories;
   final int selectedCategoryIndex;
   final ValueChanged<int> onCategoryInViewChanged;
-  final ValueChanged<CategoryProduct> onAddToCart;
 
   @override
   ConsumerState<ProductGrid> createState() => ProductGridState();
@@ -177,7 +173,6 @@ class ProductGridState extends ConsumerState<ProductGrid> {
             category: widget.categories[i],
             isFirst: i == 0,
             colorScheme: colorScheme,
-            onAddToCart: widget.onAddToCart,
           ),
         ],
       ],
@@ -193,14 +188,12 @@ class _CategorySectionBuilder extends ConsumerWidget {
     required this.category,
     required this.isFirst,
     required this.colorScheme,
-    required this.onAddToCart,
   });
 
   final GlobalKey sectionKey;
   final CategoryItem category;
   final bool isFirst;
   final ColorScheme colorScheme;
-  final ValueChanged<CategoryProduct> onAddToCart;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -252,7 +245,6 @@ class _CategorySectionBuilder extends ConsumerWidget {
           sliver: _CategoryProductsSliver(
             categoryId: category.id ?? '',
             colorScheme: colorScheme,
-            onAddToCart: onAddToCart,
           ),
         ),
       ],
@@ -266,26 +258,16 @@ class _CategoryProductsSliver extends ConsumerWidget {
   const _CategoryProductsSliver({
     required this.categoryId,
     required this.colorScheme,
-    required this.onAddToCart,
   });
 
   final String categoryId;
   final ColorScheme colorScheme;
-  final ValueChanged<CategoryProduct> onAddToCart;
 
   /// Navigate to product details screen with variant ID only
   void _navigateToProductDetails(
     BuildContext context,
     CategoryProduct product,
   ) {
-    // Pass only variant ID - ProductDetailsScreen will fetch full data from API
-    developer.log(
-      '🔗 NAVIGATING TO PRODUCT DETAILS\n'
-      '  Product: ${product.name}\n'
-      '  Variant ID: ${product.variantId}',
-      name: 'ProductGrid',
-      level: 800,
-    );
     context.push('/product-details/${product.variantId}');
   }
 
@@ -295,26 +277,8 @@ class _CategoryProductsSliver extends ConsumerWidget {
       category_products.categoryProductControllerProvider(categoryId),
     );
 
-    // Debug: Log when products are rebuilt
-    if (productState.hasData && productState.products.isNotEmpty) {
-      final firstProduct = productState.products.first;
-      developer.log(
-        'ProductGrid REBUILD: category=$categoryId, '
-        'count=${productState.products.length}, '
-        'first product weight=${firstProduct.weight}',
-        name: 'ProductGrid',
-      );
-    }
-
     // Loading state
     if (productState.isLoading && !productState.hasData) {
-      developer.log(
-        '⏳ SHOWING LOADING for category=$categoryId, '
-        'status=${productState.status}, hasData=${productState.hasData}, '
-        'productCount=${productState.products.length}',
-        name: 'ProductGrid',
-        level: 1000,
-      );
       return SliverToBoxAdapter(
         child: SizedBox(
           height: 200.h,
@@ -362,10 +326,7 @@ class _CategoryProductsSliver extends ConsumerWidget {
           ),
           product: product,
           colorScheme: colorScheme,
-          onAddToCart: () => onAddToCart(product),
-          onTap: () {
-            _navigateToProductDetails(context, product);
-          },
+          onTap: () => _navigateToProductDetails(context, product),
         );
       }, childCount: products.length),
     );

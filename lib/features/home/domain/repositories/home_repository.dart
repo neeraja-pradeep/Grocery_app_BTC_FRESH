@@ -9,24 +9,6 @@ import '../entities/product.dart';
 import '../entities/product_variant.dart';
 import '../entities/user_address.dart';
 
-// Placeholder for UserAddress if not yet created
-// import 'package:grocery_app/features/home/domain/entities/user_address.dart';
-// Temporary placeholder class
-
-class PaginatedResult<T> {
-  final int count;
-  final String? next;
-  final String? previous;
-  final List<T> results;
-
-  PaginatedResult({
-    required this.count,
-    this.next,
-    this.previous,
-    required this.results,
-  });
-}
-
 /// Discounted products bundled with the productId → categoryId mapping
 /// derived from the products endpoint, used for category grouping.
 class DiscountedProductsResult {
@@ -40,7 +22,7 @@ class DiscountedProductsResult {
 }
 
 abstract class HomeRepository {
-  Future<Either<Failure, PaginatedResult<Category>>> getCategories({
+  Future<Either<Failure, List<Category>>> getCategories({
     int page = 1,
   });
 
@@ -66,7 +48,7 @@ abstract class HomeRepository {
   });
 
   /// Searches for products (with variants) based on a query string.
-  Future<Either<Failure, PaginatedResult<Product>>> searchProductsWithVariants({
+  Future<Either<Failure, List<Product>>> searchProductsWithVariants({
     required String query,
     int page = 1,
   });

@@ -36,8 +36,9 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
       final ordersState = ref.read(ordersProvider);
 
       // Get the most recent active order
-      if (ordersState.activeOrders.isNotEmpty) {
-        final latestOrder = ordersState.activeOrders.first;
+      final activeOrders = ordersState.orders.where((o) => o.isActive).toList();
+      if (activeOrders.isNotEmpty) {
+        final latestOrder = activeOrders.first;
         _latestOrderId = latestOrder.id;
 
         // Start delivery tracking with the real order ID
@@ -47,11 +48,14 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
         Logger.info('Delivery tracking started for order: ${latestOrder.id}');
       } else {
         // Fallback: Try fetching pending orders
-        await ref.read(ordersProvider.notifier).fetchPendingOrders();
+        await ref.read(ordersProvider.notifier).fetchOrders(status: 'pending');
         final pendingState = ref.read(ordersProvider);
 
-        if (pendingState.pendingOrders.isNotEmpty) {
-          final latestOrder = pendingState.pendingOrders.first;
+        final pendingOrders = pendingState.orders
+            .where((o) => o.isPending)
+            .toList();
+        if (pendingOrders.isNotEmpty) {
+          final latestOrder = pendingOrders.first;
           _latestOrderId = latestOrder.id;
 
           ref
@@ -86,65 +90,74 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
         await _handleBackNavigation();
       },
       child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(20.0.w),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(height: 140.h),
-                  AppText(
-                    text: 'Order Success!',
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.black,
-                  ),
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/bg.png'),
+              repeat: ImageRepeat.repeat,
+              opacity: 0.7,
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.all(20.0.w),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: 140.h),
+                    AppText(
+                      text: 'Order Success!',
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.black,
+                    ),
 
-                  SizedBox(height: 16.h),
+                    SizedBox(height: 16.h),
 
-                  // Description
-                  AppText(
-                    text:
-                        'Your order is on the way. We\'ll keep you posted every step of the journey, so you\'ll know exactly when to get excited for your needs.',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.lightGrey,
-                    textAlign: TextAlign.center,
-                    maxLines: 5,
-                  ),
-                  SizedBox(height: 60.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/images/success.png',
-                        width: 269.w,
-                        height: 240.h,
-                      ),
-                      SizedBox(width: 40.w),
-                    ],
-                  ),
+                    // Description
+                    AppText(
+                      text:
+                          'Your order is on the way. We\'ll keep you posted every step of the journey, so you\'ll know exactly when to get excited for your needs.',
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.lightGrey,
+                      textAlign: TextAlign.center,
+                      maxLines: 5,
+                    ),
+                    SizedBox(height: 60.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/success.png',
+                          width: 269.w,
+                          height: 240.h,
+                        ),
+                        SizedBox(width: 40.w),
+                      ],
+                    ),
 
-                  const Spacer(),
+                    const Spacer(),
 
-                  // Back to Home Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _handleBackNavigation,
-                      style: ButtonStyles.greyButton,
-                      child: AppText(
-                        text: 'Back',
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.black,
+                    // Back to Home Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _handleBackNavigation,
+                        style: ButtonStyles.greyButton,
+                        child: AppText(
+                          text: 'Back',
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.black,
+                        ),
                       ),
                     ),
-                  ),
 
-                  SizedBox(height: 20.h),
-                ],
+                    SizedBox(height: 20.h),
+                  ],
+                ),
               ),
             ),
           ),

@@ -71,16 +71,14 @@ class CartSummary extends StatelessWidget {
 
                 // Checkout button
                 GestureDetector(
-                  onTap: meetsMinimumOrder ? onCheckout : null,
+                  onTap: onCheckout,
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 32.w,
                       vertical: 14.h,
                     ),
                     decoration: BoxDecoration(
-                      color: meetsMinimumOrder
-                          ? const Color(0xFF8BC34A)
-                          : AppColors.grey.withValues(alpha: 0.3),
+                      color: const Color(0xFF8BC34A),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Row(

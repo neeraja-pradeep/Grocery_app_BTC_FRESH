@@ -6,9 +6,10 @@ import '../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../core/widgets/app_text.dart';
 
 import '../../../domain/entities/product_variant.dart';
+import '../../helpers/product_details_helpers.dart';
 
 /// Product information section with name, weight, price, rating
-class ProductInfo extends StatefulWidget {
+class ProductInfo extends StatelessWidget {
   const ProductInfo({
     super.key,
     required this.productDetail,
@@ -20,58 +21,6 @@ class ProductInfo extends StatefulWidget {
   final ProductVariant productDetail;
 
   @override
-  State<ProductInfo> createState() => _ProductInfoState();
-}
-
-class _ProductInfoState extends State<ProductInfo> {
-  /// Parse weight string and convert to normalized format (gm or kg)
-  /// Examples: "500 gm" -> "500 gm", "1000 gm" -> "1 kg", "1200 gm" -> "1.2 kg"
-  String _parseWeight(String weight) {
-    try {
-      // Remove extra spaces and convert to lowercase
-      final cleanedWeight = weight.trim().toLowerCase();
-
-      // Extract numeric value and unit using regex
-      final regex = RegExp(r'([\d.]+)\s*([a-z]*)');
-      final match = regex.firstMatch(cleanedWeight);
-
-      if (match == null) return weight;
-
-      final numericValue = double.tryParse(match.group(1) ?? '0') ?? 0;
-      final unit = (match.group(2) ?? '').replaceAll(RegExp(r'[^a-z]'), '');
-
-      // Determine if input is in grams or kilograms
-      double valueInGrams = numericValue;
-
-      if (unit.contains('k')) {
-        // Already in kg, convert to grams
-        valueInGrams = numericValue * 1000;
-      }
-      // else it's in grams or no unit specified (assume grams)
-
-      // Convert back to appropriate unit
-      if (valueInGrams >= 1000) {
-        // Convert to kg
-        final valueInKg = valueInGrams / 1000;
-        // Remove trailing zeros after decimal
-        final formatted = valueInKg
-            .toStringAsFixed(2)
-            .replaceAll(RegExp(r'\.?0+$'), '');
-        return '$formatted kg';
-      } else {
-        // Keep in grams, preserve decimal values
-        final formatted = valueInGrams
-            .toStringAsFixed(2)
-            .replaceAll(RegExp(r'\.?0+$'), '');
-        return '$formatted gm';
-      }
-    } catch (e) {
-      // If parsing fails, return original weight
-      return weight;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,8 +29,7 @@ class _ProductInfoState extends State<ProductInfo> {
         Row(
           children: [
             AppText(
-              text:
-                  widget.productDetail.variantName ?? widget.productDetail.name,
+              text: productDetail.variantName ?? productDetail.name,
               fontSize: 24.sp,
               fontWeight: FontWeight.w700,
               color: AppColors.black,
@@ -90,9 +38,8 @@ class _ProductInfoState extends State<ProductInfo> {
             const Spacer(),
             GestureDetector(
               onTap: () async {
-                final success = await widget.onWishlistToggle();
+                final success = await onWishlistToggle();
                 if (context.mounted && !success) {
-                  // Show error message if toggle failed
                   AppSnackbar.info(
                     context,
                     'Please login to add items to wishlist',
@@ -104,8 +51,8 @@ class _ProductInfoState extends State<ProductInfo> {
                 height: 48.w,
                 alignment: Alignment.center,
                 child: Icon(
-                  widget.isInWishlist ? Icons.favorite : Icons.favorite_border,
-                  color: widget.isInWishlist ? Colors.red : AppColors.grey,
+                  isInWishlist ? Icons.favorite : Icons.favorite_border,
+                  color: isInWishlist ? Colors.red : AppColors.grey,
                   size: 26.sp,
                 ),
               ),
@@ -114,16 +61,14 @@ class _ProductInfoState extends State<ProductInfo> {
         ),
 
         // Weight/Quantity
-        if (widget.productDetail.weight != null &&
-            widget.productDetail.weight!.isNotEmpty)
+        if (productDetail.weight != null && productDetail.weight!.isNotEmpty)
           AppText(
-            text: _parseWeight(widget.productDetail.weight!),
+            text: parseWeight(productDetail.weight!),
             fontSize: 14.sp,
             fontWeight: FontWeight.w500,
             color: AppColors.grey,
           ),
-        if (widget.productDetail.weight != null &&
-            widget.productDetail.weight!.isNotEmpty)
+        if (productDetail.weight != null && productDetail.weight!.isNotEmpty)
           AppSpacing.h12,
       ],
     );

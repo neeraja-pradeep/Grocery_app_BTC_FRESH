@@ -37,13 +37,4 @@ abstract class ProductDetailRepository {
   /// Fetch product variant by variant ID
   /// Throws NetworkException or other exceptions
   Future<ProductVariant> getProductVariant(String variantId);
-
-  /// Check if product is in wishlist
-  Future<bool> isInWishlist(String productId);
-
-  /// Add product to wishlist
-  Future<void> addToWishlist(String productId);
-
-  /// Remove product from wishlist
-  Future<void> removeFromWishlist(String productId);
 }

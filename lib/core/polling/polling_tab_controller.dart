@@ -120,6 +120,7 @@ class PollingTabController {
 
   /// Cleanup
   void dispose() {
+    PollingManager.instance.pauseAllPolling();
     developer.log(
       'PollingTabController disposed',
       name: 'PollingTabController',

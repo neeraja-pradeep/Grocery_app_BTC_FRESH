@@ -5,6 +5,8 @@ import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../components/coupen_card.dart';
 import '../components/input_field.dart';
+import '../../application/providers/applied_coupon_provider.dart';
+import '../../application/providers/checkout_line_provider.dart';
 import '../../application/providers/coupon_providers.dart';
 import '../../application/states/coupon_state.dart';
 import '../../domain/entities/coupon.dart';
@@ -34,61 +36,13 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
     super.dispose();
   }
 
-  Future<void> _applyCoupon(String code) async {
-    await _showApplyingBottomSheet(code);
+  void _applyCoupon(Coupon coupon) {
+    // Apply the coupon directly via state — no navigator return value needed.
+    final itemTotal = ref.read(checkoutLineControllerProvider).totalAmount;
+    ref.read(appliedCouponProvider.notifier).applyCoupon(coupon, itemTotal);
     if (mounted) {
-      Navigator.pop(context, code);
+      Navigator.pop(context);
     }
-  }
-
-  Future<void> _showApplyingBottomSheet(String code) async {
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isDismissible: false,
-      enableDrag: false,
-      builder: (bottomSheetContext) {
-        // Auto close after 3 seconds
-        Future.delayed(const Duration(seconds: 3), () {
-          if (bottomSheetContext.mounted) {
-            Navigator.pop(bottomSheetContext); // Close bottom sheet
-          }
-        });
-
-        return Container(
-          padding: EdgeInsets.all(24.w),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24.r),
-              topRight: Radius.circular(24.r),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppText(
-                text: 'Applying coupon',
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.black,
-              ),
-              SizedBox(height: 24.h),
-              LinearProgressIndicator(
-                minHeight: 12.h,
-                borderRadius: BorderRadius.circular(50.r),
-                backgroundColor: AppColors.grey.withValues(alpha: 0.2),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  AppColors.loaderGreen,
-                ),
-              ),
-              SizedBox(height: 24.h),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   void _filterCoupons(String query) {
@@ -248,7 +202,7 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
                             'Get ${coupon.discountPercentage}% OFF on your order',
                         description: coupon.description,
                       ),
-                      onApply: () => _applyCoupon(coupon.name),
+                      onApply: () => _applyCoupon(coupon),
                     );
                   },
                 ),

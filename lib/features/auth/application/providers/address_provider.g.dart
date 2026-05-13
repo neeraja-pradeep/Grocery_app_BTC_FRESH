@@ -6,7 +6,7 @@ part of 'address_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$addressEntryHash() => r'aa438faaeba4e51e08ab12135b154c4a04a55eb1';
+String _$addressEntryHash() => r'109b81065035179eb6c452d79daf4e9d11ad3c66';
 
 /// See also [AddressEntry].
 @ProviderFor(AddressEntry)

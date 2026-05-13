@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import '../../../../core/config/app_config.dart';
 import '../../domain/entities/product_variant.dart';
 
@@ -30,35 +31,40 @@ String _fixDuplicateDomainInUrl(String url) {
       // Reconstruct the URL
       final fixedUrl = '${uri.scheme}://$domain$cleanPath';
 
-      developer.log(
-        '🔧 URL fixed: Removed duplicate domain path\n'
-        '   BEFORE: $url\n'
-        '   AFTER:  $fixedUrl',
-        name: 'ProductVariantDto',
-      );
+      if (kDebugMode) {
+        developer.log(
+          '[URL_FIXED] Removed duplicate domain path\n'
+          '   BEFORE: $url\n'
+          '   AFTER:  $fixedUrl',
+          name: 'ProductVariantDto',
+        );
+      }
 
       return fixedUrl;
     }
 
     // If no duplicate found, but we added protocol, return the processed URL
     if (urlToProcess != url) {
-      developer.log(
-        '🔧 URL fixed: Added missing protocol\n'
-        '   BEFORE: $url\n'
-        '   AFTER:  $urlToProcess',
-        name: 'ProductVariantDto',
-      );
+      if (kDebugMode) {
+        developer.log(
+          '[URL_FIXED] Added missing protocol\n'
+          '   BEFORE: $url\n'
+          '   AFTER:  $urlToProcess',
+          name: 'ProductVariantDto',
+        );
+      }
       return urlToProcess;
     }
 
     return url;
   } catch (e) {
-    // If parsing fails, return original URL
-    developer.log(
-      '⚠ URL fix failed: $e\n'
-      '   URL: $url',
-      name: 'ProductVariantDto',
-    );
+    if (kDebugMode) {
+      developer.log(
+        '[URL_ERROR] URL fix failed: $e\n'
+        '   URL: $url',
+        name: 'ProductVariantDto',
+      );
+    }
     return url;
   }
 }
@@ -354,13 +360,12 @@ class ProductVariantMediaDto {
         ? _fixDuplicateDomainInUrl(rawImage)
         : '';
 
-    developer.log(
-      '📸 ProductVariantMediaDto.fromJson(): Parsed media item\n'
-      '   Raw image: $rawImage\n'
-      '   Clean image: $cleanImage\n'
-      '   Match: ${rawImage == cleanImage ? "NO CHANGE" : "CLEANED"}',
-      name: 'ProductVariantMediaDto',
-    );
+    if (kDebugMode && rawImage != cleanImage) {
+      developer.log(
+        '[MEDIA_PARSE] URL cleaned: $rawImage -> $cleanImage',
+        name: 'ProductVariantMediaDto',
+      );
+    }
 
     final rawExternalUrl = json['external_url'] as String?;
     final cleanExternalUrl = rawExternalUrl != null && rawExternalUrl.isNotEmpty

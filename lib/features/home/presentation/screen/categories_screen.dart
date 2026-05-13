@@ -1,25 +1,22 @@
 // lib/features/categories/presentation/screen/categories_screen.dart
 
-// ignore_for_file: prefer_const_constructors
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:grocery_app/features/home/application/providers/home_provider.dart';
-// import 'package:grocery_app/features/home/domain/entities/category.dart';
-// import 'package:grocery_app/features/home/presentation/screen/category_detail_screen.dart';
+
+import '../../../category/presentation/screen/category_screen.dart';
 
 class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFcaf5ac), // Custom green color
-        statusBarIconBrightness: Brightness.dark, // Dark icons
+    return const AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFcaf5ac),
+        statusBarIconBrightness: Brightness.dark,
       ),
-      child: Scaffold(body: const Center(child: Text('category'))),
+      child: Scaffold(body: CategoryScreen()),
     );
   }
 }

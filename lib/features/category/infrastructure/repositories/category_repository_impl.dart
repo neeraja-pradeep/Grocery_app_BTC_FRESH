@@ -1,3 +1,4 @@
+import '../../../../core/storage/cache_config.dart';
 import '../../domain/repositories/category_repository.dart';
 
 import '../../../../core/network/network_exceptions.dart';
@@ -11,7 +12,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
   CategoryRepositoryImpl({
     required CategoryLocalDataSource localDataSource,
     required CategoryRemoteDataSource remoteDataSource,
-    Duration cacheTtl = const Duration(minutes: 10),
+    Duration cacheTtl = CacheConfig.cacheTTL,
   }) : _localDataSource = localDataSource,
        _remoteDataSource = remoteDataSource,
        _cacheTtl = cacheTtl;
@@ -33,7 +34,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
 
     return CategoryRepositoryResult(
       categories: categories,
-      source: CategoryDataSource.cache,
+      isFromCache: true,
       lastSyncedAt: cache.lastSyncedAt,
       isStale: isStale,
       totalCount: cache.count,
@@ -84,7 +85,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
 
       return CategoryRepositoryResult(
         categories: _mapDtosToDomain(existingCache.categories),
-        source: CategoryDataSource.cache,
+        isFromCache: true,
         lastSyncedAt: now,
         isStale: false,
         totalCount: existingCache.count,
@@ -110,7 +111,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
 
     return CategoryRepositoryResult(
       categories: _mapDtosToDomain(response.categories),
-      source: CategoryDataSource.remote,
+      isFromCache: false,
       lastSyncedAt: response.fetchedAt,
       isStale: false,
       totalCount: response.count,

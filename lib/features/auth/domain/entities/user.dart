@@ -29,6 +29,26 @@ class UserEntity {
     );
   }
 
+  UserEntity copyWith({
+    int? id,
+    String? username,
+    String? email,
+    String? firstName,
+    String? lastName,
+    String? phoneNumber,
+    String? role,
+  }) {
+    return UserEntity(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      role: role ?? this.role,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,

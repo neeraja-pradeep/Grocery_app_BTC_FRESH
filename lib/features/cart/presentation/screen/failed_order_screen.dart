@@ -37,87 +37,97 @@ class FailedOrderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(20.0.w),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(height: 120.h),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/bg.png'),
+            repeat: ImageRepeat.repeat,
+            opacity: 0.7,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(20.0.w),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(height: 120.h),
 
-                Center(
-                  child: Image.asset(
-                    'assets/images/bag.png',
-                    width: 222.w,
-                    height: 221.h,
-                  ),
-                ),
-
-                SizedBox(height: 40.h),
-
-                AppText(
-                  text: _title,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.black,
-                ),
-
-                SizedBox(height: 12.h),
-
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: AppText(
-                    text: _subtitle,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.lightGrey,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-                const Spacer(),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Navigate back to home/main screen first
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                      // Then navigate to cart tab via bottom navigation
-                      BottomNavigation.globalKey.currentState?.navigateToTab(3);
-                    },
-                    style: ButtonStyles.greenButton,
-                    child: AppText(
-                      text: 'Go to cart',
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.white,
+                  Center(
+                    child: Image.asset(
+                      'assets/images/bag.png',
+                      width: 222.w,
+                      height: 221.h,
                     ),
                   ),
-                ),
 
-                SizedBox(height: 16.h),
+                  SizedBox(height: 40.h),
 
-                // Back to Home Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      context.go('/home');
-                    },
-                    style: ButtonStyles.greyButton,
+                  AppText(
+                    text: _title,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.black,
+                  ),
+
+                  SizedBox(height: 12.h),
+
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
                     child: AppText(
-                      text: 'Back to Home',
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.black,
+                      text: _subtitle,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.lightGrey,
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                ),
 
-                SizedBox(height: 40.h),
-              ],
+                  const Spacer(),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Navigate to home via GoRouter, then switch to cart tab
+                        context.go('/home');
+                        BottomNavigation.globalKey.currentState?.navigateToTab(
+                          3,
+                        );
+                      },
+                      style: ButtonStyles.greenButton,
+                      child: AppText(
+                        text: 'Go to cart',
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 16.h),
+
+                  // Back to Home Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        context.go('/home');
+                      },
+                      style: ButtonStyles.greyButton,
+                      child: AppText(
+                        text: 'Back to Home',
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.black,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 40.h),
+                ],
+              ),
             ),
           ),
         ),

@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/theme/colors.dart';
@@ -9,10 +11,8 @@ import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../bottomnavbar/bottom_navbar.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
-import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../../application/providers/orders_provider.dart';
 import '../../domain/entities/order_entity.dart';
-import '../../infrastructure/data_sources/orders_api.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -27,7 +27,14 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => _fetchOrders());
+    // Only fetch if no data is loaded yet or if there was a prior error.
+    // Pull-to-refresh is the user-initiated path for fresh data on revisit.
+    Future.microtask(() {
+      final state = ref.read(ordersProvider);
+      if (state.orders.isEmpty || state.errorMessage != null) {
+        _fetchOrders();
+      }
+    });
   }
 
   void _fetchOrders() {
@@ -60,7 +67,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             color: AppColors.black,
             size: 20.sp,
           ),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
         title: Text(
           'Your Orders',
@@ -75,10 +82,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Tab switcher
             _buildTabSwitcher(),
             SizedBox(height: 16.h),
-            // Orders list
             Expanded(child: _buildBody(ordersState)),
           ],
         ),
@@ -96,7 +101,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       ),
       child: Row(
         children: [
-          // Previous tab
           Expanded(
             child: GestureDetector(
               onTap: () => _switchTab(false),
@@ -118,7 +122,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               ),
             ),
           ),
-          // Active tab
           Expanded(
             child: GestureDetector(
               onTap: () => _switchTab(true),
@@ -169,7 +172,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           isActiveOrder: _isActiveTab,
           onReorder: () => _handleReorder(state.orders[index]),
           onCall: () => _handleCall(),
-          onWriteReview: () => _handleWriteReview(state.orders[index]),
         ),
       ),
     );
@@ -246,19 +248,17 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     );
   }
 
-  /// Reorders items from a previous order
-  /// Fetches order lines from order-lines endpoint, adds items to cart with original quantities,
-  /// then navigates to cart tab
+  /// Reorders items from a previous order.
+  /// Fetches order lines then adds all valid items to the cart concurrently.
   Future<void> _handleReorder(OrderEntity order) async {
-    // Show loading indicator
     if (mounted) {
-      AppSnackbar.info(context, 'Loading order items...');
+      AppSnackbar.info(context, 'Adding items to cart...');
     }
 
     try {
-      // Fetch order lines from the order-lines endpoint
-      final ordersApi = ref.read(ordersApiProvider);
-      final orderLines = await ordersApi.getOrderLines(order.id.toString());
+      final orderLines = await ref
+          .read(ordersProvider.notifier)
+          .getOrderLines(order.id.toString());
 
       if (orderLines.isEmpty) {
         if (mounted) {
@@ -267,79 +267,54 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         return;
       }
 
-      // Show loading indicator for adding to cart
-      if (mounted) {
-        AppSnackbar.info(context, 'Adding items to cart...');
-      }
-
       final checkoutLineNotifier = ref.read(
         checkoutLineControllerProvider.notifier,
       );
 
-      int successCount = 0;
-      int failedCount = 0;
+      final validLines = orderLines.where((l) => l.productVariantId > 0);
 
-      // Add each item from the order to cart with original quantities
-      for (final orderLine in orderLines) {
-        // Skip items with invalid product variant ID
-        if (orderLine.productVariantId <= 0) {
-          failedCount++;
-          Logger.warning(
-            'Skipping item with invalid variant ID: ${orderLine.productName} (${orderLine.productVariantId})',
-          );
-          continue;
-        }
+      // Add all valid items to the cart concurrently.
+      final results = await Future.wait(
+        validLines.map((line) async {
+          try {
+            await checkoutLineNotifier.addToCart(
+              productVariantId: line.productVariantId,
+              quantity: line.quantity,
+            );
+            return true;
+          } catch (e) {
+            Logger.error(
+              'Failed to add item to cart: ${line.productName}',
+              error: e,
+            );
+            return false;
+          }
+        }),
+      );
 
-        try {
-          // Add with original quantity from the order
-          await checkoutLineNotifier.addToCart(
-            productVariantId: orderLine.productVariantId,
-            quantity: orderLine.quantity,
-          );
-          successCount++;
-          Logger.info(
-            'Added item to cart for reorder',
-            data: {
-              'product_variant_id': orderLine.productVariantId,
-              'product_name': orderLine.productName,
-              'quantity': orderLine.quantity,
-            },
-          );
-        } catch (e) {
-          // Item failed to add (likely out of stock or unavailable)
-          failedCount++;
-          Logger.error(
-            'Failed to add item to cart: ${orderLine.productName} (variant: ${orderLine.productVariantId})',
-            error: e,
-          );
-        }
-      }
+      final skipped = orderLines.length - validLines.length;
+      final successCount = results.where((r) => r).length;
+      final failedCount = results.where((r) => !r).length + skipped;
 
-      // Show result to user and navigate to cart if successful
-      if (mounted) {
-        if (successCount > 0 && failedCount == 0) {
-          // All items added successfully
-          AppSnackbar.success(
-            context,
-            '$successCount item${successCount > 1 ? 's' : ''} added to cart',
-          );
-          // Navigate to cart tab (index 3 in bottom navbar)
-          _navigateToCart();
-        } else if (successCount > 0 && failedCount > 0) {
-          // Some items added, some failed (likely out of stock)
-          AppSnackbar.warning(
-            context,
-            '$successCount added, $failedCount unavailable',
-          );
-          // Still navigate to cart to show what was added
-          _navigateToCart();
-        } else {
-          // All items failed
-          AppSnackbar.error(
-            context,
-            'Items are currently unavailable. Please try again later.',
-          );
-        }
+      if (!mounted) return;
+
+      if (successCount > 0 && failedCount == 0) {
+        AppSnackbar.success(
+          context,
+          '$successCount item${successCount > 1 ? 's' : ''} added to cart',
+        );
+        _navigateToCart();
+      } else if (successCount > 0 && failedCount > 0) {
+        AppSnackbar.warning(
+          context,
+          '$successCount added, $failedCount unavailable',
+        );
+        _navigateToCart();
+      } else {
+        AppSnackbar.error(
+          context,
+          'Items are currently unavailable. Please try again later.',
+        );
       }
     } catch (e) {
       Logger.error('Reorder failed', error: e);
@@ -349,20 +324,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     }
   }
 
-  /// Navigate to cart tab in bottom navbar
+  /// Navigate to cart tab in bottom navbar.
+  /// Uses the bottom-nav global key since there is no standalone /cart route.
   void _navigateToCart() {
-    // Pop the orders screen to go back to the profile/main screen
-    Navigator.of(context).pop();
-
-    // Use the BottomNavigation global key to navigate to cart tab (index 3)
+    context.pop();
     BottomNavigation.globalKey.currentState?.navigateToTab(3);
   }
 
-  /// Opens the phone dialer with the support number fetched from API
-  /// Falls back to default number if API call fails
-  /// Does not auto-start the call - just populates the dialer
+  /// Opens the phone dialer with the support number fetched from API.
   Future<void> _handleCall() async {
-    // Fetch admin phone from API (with caching and fallback)
     final supportNumber = await ref
         .read(adminPhoneProvider.notifier)
         .getPhoneNumber();
@@ -370,19 +340,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final Uri phoneUri = Uri(scheme: 'tel', path: supportNumber);
 
     try {
-      // Check if the device can handle the tel: scheme
       if (await canLaunchUrl(phoneUri)) {
         await launchUrl(phoneUri);
-        Logger.info('Phone dialer opened: $supportNumber');
       } else {
-        // Device cannot handle phone calls (e.g., tablet without phone capability)
         if (mounted) {
           AppSnackbar.error(
             context,
             'Unable to open phone dialer. Please call $supportNumber manually.',
           );
         }
-        Logger.warning('Cannot launch phone dialer: $supportNumber');
       }
     } catch (e) {
       Logger.error('Failed to open phone dialer', error: e);
@@ -394,82 +360,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       }
     }
   }
-
-  /// Shows rating bottom sheet for the order
-  /// Allows user to write a new review or update existing review
-  Future<void> _handleWriteReview(OrderEntity order) async {
-    // Only allow rating for delivered orders
-    if (!order.isCompleted) {
-      AppSnackbar.warning(
-        context,
-        'You can only rate orders that have been delivered',
-      );
-      return;
-    }
-
-    // Format delivery date (simple format)
-    final deliveryDate = order.updatedAt ?? order.createdAt;
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final formattedDate =
-        '${deliveryDate.day} ${months[deliveryDate.month - 1]} ${deliveryDate.year}';
-
-    // Show review bottom sheet
-    final rating = await ReviewBottomSheet.show(
-      context,
-      orderTitle: 'Rate Your Order',
-      orderSubtitle: 'Delivered on $formattedDate',
-    );
-
-    // Submit rating if user provided one
-    if (rating != null && rating > 0) {
-      await _submitOrderRating(order.id, rating);
-    }
-  }
-
-  /// Submit order rating to backend
-  Future<void> _submitOrderRating(int orderId, int stars) async {
-    try {
-      // Show loading
-      if (mounted) {
-        AppSnackbar.info(context, 'Submitting rating...');
-      }
-
-      await ref
-          .read(ordersApiProvider)
-          .submitOrderRating(orderId: orderId, stars: stars);
-
-      Logger.info('Order rating submitted: $stars stars for order $orderId');
-
-      // Show success message
-      if (mounted) {
-        AppSnackbar.success(context, 'Thank you for your rating!');
-      }
-    } catch (e) {
-      Logger.error('Failed to submit order rating', error: e);
-
-      // Show error message
-      if (mounted) {
-        final errorMessage = e.toString().contains('only rate your own')
-            ? 'You can only rate your own completed orders'
-            : 'Failed to submit rating. Please try again later.';
-
-        AppSnackbar.error(context, errorMessage);
-      }
-    }
-  }
 }
 
 class _OrderCard extends ConsumerStatefulWidget {
@@ -477,14 +367,12 @@ class _OrderCard extends ConsumerStatefulWidget {
   final bool isActiveOrder;
   final VoidCallback onReorder;
   final VoidCallback onCall;
-  final VoidCallback onWriteReview;
 
   const _OrderCard({
     required this.order,
     required this.isActiveOrder,
     required this.onReorder,
     required this.onCall,
-    required this.onWriteReview,
   });
 
   @override
@@ -500,7 +388,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
   @override
   void initState() {
     super.initState();
-    // Initialize rating from order data if it exists
     if (widget.order.rating != null) {
       _rating = widget.order.rating!.stars;
       _reviewController.text = widget.order.rating?.body ?? '';
@@ -513,56 +400,22 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     super.dispose();
   }
 
-  String get _statusText {
-    final status = widget.order.status.toLowerCase();
-    switch (status) {
-      case 'active':
-      case 'shipped':
-      case 'on_delivery':
-      case 'out_for_delivery':
-        return 'On Delivery';
-      case 'pending':
-      case 'processing':
-        return 'Processing';
-      case 'completed':
-      case 'delivered':
-        return 'Delivered';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return widget.order.status;
-    }
-  }
-
   String _formatDate(DateTime date) {
-    final day = date.day;
     final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     final month = months[date.month - 1];
-    final year = date.year;
     final hour = date.hour > 12
         ? date.hour - 12
         : (date.hour == 0 ? 12 : date.hour);
     final minute = date.minute.toString().padLeft(2, '0');
     final period = date.hour >= 12 ? 'PM' : 'AM';
-    return '$day $month $year at $hour:$minute $period';
+    return '${date.day} $month ${date.year} at $hour:$minute $period';
   }
 
   @override
   Widget build(BuildContext context) {
-    // Use orderlinesCount from API instead of orderLines.length
     final itemCount = widget.order.orderlinesCount;
     final firstProductImage = widget.order.orderLines.isNotEmpty
         ? widget.order.orderLines.first.productImage
@@ -587,7 +440,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
       ),
       child: Column(
         children: [
-          // Header row - always visible
           InkWell(
             onTap: () => setState(() => _isExpanded = !_isExpanded),
             borderRadius: BorderRadius.circular(12.r),
@@ -595,7 +447,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
               padding: EdgeInsets.all(16.w),
               child: Row(
                 children: [
-                  // Product image
+                  // Product image — cached to avoid re-downloading on scroll.
                   Container(
                     width: 50.w,
                     height: 50.w,
@@ -605,10 +457,10 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: firstProductImage != null
-                        ? Image.network(
-                            firstProductImage,
+                        ? CachedNetworkImage(
+                            imageUrl: firstProductImage,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, e, s) => Icon(
+                            errorWidget: (context, url, error) => Icon(
                               Icons.shopping_bag_outlined,
                               color: AppColors.grey,
                               size: 24.sp,
@@ -621,7 +473,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                           ),
                   ),
                   SizedBox(width: 12.w),
-                  // Order details
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -654,7 +505,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                               ),
                             ),
                             Text(
-                              _statusText,
+                              widget.order.displayStatus,
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 color: AppColors.black,
@@ -665,7 +516,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                       ],
                     ),
                   ),
-                  // Expand/collapse icon
                   Icon(
                     _isExpanded
                         ? Icons.keyboard_arrow_up
@@ -677,7 +527,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
               ),
             ),
           ),
-          // Expanded content
           if (_isExpanded) ...[
             Padding(
               padding: EdgeInsets.all(16.w),
@@ -694,7 +543,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
   Widget _buildActiveOrderContent() {
     return Column(
       children: [
-        // Date and price row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -717,7 +565,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
           ],
         ),
         SizedBox(height: 16.h),
-        // Call button
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
@@ -747,11 +594,9 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
   Widget _buildPreviousOrderContent() {
     return Column(
       children: [
-        // Rating section
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Star rating - interactive
             Row(
               children: List.generate(5, (index) {
                 return GestureDetector(
@@ -772,7 +617,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                 );
               }),
             ),
-            // Edit/Update review text
             GestureDetector(
               onTap: () {
                 setState(() {
@@ -803,7 +647,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
           ),
         ),
 
-        // Inline review editor (shown when editing)
         if (_isEditingRating) ...[
           SizedBox(height: 12.h),
           TextField(
@@ -831,7 +674,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
             style: TextStyle(fontSize: 12.sp),
           ),
           SizedBox(height: 12.h),
-          // Save rating button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -857,7 +699,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
           ),
         ] else if (widget.order.rating?.body != null &&
             widget.order.rating!.body!.isNotEmpty) ...[
-          // Show existing review text when not editing
           SizedBox(height: 8.h),
           Container(
             width: double.infinity,
@@ -874,7 +715,6 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
         ],
 
         SizedBox(height: 16.h),
-        // Reorder button
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
@@ -900,22 +740,16 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     );
   }
 
-  /// Save or update rating
+  /// Save or update rating through the notifier (single entry point for rating submission).
   Future<void> _saveRating() async {
-    if (_rating == 0) {
-      return;
-    }
+    if (_rating == 0) return;
 
     try {
-      // Show loading
       if (mounted) {
         AppSnackbar.info(context, 'Submitting rating...');
       }
 
-      // Submit rating with review text
-      await ref
-          .read(ordersApiProvider)
-          .submitOrderRating(
+      await ref.read(ordersProvider.notifier).submitRating(
             orderId: widget.order.id,
             stars: _rating,
             body: _reviewController.text.trim().isNotEmpty
@@ -924,32 +758,17 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
             ratingId: widget.order.rating?.id,
           );
 
-      Logger.info(
-        'Order rating submitted: $_rating stars for order ${widget.order.id}',
-      );
-
-      // Close editing mode
       if (mounted) {
-        setState(() {
-          _isEditingRating = false;
-        });
-
-        // Show success message
+        setState(() => _isEditingRating = false);
         AppSnackbar.success(context, 'Thank you for your rating!');
-
-        // Refresh orders to show updated rating
-        ref.read(ordersProvider.notifier).fetchCompletedOrders();
       }
     } catch (e) {
       Logger.error('Failed to submit order rating', error: e);
-
-      // Show error message
       if (mounted) {
-        final errorMessage = e.toString().contains('only rate your own')
+        final msg = e.toString().contains('only rate your own')
             ? 'You can only rate your own completed orders'
             : 'Failed to submit rating. Please try again later.';
-
-        AppSnackbar.error(context, errorMessage);
+        AppSnackbar.error(context, msg);
       }
     }
   }

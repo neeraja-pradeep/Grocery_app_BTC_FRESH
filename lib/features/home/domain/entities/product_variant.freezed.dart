@@ -24,6 +24,7 @@ mixin _$ProductVariant {
   double get price => throw _privateConstructorUsedError;
   double? get discountedPrice => throw _privateConstructorUsedError;
   String? get stockUnit => throw _privateConstructorUsedError;
+  String? get weight => throw _privateConstructorUsedError;
   String get currentQuantity => throw _privateConstructorUsedError;
   bool get status => throw _privateConstructorUsedError;
   List<ProductMedia> get media => throw _privateConstructorUsedError;
@@ -58,6 +59,7 @@ abstract class $ProductVariantCopyWith<$Res> {
     double price,
     double? discountedPrice,
     String? stockUnit,
+    String? weight,
     String currentQuantity,
     bool status,
     List<ProductMedia> media,
@@ -94,6 +96,7 @@ class _$ProductVariantCopyWithImpl<$Res, $Val extends ProductVariant>
     Object? price = null,
     Object? discountedPrice = freezed,
     Object? stockUnit = freezed,
+    Object? weight = freezed,
     Object? currentQuantity = null,
     Object? status = null,
     Object? media = null,
@@ -135,6 +138,10 @@ class _$ProductVariantCopyWithImpl<$Res, $Val extends ProductVariant>
             stockUnit: freezed == stockUnit
                 ? _value.stockUnit
                 : stockUnit // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            weight: freezed == weight
+                ? _value.weight
+                : weight // ignore: cast_nullable_to_non_nullable
                       as String?,
             currentQuantity: null == currentQuantity
                 ? _value.currentQuantity
@@ -203,6 +210,7 @@ abstract class _$$ProductVariantImplCopyWith<$Res>
     double price,
     double? discountedPrice,
     String? stockUnit,
+    String? weight,
     String currentQuantity,
     bool status,
     List<ProductMedia> media,
@@ -238,6 +246,7 @@ class __$$ProductVariantImplCopyWithImpl<$Res>
     Object? price = null,
     Object? discountedPrice = freezed,
     Object? stockUnit = freezed,
+    Object? weight = freezed,
     Object? currentQuantity = null,
     Object? status = null,
     Object? media = null,
@@ -279,6 +288,10 @@ class __$$ProductVariantImplCopyWithImpl<$Res>
         stockUnit: freezed == stockUnit
             ? _value.stockUnit
             : stockUnit // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        weight: freezed == weight
+            ? _value.weight
+            : weight // ignore: cast_nullable_to_non_nullable
                   as String?,
         currentQuantity: null == currentQuantity
             ? _value.currentQuantity
@@ -340,6 +353,7 @@ class _$ProductVariantImpl extends _ProductVariant {
     required this.price,
     this.discountedPrice,
     this.stockUnit,
+    this.weight,
     required this.currentQuantity,
     required this.status,
     required final List<ProductMedia> media,
@@ -368,6 +382,8 @@ class _$ProductVariantImpl extends _ProductVariant {
   final double? discountedPrice;
   @override
   final String? stockUnit;
+  @override
+  final String? weight;
   @override
   final String currentQuantity;
   @override
@@ -399,7 +415,7 @@ class _$ProductVariantImpl extends _ProductVariant {
 
   @override
   String toString() {
-    return 'ProductVariant(id: $id, name: $name, productId: $productId, sku: $sku, price: $price, discountedPrice: $discountedPrice, stockUnit: $stockUnit, currentQuantity: $currentQuantity, status: $status, media: $media, productDescription: $productDescription, productRating: $productRating, quantityLimitPerCustomer: $quantityLimitPerCustomer, isPreorder: $isPreorder, preorderEndDate: $preorderEndDate, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'ProductVariant(id: $id, name: $name, productId: $productId, sku: $sku, price: $price, discountedPrice: $discountedPrice, stockUnit: $stockUnit, weight: $weight, currentQuantity: $currentQuantity, status: $status, media: $media, productDescription: $productDescription, productRating: $productRating, quantityLimitPerCustomer: $quantityLimitPerCustomer, isPreorder: $isPreorder, preorderEndDate: $preorderEndDate, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -417,6 +433,7 @@ class _$ProductVariantImpl extends _ProductVariant {
                 other.discountedPrice == discountedPrice) &&
             (identical(other.stockUnit, stockUnit) ||
                 other.stockUnit == stockUnit) &&
+            (identical(other.weight, weight) || other.weight == weight) &&
             (identical(other.currentQuantity, currentQuantity) ||
                 other.currentQuantity == currentQuantity) &&
             (identical(other.status, status) || other.status == status) &&
@@ -442,7 +459,7 @@ class _$ProductVariantImpl extends _ProductVariant {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     runtimeType,
     id,
     name,
@@ -451,6 +468,7 @@ class _$ProductVariantImpl extends _ProductVariant {
     price,
     discountedPrice,
     stockUnit,
+    weight,
     currentQuantity,
     status,
     const DeepCollectionEquality().hash(_media),
@@ -462,7 +480,7 @@ class _$ProductVariantImpl extends _ProductVariant {
     tags,
     createdAt,
     updatedAt,
-  );
+  ]);
 
   /// Create a copy of ProductVariant
   /// with the given fields replaced by the non-null parameter values.
@@ -485,6 +503,7 @@ abstract class _ProductVariant extends ProductVariant {
     required final double price,
     final double? discountedPrice,
     final String? stockUnit,
+    final String? weight,
     required final String currentQuantity,
     required final bool status,
     required final List<ProductMedia> media,
@@ -513,6 +532,8 @@ abstract class _ProductVariant extends ProductVariant {
   double? get discountedPrice;
   @override
   String? get stockUnit;
+  @override
+  String? get weight;
   @override
   String get currentQuantity;
   @override

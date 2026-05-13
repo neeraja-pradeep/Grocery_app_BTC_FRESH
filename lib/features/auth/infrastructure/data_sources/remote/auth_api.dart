@@ -38,7 +38,6 @@ class AuthApi {
         throw Exception('Login failed: ${res.statusCode}');
       }
 
-      // final user = UserEntity.fromMap(res.data['user']);
       final data = res.data as Map<String, dynamic>;
       final user = UserEntity.fromMap(data['user']);
 
@@ -150,13 +149,44 @@ class AuthApi {
   }
 
   // ----------------------------------------------------------
+  // VALIDATE SESSION (server-side ping to confirm session is alive)
+  // ----------------------------------------------------------
+  Future<bool> validateSession() async {
+    try {
+      final res = await _dio.get(ApiEndpoints.profile);
+      return res.statusCode == 200;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        return false;
+      }
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  // ----------------------------------------------------------
+  // SERVER-SIDE LOGOUT
+  // ----------------------------------------------------------
+  Future<void> logoutFromServer() async {
+    try {
+      await _dio.post('/api/auth/v1/logout/');
+    } catch (_) {
+      // Ignore errors — local data will still be cleared
+    }
+  }
+
+  // ----------------------------------------------------------
   // RESET PASSWORD (after OTP verification)
   // ----------------------------------------------------------
-  Future<String> resetPassword({required String newPassword}) async {
+  Future<String> resetPassword({required String newPassword, String? otp}) async {
     try {
       final res = await _dio.post(
         ApiEndpoints.resetPassword,
-        data: {'new_password': newPassword},
+        data: {
+          'new_password': newPassword,
+          if (otp != null) 'otp': otp,
+        },
       );
       if (res.statusCode != 200) {
         final data = res.data as Map<String, dynamic>;
@@ -181,6 +211,7 @@ class AuthApi {
     String? city,
     String? state,
     String? postalCode,
+    String? country,
   }) async {
     try {
       final res = await _dio.post(
@@ -195,6 +226,7 @@ class AuthApi {
           if (city != null) 'city': city,
           if (state != null) 'state': state,
           if (postalCode != null) 'postal_code': postalCode,
+          if (country != null) 'country': country,
           'address_type': addressType,
           'selected': true,
         },

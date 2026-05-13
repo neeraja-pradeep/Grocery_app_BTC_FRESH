@@ -1,9 +1,11 @@
 // lib/features/wishlist/infrastructure/repositories/wishlist_repository_impl.dart
 
-import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
+import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/storage/cache_config.dart';
+import '../../../../core/utils/logger.dart';
 import '../../domain/entities/wishlist_item.dart';
 import '../../domain/repositories/wishlist_repository.dart';
 import '../data_sources/wishlist_api.dart';
@@ -21,34 +23,45 @@ class WishlistRepositoryImpl implements WishlistRepository {
 
   @override
   Future<Either<Failure, List<WishlistItem>>> getWishlist() async {
-    // 1. Try Local Cache first
+    // 1. Try fresh cache first
     try {
       final cachedContainer = await _localDataSource.getWishlist();
       if (cachedContainer != null &&
-          cachedContainer.isFresh(const Duration(minutes: 5))) {
+          cachedContainer.isFresh(CacheConfig.wishlistCacheTtl)) {
         return Right(cachedContainer.data);
       }
-    } catch (e) {
-      // Ignore cache read errors, proceed to API
+    } catch (_) {
+      // Cache read failure — proceed to API
     }
 
     // 2. Fetch from API
     try {
       final items = await _remoteDataSource.getWishlist();
-
-      // 3. Save to Cache
       await _localDataSource.saveWishlist(items);
-
       return Right(items);
-    } catch (e) {
-      // 4. On Network Error: Try to return stale cache if available
-      try {
-        final cachedContainer = await _localDataSource.getWishlist();
-        if (cachedContainer != null) {
-          return Right(cachedContainer.data);
-        }
-      } catch (_) {}
+    } on DioException catch (e) {
+      // 3. On network error, return stale cache if available
+      final stale = await _getStaleCacheOrNull();
+      if (stale != null) return Right(stale);
 
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.unknown) {
+        return const Left(NetworkFailure());
+      }
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        return const Left(TimeoutFailure());
+      }
+      return Left(
+        ServerFailure(
+          e.message ?? 'Server error',
+          statusCode: e.response?.statusCode,
+        ),
+      );
+    } catch (e) {
+      final stale = await _getStaleCacheOrNull();
+      if (stale != null) return Right(stale);
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -57,12 +70,15 @@ class WishlistRepositoryImpl implements WishlistRepository {
   Future<Either<Failure, WishlistItem>> addToWishlist(String productId) async {
     try {
       final item = await _remoteDataSource.addToWishlist(productId);
-
-      // Update cache by refetching the entire wishlist
-      // This ensures consistency but could be optimized
       await _refreshCache();
-
       return Right(item);
+    } on DioException catch (e) {
+      return Left(
+        ServerFailure(
+          e.message ?? 'Failed to add to wishlist',
+          statusCode: e.response?.statusCode,
+        ),
+      );
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -74,11 +90,15 @@ class WishlistRepositoryImpl implements WishlistRepository {
   ) async {
     try {
       await _remoteDataSource.removeFromWishlist(wishlistItemId);
-
-      // Update cache by refetching the entire wishlist
       await _refreshCache();
-
       return const Right(null);
+    } on DioException catch (e) {
+      return Left(
+        ServerFailure(
+          e.message ?? 'Failed to remove from wishlist',
+          statusCode: e.response?.statusCode,
+        ),
+      );
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -88,14 +108,13 @@ class WishlistRepositoryImpl implements WishlistRepository {
   Future<Either<Failure, void>> removeFromWishlistByProductId(
     String productId,
   ) async {
-    // First get the current wishlist to find the item
     final wishlistResult = await getWishlist();
 
     return wishlistResult.fold((failure) => Left(failure), (items) async {
       WishlistItem? item;
       try {
         item = items.firstWhere((item) => item.productId == productId);
-      } catch (e) {
+      } catch (_) {
         item = null;
       }
 
@@ -122,27 +141,25 @@ class WishlistRepositoryImpl implements WishlistRepository {
     try {
       await _localDataSource.clearWishlistCache();
     } catch (e) {
-      // Log error but don't throw - cache clearing should be non-blocking
-      // Log error but don't throw - cache clearing should be non-blocking
+      Logger.error('Failed to clear wishlist cache', error: e);
     }
   }
 
-  // Helper method to refresh cache
+  Future<List<WishlistItem>?> _getStaleCacheOrNull() async {
+    try {
+      final cached = await _localDataSource.getWishlist();
+      return cached?.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _refreshCache() async {
     try {
       final items = await _remoteDataSource.getWishlist();
       await _localDataSource.saveWishlist(items);
-    } catch (e) {
+    } catch (_) {
       // Ignore cache refresh errors
     }
   }
 }
-
-final wishlistRepositoryProvider = riverpod.Provider<WishlistRepository>((ref) {
-  final remoteDs = ref.watch(wishlistRemoteDataSourceProvider);
-  final localDs = ref.watch(wishlistLocalDataSourceProvider);
-  return WishlistRepositoryImpl(
-    remoteDataSource: remoteDs,
-    localDataSource: localDs,
-  );
-});

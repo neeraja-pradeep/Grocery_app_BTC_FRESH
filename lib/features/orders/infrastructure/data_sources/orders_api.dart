@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/endpoints.dart';
@@ -41,16 +40,6 @@ class OrdersApi {
     } catch (e) {
       rethrow;
     }
-  }
-
-  /// Fetch active orders
-  Future<List<OrderEntity>> getActiveOrders({int page = 1}) async {
-    return getOrders(status: 'active', page: page);
-  }
-
-  /// Fetch pending orders
-  Future<List<OrderEntity>> getPendingOrders({int page = 1}) async {
-    return getOrders(status: 'pending', page: page);
   }
 
   /// Fetch completed orders
@@ -234,8 +223,3 @@ class OrdersApi {
   }
 }
 
-/// Provider for OrdersApi
-final ordersApiProvider = Provider<OrdersApi>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return OrdersApi(apiClient);
-});

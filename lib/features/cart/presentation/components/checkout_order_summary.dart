@@ -5,8 +5,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../application/providers/applied_coupon_provider.dart';
-import '../../application/providers/checkout_line_provider.dart';
-import '../../application/providers/coupon_providers.dart';
 import '../../domain/entities/coupon.dart';
 import '../screen/coupons_screen.dart';
 
@@ -166,29 +164,11 @@ class CheckoutOrderSummary extends ConsumerWidget {
   }
 
   Future<void> _navigateToCoupons(BuildContext context, WidgetRef ref) async {
-    // Navigate to coupons screen and wait for result
-    final selectedCouponCode = await Navigator.push<String>(
+    // CouponsScreen now applies the coupon directly — no return value needed.
+    await Navigator.push<void>(
       context,
       MaterialPageRoute(builder: (context) => const CouponsScreen()),
     );
-
-    // If a coupon was selected, find and apply it
-    if (selectedCouponCode != null) {
-      final couponState = ref.read(couponControllerProvider);
-      final selectedCoupon = couponState.coupons.firstWhere(
-        (c) => c.name == selectedCouponCode,
-        orElse: () => throw Exception('Coupon not found'),
-      );
-
-      // Get current item total
-      final checkoutState = ref.read(checkoutLineControllerProvider);
-      final currentItemTotal = checkoutState.totalAmount;
-
-      // Apply the coupon
-      ref
-          .read(appliedCouponProvider.notifier)
-          .applyCoupon(selectedCoupon, currentItemTotal);
-    }
   }
 
   Widget _buildOrderSummary() {

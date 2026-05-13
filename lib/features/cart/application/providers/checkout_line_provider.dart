@@ -36,10 +36,10 @@ class CheckoutLineController extends Notifier<CheckoutLineState> {
   CheckoutLineState build() {
     final dataSource = ref.watch(checkoutLineDataSourceProvider);
     _dataSource = dataSource;
-    //_disposed = false;
-    //_initialized = false; // Reset on rebuild to ensure initialization runs
-    //_pollingTimer?.cancel();
-    //_pollingTimer = null;
+    _disposed = false;
+    _initialized = false;
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
 
     ref.onDispose(_disposeController);
 

@@ -16,9 +16,11 @@ class ErrorView extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
+          color: Colors.white,
           image: DecorationImage(
-            image: AssetImage('assets/images/error_background.png'),
-            fit: BoxFit.cover,
+            image: AssetImage('assets/bg.png'),
+            repeat: ImageRepeat.repeat,
+            opacity: 0.7,
           ),
         ),
         child: SafeArea(

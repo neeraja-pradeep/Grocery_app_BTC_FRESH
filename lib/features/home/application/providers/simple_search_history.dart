@@ -5,18 +5,18 @@ class SimpleSearchHistory extends StateNotifier<List<String>> {
   static const String _key = 'search_history';
   static const int _maxItems = 10;
 
+  SharedPreferences? _prefs;
+
   SimpleSearchHistory() : super([]) {
     _loadHistory();
   }
 
   Future<void> _loadHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final history = prefs.getStringList(_key) ?? [];
-      // Debug: Loading history
+      _prefs = await SharedPreferences.getInstance();
+      final history = _prefs!.getStringList(_key) ?? [];
       state = history;
     } catch (e) {
-      // Debug: Error loading history
       state = [];
     }
   }
@@ -25,48 +25,37 @@ class SimpleSearchHistory extends StateNotifier<List<String>> {
     if (query.trim().isEmpty) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      _prefs ??= await SharedPreferences.getInstance();
       final trimmed = query.trim();
 
-      // Create new list
       final newHistory = List<String>.from(state);
-
-      // Remove if exists
       newHistory.remove(trimmed);
-
-      // Add to beginning
       newHistory.insert(0, trimmed);
 
-      // Limit size
       if (newHistory.length > _maxItems) {
         newHistory.removeRange(_maxItems, newHistory.length);
       }
 
-      // Save to SharedPreferences
-      await prefs.setStringList(_key, newHistory);
-
-      // Update state
+      await _prefs!.setStringList(_key, newHistory);
       state = newHistory;
-
-      // Debug: Added search to history
     } catch (e) {
-      // Debug: Error adding to history
+      // history update failure is non-critical, don't surface to user
     }
   }
 
   Future<void> clearHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_key);
+      _prefs ??= await SharedPreferences.getInstance();
+      await _prefs!.remove(_key);
       state = [];
-      // Debug: Cleared history
     } catch (e) {
-      // Debug: Error clearing history
+      // ignore
     }
   }
 }
 
 final simpleSearchHistoryProvider =
     StateNotifierProvider<SimpleSearchHistory, List<String>>((ref) {
+      ref.keepAlive();
       return SimpleSearchHistory();
     });

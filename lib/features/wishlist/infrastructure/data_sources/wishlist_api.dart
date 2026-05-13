@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/endpoints.dart';
 import '../../domain/entities/wishlist_item.dart';
 
 abstract class WishlistRemoteDataSource {
@@ -19,77 +20,61 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
 
   @override
   Future<List<WishlistItem>> getWishlist() async {
-    try {
-      final response = await _apiClient.get('/api/order/v1/wishlist/');
+    final response = await _apiClient.get(ApiEndpoints.wishlist);
 
-      if (response.statusCode == 200 && response.data != null) {
-        List responseList;
+    if (response.statusCode != 200 || response.data == null) {
+      throw const FormatException('Failed to load wishlist');
+    }
 
-        if (response.data is List) {
-          responseList = response.data as List;
-        } else if (response.data is Map &&
-            (response.data as Map).containsKey('results')) {
-          responseList =
-              (response.data as Map<String, dynamic>)['results'] as List;
-        } else {
-          throw Exception('Unexpected response format');
-        }
+    final List responseList;
+    if (response.data is List) {
+      responseList = response.data as List;
+    } else if (response.data is Map &&
+        (response.data as Map).containsKey('results')) {
+      responseList =
+          (response.data as Map<String, dynamic>)['results'] as List;
+    } else {
+      throw const FormatException('Unexpected wishlist response format');
+    }
 
-        // Fetch complete product details for each wishlist item
-        List<WishlistItem> wishlistItems = [];
+    // Fetch complete product details for all items in parallel (C6 — was sequential N+1)
+    final futures = responseList.map((item) async {
+      final wishlistData = item as Map<String, dynamic>;
+      final productVariantId = wishlistData['product_variant_id']?.toString();
 
-        for (var item in responseList) {
-          final wishlistData = item as Map<String, dynamic>;
-          final productVariantId = wishlistData['product_variant']?.toString();
-
-          if (productVariantId != null) {
-            try {
-              // Fetch complete product details
-              final productResponse = await _apiClient.get(
-                '/api/products/v1/variants/$productVariantId/',
-              );
-
-              if (productResponse.statusCode == 200 &&
-                  productResponse.data != null) {
-                // Create WishlistItem from complete product data
-                final wishlistItem = WishlistItem.fromProductVariantResponse(
-                  wishlistId: wishlistData['id'] ?? 0,
-                  productData: productResponse.data as Map<String, dynamic>,
-                );
-                wishlistItems.add(wishlistItem);
-              } else {
-                // Fallback to basic wishlist data if product fetch fails
-                wishlistItems.add(WishlistItem.fromJson(wishlistData));
-              }
-            } catch (e) {
-              // print('Error fetching product details for $productVariantId: $e');
-              // Fallback to basic wishlist data
-              wishlistItems.add(WishlistItem.fromJson(wishlistData));
-            }
-          } else {
-            // Fallback to basic wishlist data
-            wishlistItems.add(WishlistItem.fromJson(wishlistData));
-          }
-        }
-
-        return wishlistItems;
+      if (productVariantId == null) {
+        return WishlistItem.fromJson(wishlistData);
       }
 
-      throw Exception('Failed to load wishlist');
-    } catch (e) {
-      throw Exception('Error loading wishlist: $e');
-    }
+      try {
+        final productResponse = await _apiClient.get(
+          ApiEndpoints.productVariant(productVariantId),
+        );
+
+        if (productResponse.statusCode == 200 && productResponse.data != null) {
+          return WishlistItem.fromProductVariantResponse(
+            wishlistId: wishlistData['id'] ?? 0,
+            productData: productResponse.data as Map<String, dynamic>,
+          );
+        }
+        return WishlistItem.fromJson(wishlistData);
+      } catch (_) {
+        return WishlistItem.fromJson(wishlistData);
+      }
+    });
+
+    return Future.wait(futures);
   }
 
   @override
   Future<WishlistItem> addToWishlist(String productId) async {
-    try {
-      final requestData = {
-        'product_variant': int.tryParse(productId) ?? productId,
-      };
+    final requestData = {
+      'product_variant_id': int.tryParse(productId) ?? productId,
+    };
 
+    try {
       final response = await _apiClient.post(
-        '/api/order/v1/wishlist/',
+        ApiEndpoints.wishlist,
         data: requestData,
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
@@ -98,39 +83,29 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
         return WishlistItem.fromJson(response.data as Map<String, dynamic>);
       }
 
-      throw Exception(
+      throw FormatException(
         'Failed to add to wishlist - Status: ${response.statusCode}',
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
         final errorData = e.response?.data;
-        String errorMessage = 'Bad request';
-        if (errorData is Map) {
-          errorMessage = errorData.toString();
-        } else if (errorData is String) {
-          errorMessage = errorData;
-        }
-        throw Exception('API Error: $errorMessage');
+        final errorMessage = errorData is Map
+            ? errorData.toString()
+            : errorData?.toString() ?? 'Bad request';
+        throw FormatException('API Error: $errorMessage');
       }
-
-      throw Exception('Error adding to wishlist: ${e.message}');
-    } catch (e) {
       rethrow;
     }
   }
 
   @override
   Future<void> removeFromWishlist(String wishlistItemId) async {
-    try {
-      final response = await _apiClient.delete(
-        '/api/order/v1/wishlist/$wishlistItemId/',
-      );
+    final response = await _apiClient.delete(
+      ApiEndpoints.wishlistById(wishlistItemId),
+    );
 
-      if (response.statusCode != 204 && response.statusCode != 200) {
-        throw Exception('Failed to remove from wishlist');
-      }
-    } catch (e) {
-      throw Exception('Error removing from wishlist: $e');
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw const FormatException('Failed to remove from wishlist');
     }
   }
 }
