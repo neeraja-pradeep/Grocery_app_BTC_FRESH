@@ -23,9 +23,18 @@ class AddressApi {
       throw const FormatException('Missing results in address list response.');
     }
 
-    return results
-        .map((json) => AddressDto.fromJson(json as Map<String, dynamic>))
-        .toList();
+    // Parse each row defensively — skip individual rows that fail rather
+    // than letting one malformed entry break the whole list fetch.
+    final parsed = <AddressDto>[];
+    for (final raw in results) {
+      if (raw is! Map<String, dynamic>) continue;
+      try {
+        parsed.add(AddressDto.fromJson(raw));
+      } catch (_) {
+        // Drop unparseable rows; the rest of the list remains usable.
+      }
+    }
+    return parsed;
   }
 
   /// Fetches a single address by ID

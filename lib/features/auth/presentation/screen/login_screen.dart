@@ -76,7 +76,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   SizedBox(height: 15.h),
 
                   Text(
-                    'User ID',
+                    'Email',
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,
@@ -86,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   AppTextField(
                     controller: userNameController,
-                    hintText: 'User ID',
+                    hintText: 'Email',
                     isObscure: false,
                     icon: null,
                   ),

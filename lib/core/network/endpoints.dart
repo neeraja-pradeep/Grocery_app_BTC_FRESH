@@ -31,6 +31,8 @@ class ApiEndpoints {
   static const String categories = 'api/products/v1/category/';
   static String categoryProducts(String categoryId) =>
       'api/products/v1/?category_id=$categoryId';
+  static String categoryDiscountedProducts(String categoryId) =>
+      'api/products/v1/?category_id=$categoryId&is_discounted=true';
 
   // ============================================================================
   // PRODUCT ENDPOINTS
@@ -42,6 +44,7 @@ class ApiEndpoints {
   // ORDER ENDPOINTS
   // ============================================================================
   static const String orders = '/api/order/v1/orders/';
+  static const String frequentlyBought = '/api/order/v1/orders/frequently-bought/';
   static String orderDetails(String orderId) =>
       '/api/order/v1/orders/$orderId/';
   static String orderRating(String orderId) =>
@@ -56,6 +59,7 @@ class ApiEndpoints {
   // ============================================================================
   // CHECKOUT / PAYMENT ENDPOINTS
   // ============================================================================
+  static const String coupons = '/api/order/v1/coupons/';
   static String applyCoupon(int checkoutId) =>
       'api/order/v1/checkouts/$checkoutId/';
   static const String paymentInitiate = '/api/order/v1/checkout/';

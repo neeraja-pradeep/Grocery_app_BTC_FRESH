@@ -22,6 +22,7 @@ import '../../../bottomnavbar/bottom_navbar.dart';
 import '../components/checkout_section/checkout_section.dart';
 import '../components/price_row/price_row.dart';
 import '../components/product_info/product_info.dart';
+import '../../../cart/presentation/components/frequently_bought_strip.dart';
 import '../components/rating_section/rating_section.dart';
 
 import '../../application/providers/product_detail_providers.dart';
@@ -372,6 +373,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                   );
                 },
               ),
+
+            // Frequently Bought strip — same widget used on the cart screen.
+            // Hides itself for guests / empty / errors.
+            const FrequentlyBoughtStrip(),
 
             SizedBox(height: _kBottomSheetClearance.h),
           ],

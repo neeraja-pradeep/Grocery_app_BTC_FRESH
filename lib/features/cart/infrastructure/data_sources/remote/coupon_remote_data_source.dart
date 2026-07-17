@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import '../../../../../core/network/api_client.dart';
+import '../../../../../core/network/endpoints.dart';
 import '../../../../../core/network/network_exceptions.dart';
 import '../../models/coupon_dto.dart';
 
@@ -67,7 +68,7 @@ class CouponRemoteDataSourceImpl implements CouponRemoteDataSource {
       }
 
       final response = await _apiClient.get(
-        '/api/order/v1/coupons/',
+        ApiEndpoints.coupons,
         headers: headers.isNotEmpty ? headers : null,
       );
 

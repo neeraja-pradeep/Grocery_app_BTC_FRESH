@@ -1,5 +1,4 @@
-import 'dart:developer' as developer;
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/network/api_client.dart';
@@ -77,16 +76,39 @@ class OrderDataSource {
 
   /// Initiate payment and get Razorpay order details
   Future<CheckoutResponse> initiatePayment({required int addressId}) async {
-    final response = await _apiClient.post(
-      ApiEndpoints.paymentInitiate,
-      data: {'address_id': addressId},
+    final startedAt = DateTime.now();
+    debugPrint(
+      '[OrderTiming] POST /checkout/ STARTED '
+      'iso=${startedAt.toIso8601String()} '
+      'epoch_ms=${startedAt.millisecondsSinceEpoch}',
     );
 
-    developer.log('========== PAYMENT INITIATE RAW RESPONSE ==========');
-    developer.log('Response: ${response.data}');
-    developer.log('===================================================');
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.paymentInitiate,
+        data: {'address_id': addressId},
+      );
 
-    return CheckoutResponse.fromJson(response.data as Map<String, dynamic>);
+      final finishedAt = DateTime.now();
+      debugPrint(
+        '[OrderTiming] POST /checkout/ FINISHED '
+        'iso=${finishedAt.toIso8601String()} '
+        'epoch_ms=${finishedAt.millisecondsSinceEpoch} '
+        'roundTripMs=${finishedAt.difference(startedAt).inMilliseconds}',
+      );
+
+      return CheckoutResponse.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      final failedAt = DateTime.now();
+      debugPrint(
+        '[OrderTiming] POST /checkout/ FAILED '
+        'iso=${failedAt.toIso8601String()} '
+        'epoch_ms=${failedAt.millisecondsSinceEpoch} '
+        'roundTripMs=${failedAt.difference(startedAt).inMilliseconds} '
+        'error=$e',
+      );
+      rethrow;
+    }
   }
 
   /// Verify Razorpay payment after successful payment
@@ -95,22 +117,45 @@ class OrderDataSource {
     required String razorpayOrderId,
     required String razorpaySignature,
   }) async {
-    final response = await _apiClient.post(
-      ApiEndpoints.paymentVerify,
-      data: {
-        'razorpay_payment_id': razorpayPaymentId,
-        'razorpay_order_id': razorpayOrderId,
-        'razorpay_signature': razorpaySignature,
-      },
+    final startedAt = DateTime.now();
+    debugPrint(
+      '[OrderTiming] POST /payment/verify/ STARTED '
+      'iso=${startedAt.toIso8601String()} '
+      'epoch_ms=${startedAt.millisecondsSinceEpoch}',
     );
 
-    developer.log('========== PAYMENT VERIFY RAW RESPONSE ==========');
-    developer.log('Response: ${response.data}');
-    developer.log('=================================================');
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.paymentVerify,
+        data: {
+          'razorpay_payment_id': razorpayPaymentId,
+          'razorpay_order_id': razorpayOrderId,
+          'razorpay_signature': razorpaySignature,
+        },
+      );
 
-    return PaymentVerifyResponse.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+      final finishedAt = DateTime.now();
+      debugPrint(
+        '[OrderTiming] POST /payment/verify/ FINISHED '
+        'iso=${finishedAt.toIso8601String()} '
+        'epoch_ms=${finishedAt.millisecondsSinceEpoch} '
+        'roundTripMs=${finishedAt.difference(startedAt).inMilliseconds}',
+      );
+
+      return PaymentVerifyResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      final failedAt = DateTime.now();
+      debugPrint(
+        '[OrderTiming] POST /payment/verify/ FAILED '
+        'iso=${failedAt.toIso8601String()} '
+        'epoch_ms=${failedAt.millisecondsSinceEpoch} '
+        'roundTripMs=${failedAt.difference(startedAt).inMilliseconds} '
+        'error=$e',
+      );
+      rethrow;
+    }
   }
 }
 

@@ -26,9 +26,13 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
+      // Wipe stale user/cookie state BEFORE login so the cookie jar is empty
+      // when the server's `Set-Cookie: sessionid=...` arrives. Doing this
+      // after login would delete the session we just received.
+      await local.clearAllUserData();
+
       final user = await remote.login(username: username, password: password);
 
-      await local.clearAllUserData();
       await local.saveUser(user);
 
       final session = await local.getValidSession(ApiClient.baseUrl);

@@ -60,7 +60,7 @@ extension DeliveryApiStatusExtension on DeliveryApiStatus {
 
   /// Convert from API string to enum
   static DeliveryApiStatus fromString(String status) {
-    switch (status.toLowerCase()) {
+    switch (status.trim().toLowerCase()) {
       case 'pending':
         return DeliveryApiStatus.pending;
       case 'assigned':

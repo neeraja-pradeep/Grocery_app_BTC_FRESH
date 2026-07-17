@@ -20,7 +20,7 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.new_app"
+    namespace = "com.nexotech.btcfresh"
     compileSdk = 36  // Latest Android 16 SDK
     ndkVersion = flutter.ndkVersion
 
@@ -34,8 +34,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.new_app"
+        applicationId = "com.nexotech.btcfresh"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24  // Updated for better Razorpay & modern Android compatibility

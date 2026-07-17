@@ -137,8 +137,15 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
       return;
     }
 
-    final firstName = authState.user.firstName;
-    final lastName = authState.user.lastName;
+    // Defensive defaults: the backend requires non-blank first_name /
+    // last_name, and the profile-side address DTO rejects empty strings —
+    // so an OTP-signup user with no profile name would create rows the
+    // profile address list cannot parse. Mirror the profile form's
+    // fallback (`'User'` / `'.'`).
+    final rawFirstName = authState.user.firstName.trim();
+    final rawLastName = authState.user.lastName.trim();
+    final firstName = rawFirstName.isEmpty ? 'User' : rawFirstName;
+    final lastName = rawLastName.isEmpty ? '.' : rawLastName;
 
     setState(() => _isSaving = true);
 

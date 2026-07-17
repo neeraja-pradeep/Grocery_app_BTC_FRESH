@@ -30,15 +30,32 @@ class WishlistItem with _$WishlistItem {
       imageUrl = '';
     }
 
+    final mrp = _parseDouble(json['price']) ?? 0.0;
+    final discountedPrice = _parseDouble(json['discounted_price']);
+    final hasDiscount = discountedPrice != null &&
+        discountedPrice > 0 &&
+        discountedPrice < mrp;
+    final currentPrice = hasDiscount ? discountedPrice : mrp;
+    final discountPct = hasDiscount && mrp > 0
+        ? (((mrp - discountedPrice) / mrp) * 100).round()
+        : 0;
+
+    // Prefer the backend's pre-formatted `weight_display` (e.g. "1kg"); fall
+    // back to `unit` so older payloads still render something useful.
+    final weightDisplay = json['weight_display']?.toString().trim();
+    final unitLabel = (weightDisplay != null && weightDisplay.isNotEmpty)
+        ? weightDisplay
+        : (json['unit']?.toString() ?? '');
+
     return WishlistItem(
       id: _parseInt(json['id']) ?? 0,
       productId: json['product_variant_id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      price: _parseDouble(json['price']) ?? 0.0,
-      mrp: _parseDouble(json['price']) ?? 0.0,
+      price: currentPrice,
+      mrp: mrp,
       imageUrl: imageUrl,
-      unitLabel: '',
-      discountPct: 0,
+      unitLabel: unitLabel,
+      discountPct: discountPct,
       addedAt: DateTime.now(),
     );
   }

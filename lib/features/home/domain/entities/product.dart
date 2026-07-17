@@ -30,11 +30,54 @@ class Product with _$Product {
   }) = _Product;
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    final productId = json['id'] is int
+        ? json['id'] as int
+        : int.tryParse(json['id'].toString()) ?? 0;
+    final productName = json['name']?.toString() ?? '';
+
+    // Media: support both the `media` array and the `primary_image` singular
+    // object returned by `/api/products/v1/?is_discounted=true`.
+    final rawMediaList = json['media'];
+    final rawPrimaryImage = json['primary_image'];
+    final List<Map<String, dynamic>> mediaJsonForVariants =
+        rawMediaList is List && rawMediaList.isNotEmpty
+        ? rawMediaList.whereType<Map<String, dynamic>>().toList()
+        : (rawPrimaryImage is Map<String, dynamic>
+              ? [rawPrimaryImage]
+              : const []);
+
+    final media = mediaJsonForVariants.map(ProductMedia.fromJson).toList();
+
+    // The discounted-products endpoint embeds variants that are missing
+    // `name`, `product_id`, `media`, and `current_quantity` (it returns an
+    // `in_stock` boolean instead). Backfill those from the parent product so
+    // the rest of the app sees complete `ProductVariant`s.
+    final variants = <ProductVariant>[];
+    final rawVariants = json['variants'];
+    if (rawVariants is List) {
+      for (final raw in rawVariants) {
+        if (raw is! Map<String, dynamic>) continue;
+        final enriched = Map<String, dynamic>.from(raw);
+        enriched.putIfAbsent('product_id', () => productId);
+        enriched.putIfAbsent('name', () => productName);
+        if ((enriched['media'] is! List ||
+                (enriched['media'] as List).isEmpty) &&
+            mediaJsonForVariants.isNotEmpty) {
+          enriched['media'] = mediaJsonForVariants;
+        }
+        if (enriched['current_quantity'] == null &&
+            enriched['in_stock'] is bool) {
+          enriched['current_quantity'] = (enriched['in_stock'] as bool)
+              ? '1'
+              : '0';
+        }
+        variants.add(ProductVariant.fromJson(enriched));
+      }
+    }
+
     return Product(
-      id: json['id'] is int
-          ? json['id']
-          : int.tryParse(json['id'].toString()) ?? 0,
-      name: json['name']?.toString() ?? '',
+      id: productId,
+      name: productName,
       description: json['description'] is Map
           ? (json['description'] as Map)['text']?.toString()
           : json['description']?.toString(),
@@ -59,16 +102,8 @@ class Product with _$Product {
       taxClassId: json['tax_class_id'] is int
           ? json['tax_class_id']
           : int.tryParse(json['tax_class_id'].toString()) ?? 0,
-      media:
-          (json['media'] as List<dynamic>?)
-              ?.map((e) => ProductMedia.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      variants:
-          (json['variants'] as List<dynamic>?)
-              ?.map((e) => ProductVariant.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      media: media,
+      variants: variants,
       status: json['status'] == true,
       tags: json['tags']?.toString(),
     );

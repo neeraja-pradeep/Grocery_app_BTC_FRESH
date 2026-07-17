@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/network/api_client.dart';
@@ -20,11 +21,22 @@ class DeliveryApi {
   /// - Empty results array (admin hasn't accepted order yet)
   /// - 404 error (delivery not yet created)
   Future<DeliveryEntity?> getDeliveryStatus(int orderId) async {
+    debugPrint(
+      '[DeliveryStatus] GET ${ApiEndpoints.deliveriesByOrder(orderId)} '
+      'orderId=$orderId',
+    );
+
     try {
       // Fetch deliveries list by order ID
       final response = await _apiClient.get(
         ApiEndpoints.deliveriesByOrder(orderId),
       );
+
+      debugPrint(
+        '[DeliveryStatus] HTTP ${response.statusCode} '
+        'bodyType=${response.data?.runtimeType}',
+      );
+      debugPrint('[DeliveryStatus] raw response: ${response.data}');
 
       if (response.statusCode == 200 && response.data != null) {
         final responseData = response.data as Map<String, dynamic>;
@@ -34,11 +46,21 @@ class DeliveryApi {
 
         // Empty results means admin hasn't accepted the order yet
         if (results == null || results.isEmpty) {
+          debugPrint(
+            '[DeliveryStatus] results array is null or empty — '
+            'no delivery assigned yet for orderId=$orderId',
+          );
           return null;
         }
 
         // Get the first delivery (should only be one per order)
         final deliveryData = results.first as Map<String, dynamic>;
+
+        debugPrint(
+          '[DeliveryStatus] results[0] (the field used to detect '
+          '"delivered"): status="${deliveryData['status']}" '
+          'fullEntry=$deliveryData',
+        );
 
         // Parse and return delivery entity directly from results[0]
         return DeliveryEntity.fromJson(deliveryData);
@@ -48,11 +70,20 @@ class DeliveryApi {
     } on DioException catch (e) {
       // Return null for 404 (delivery not yet created) - NOT an error
       if (e.response?.statusCode == 404) {
+        debugPrint(
+          '[DeliveryStatus] 404 — delivery not yet created for '
+          'orderId=$orderId (returning null, not an error)',
+        );
         return null;
       }
+      debugPrint(
+        '[DeliveryStatus] DioException status=${e.response?.statusCode} '
+        'message=${e.message} body=${e.response?.data}',
+      );
       // Rethrow other errors
       throw Exception('Error fetching delivery status: ${e.message}');
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[DeliveryStatus] unexpected error: $e\n$st');
       rethrow;
     }
   }

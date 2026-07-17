@@ -182,7 +182,7 @@ class ProfileAddressController extends AutoDisposeNotifier<AddressState> {
     state = state.copyWith(isCreating: true, clearError: true);
 
     try {
-      await _repository.createAddress(
+      final created = await _repository.createAddress(
         firstName: firstName,
         lastName: lastName,
         streetAddress1: streetAddress1,
@@ -197,11 +197,22 @@ class ProfileAddressController extends AutoDisposeNotifier<AddressState> {
         selected: selected,
       );
 
-      // Refresh the list after creating
+      // Refresh the list after creating so the new address appears in
+      // state.addresses before we try to mark it selected.
       await fetchAddresses();
       // Keep the cart/home-header bottom-sheet provider in sync so the new
       // address appears everywhere it's listed.
       await _syncCartAddressList();
+
+      // Auto-select the just-created address. `selectAddress` already
+      // cascades to homeProvider and the cart's addressControllerProvider,
+      // so the home header chip + checkout sheet update without extra work.
+      // Best-effort: on backend failure fall back to a local-only selection.
+      try {
+        await selectAddress(created.id);
+      } catch (e) {
+        setLocalSelectedAddressId(created.id);
+      }
 
       state = state.copyWith(isCreating: false, clearError: true);
     } catch (error) {
@@ -373,7 +384,11 @@ class ProfileAddressController extends AutoDisposeNotifier<AddressState> {
   /// Best-effort — failures here must not break the profile mutation.
   Future<void> _syncCartAddressList() async {
     try {
-      await ref.read(addressControllerProvider.notifier).refresh();
+      // Force-refresh, not conditional refresh — the server's coarse
+      // Last-Modified can 304 a GET issued moments after our PATCH/DELETE,
+      // which would leave the cart showing the pre-mutation list (and a
+      // phantom localSelectedAddress for a row we just deleted).
+      await ref.read(addressControllerProvider.notifier).forceRefresh();
     } catch (_) {
       // Best-effort — the profile-side data is already correct.
     }

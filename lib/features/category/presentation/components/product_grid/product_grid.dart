@@ -22,11 +22,17 @@ class ProductGrid extends ConsumerStatefulWidget {
     super.key,
     required this.categories,
     required this.selectedCategoryIndex,
+    required this.selectedFilterIndex,
     required this.onCategoryInViewChanged,
   });
 
+  /// Filter chip index in CategoryScreenBody._filters (['Price Drop']).
+  /// -1 means no filter active.
+  static const int priceDropFilterIndex = 0;
+
   final List<CategoryItem> categories;
   final int selectedCategoryIndex;
+  final int selectedFilterIndex;
   final ValueChanged<int> onCategoryInViewChanged;
 
   @override
@@ -163,6 +169,9 @@ class ProductGridState extends ConsumerState<ProductGrid> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final isPriceDrop =
+        widget.selectedFilterIndex == ProductGrid.priceDropFilterIndex;
+
     return CustomScrollView(
       controller: _scrollController,
       slivers: [
@@ -173,6 +182,7 @@ class ProductGridState extends ConsumerState<ProductGrid> {
             category: widget.categories[i],
             isFirst: i == 0,
             colorScheme: colorScheme,
+            isPriceDrop: isPriceDrop,
           ),
         ],
       ],
@@ -188,19 +198,29 @@ class _CategorySectionBuilder extends ConsumerWidget {
     required this.category,
     required this.isFirst,
     required this.colorScheme,
+    required this.isPriceDrop,
   });
 
   final GlobalKey sectionKey;
   final CategoryItem category;
   final bool isFirst;
   final ColorScheme colorScheme;
+  final bool isPriceDrop;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch the product state for this category
-    final productState = ref.watch(
-      category_products.categoryProductControllerProvider(category.id ?? ''),
-    );
+    // Watch the product state for this category.
+    // Price Drop reads from the separate discount provider (no cache, no polling).
+    final categoryId = category.id ?? '';
+    final productState = isPriceDrop
+        ? ref.watch(
+            category_products.categoryDiscountProductControllerProvider(
+              categoryId,
+            ),
+          )
+        : ref.watch(
+            category_products.categoryProductControllerProvider(categoryId),
+          );
 
     // Filter: Don't render if category has no products
     // Check both null and empty conditions
@@ -245,6 +265,7 @@ class _CategorySectionBuilder extends ConsumerWidget {
           sliver: _CategoryProductsSliver(
             categoryId: category.id ?? '',
             colorScheme: colorScheme,
+            isPriceDrop: isPriceDrop,
           ),
         ),
       ],
@@ -258,10 +279,12 @@ class _CategoryProductsSliver extends ConsumerWidget {
   const _CategoryProductsSliver({
     required this.categoryId,
     required this.colorScheme,
+    required this.isPriceDrop,
   });
 
   final String categoryId;
   final ColorScheme colorScheme;
+  final bool isPriceDrop;
 
   /// Navigate to product details screen with variant ID only
   void _navigateToProductDetails(
@@ -273,9 +296,15 @@ class _CategoryProductsSliver extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final productState = ref.watch(
-      category_products.categoryProductControllerProvider(categoryId),
-    );
+    final productState = isPriceDrop
+        ? ref.watch(
+            category_products.categoryDiscountProductControllerProvider(
+              categoryId,
+            ),
+          )
+        : ref.watch(
+            category_products.categoryProductControllerProvider(categoryId),
+          );
 
     // Loading state
     if (productState.isLoading && !productState.hasData) {

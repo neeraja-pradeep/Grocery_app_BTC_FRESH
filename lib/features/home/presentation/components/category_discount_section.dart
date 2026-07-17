@@ -118,6 +118,30 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
     });
   }
 
+  Future<void> _handleDecreaseQuantity(int lineId) async {
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: lineId, delta: -1);
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error(context, 'Unable to update cart');
+      }
+    }
+  }
+
+  Future<void> _handleIncreaseQuantity(int lineId) async {
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: lineId, delta: 1);
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error(context, 'Unable to update cart');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
@@ -151,6 +175,17 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
     final String discountPercentage = hasDiscount
         ? '${(((originalPrice - displayPrice) / originalPrice) * 100).round()}%'
         : '';
+
+    // Cart state: is this variant already in the cart?
+    final cartState = ref.watch(checkoutLineControllerProvider);
+    final cartLine = cartState.items
+        .where((item) => item.productVariantId == product.id)
+        .toList();
+    final isInCart = cartLine.isNotEmpty;
+    final cartLineId = isInCart ? cartLine.first.id : 0;
+    final cartQuantity = isInCart ? cartLine.first.quantity : 0;
+
+    final String? formattedWeight = product.formattedWeight;
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -236,98 +271,110 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
                       ),
                     ),
 
-                  // 3. Add Button (Bottom Right of Image)
+                  // 3. Add Button / Quantity Selector (Bottom Right of Image)
                   Positioned(
                     bottom: 4,
                     right: 4,
-                    child: GestureDetector(
-                      onTap: () async {
-                        // Check if product is in stock
-                        if (!inStock) {
-                          if (context.mounted) {
-                            AppSnackbar.warning(
-                              context,
-                              'This product is out of stock',
-                            );
-                          }
-                          return;
-                        }
+                    child: isInCart
+                        ? _MegaQuantitySelector(
+                            quantity: cartQuantity,
+                            onDecrease: () =>
+                                _handleDecreaseQuantity(cartLineId),
+                            onIncrease: () =>
+                                _handleIncreaseQuantity(cartLineId),
+                          )
+                        : GestureDetector(
+                            onTap: () async {
+                              // Check if product is in stock
+                              if (!inStock) {
+                                if (context.mounted) {
+                                  AppSnackbar.warning(
+                                    context,
+                                    'This product is out of stock',
+                                  );
+                                }
+                                return;
+                              }
 
-                        // Block guests from adding to cart
-                        final authState = ref.read(authProvider);
-                        final isGuest = authState is GuestMode;
+                              // Block guests from adding to cart
+                              final authState = ref.read(authProvider);
+                              final isGuest = authState is GuestMode;
 
-                        if (isGuest) {
-                          if (context.mounted) {
-                            AppSnackbar.info(
-                              context,
-                              'Please login to add items to cart',
-                            );
-                          }
-                          return;
-                        }
+                              if (isGuest) {
+                                if (context.mounted) {
+                                  AppSnackbar.info(
+                                    context,
+                                    'Please login to add items to cart',
+                                  );
+                                }
+                                return;
+                              }
 
-                        // Add to cart via API
-                        try {
-                          await ref
-                              .read(checkoutLineControllerProvider.notifier)
-                              .addToCart(
-                                productVariantId: product.id,
-                                quantity: 1,
-                              );
-                          if (context.mounted) {
-                            AppSnackbar.success(
-                              context,
-                              '${product.name} added to cart',
-                            );
-                          }
-                        } on InsufficientStockException catch (e) {
-                          if (context.mounted) {
-                            AppSnackbar.warning(context, e.message);
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            AppSnackbar.error(
-                              context,
-                              'Unable to add item to cart',
-                            );
-                          }
-                        }
+                              // Add to cart via API
+                              try {
+                                await ref
+                                    .read(
+                                      checkoutLineControllerProvider.notifier,
+                                    )
+                                    .addToCart(
+                                      productVariantId: product.id,
+                                      quantity: 1,
+                                    );
+                                if (context.mounted) {
+                                  AppSnackbar.success(
+                                    context,
+                                    '${product.name} added to cart',
+                                  );
+                                }
+                              } on InsufficientStockException catch (e) {
+                                if (context.mounted) {
+                                  AppSnackbar.warning(context, e.message);
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  AppSnackbar.error(
+                                    context,
+                                    'Unable to add item to cart',
+                                  );
+                                }
+                              }
 
-                        // Also call the parent callback
-                        widget.onAddToCart();
-                      },
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: inStock
-                              ? Border.all(
-                                  color: const Color(0xFF8cc727),
-                                  width: 1.2,
-                                )
-                              : null,
-                          boxShadow: inStock
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                        ),
-                        child: Icon(
-                          Icons.add,
-                          color: inStock
-                              ? const Color(0xFF00695C)
-                              : Colors.grey,
-                          size: 20,
-                        ),
-                      ),
-                    ),
+                              // Also call the parent callback
+                              widget.onAddToCart();
+                            },
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: inStock
+                                    ? Border.all(
+                                        color: const Color(0xFF8cc727),
+                                        width: 1.2,
+                                      )
+                                    : null,
+                                boxShadow: inStock
+                                    ? null
+                                    : [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                              ),
+                              child: Icon(
+                                Icons.add,
+                                color: inStock
+                                    ? const Color(0xFF00695C)
+                                    : Colors.grey,
+                                size: 20,
+                              ),
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -337,10 +384,10 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
             Expanded(
               flex: 3, // Text takes remaining space
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // 1. Price Row
                     Row(
@@ -375,33 +422,59 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
                       ],
                     ),
 
-                    SizedBox(height: 4.h),
-
-                    // 2. Product Name
+                    // 2. Product Name (single line to fit the card)
                     Text(
                       product.name,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 13.sp,
+                        fontSize: 12.sp,
                         color: Colors.black87,
                         fontWeight: FontWeight.w500,
                         height: 1.2,
                       ),
                     ),
 
-                    const Spacer(),
-
-                    // 3. Price per unit (uses the variant's actual unit from
-                    //    the API instead of a hardcoded "kg" — falls back to
-                    //    "unit" when the backend doesn't return one).
-                    Text(
-                      '${product.pricePerKg} / ${product.stockUnit ?? 'unit'}',
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[500],
-                      ),
+                    // 3. Weight + Stock badge on the same row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (formattedWeight != null)
+                          Expanded(
+                            child: Text(
+                              formattedWeight,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          )
+                        else
+                          const Spacer(),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 5.w,
+                            vertical: 1.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: inStock
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: Text(
+                            inStock ? 'In Stock' : 'Out of Stock',
+                            style: TextStyle(
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w600,
+                              color: inStock ? Colors.green : Colors.red,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -409,6 +482,69 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Compact horizontal quantity selector ( – qty + ) shown in the
+/// Mega Fresh Offer card once the variant is in the cart. Sized to match
+/// the original 28x28 add button so the layout doesn't shift.
+class _MegaQuantitySelector extends StatelessWidget {
+  const _MegaQuantitySelector({
+    required this.quantity,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  final int quantity;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+
+  @override
+  Widget build(BuildContext context) {
+    const Color borderColor = Color(0xFF8cc727);
+    const Color iconColor = Color(0xFF00695C);
+    return Container(
+      height: 28,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onDecrease,
+            child: const SizedBox(
+              width: 26,
+              height: 28,
+              child: Icon(Icons.remove, color: iconColor, size: 16),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              quantity.toString(),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onIncrease,
+            child: const SizedBox(
+              width: 26,
+              height: 28,
+              child: Icon(Icons.add, color: iconColor, size: 16),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -431,6 +567,33 @@ extension ProductVariantMegaOffer on ProductVariant {
     // forced European-style commas regardless of locale).
     final effectivePrice = hasDiscount ? (discountedPrice ?? price) : price;
     return effectivePrice.toStringAsFixed(2);
+  }
+
+  /// Combines the numeric `weight` field with the variant `unit` (stockUnit)
+  /// — e.g. weight="1.00" + unit="kg" → "1 kg". Returns null when there is
+  /// no usable weight info to display.
+  String? get formattedWeight {
+    final rawWeight = weight?.trim();
+    final unit = stockUnit?.trim();
+    double? numeric;
+    if (rawWeight != null && rawWeight.isNotEmpty) {
+      numeric = double.tryParse(rawWeight);
+    }
+    final numberStr = numeric == null
+        ? null
+        : (numeric % 1 == 0
+              ? numeric.toInt().toString()
+              : numeric
+                    .toStringAsFixed(2)
+                    .replaceFirst(RegExp(r'0+$'), '')
+                    .replaceFirst(RegExp(r'\.$'), ''));
+    if (numberStr != null && unit != null && unit.isNotEmpty) {
+      return '$numberStr $unit';
+    }
+    if (numberStr != null) return numberStr;
+    if (unit != null && unit.isNotEmpty) return unit;
+    if (rawWeight != null && rawWeight.isNotEmpty) return rawWeight;
+    return null;
   }
 
   String? get weight {

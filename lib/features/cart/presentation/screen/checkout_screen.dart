@@ -98,13 +98,17 @@ class CheckoutScreen extends ConsumerWidget {
                                 socketPriceUpdate.discountedPrice! > 0)
                           : product.hasDiscount;
 
-                      // Check stock availability for increment button
+                      // Check stock availability. Priority: socket update >
+                      // API `current_quantity`. <= 0 means out of stock.
                       final inventoryUpdate = inventoryUpdates.getUpdate(
                         line.productVariantId,
                       );
-                      final currentStock = inventoryUpdate?.currentQuantity;
+                      final effectiveStock =
+                          inventoryUpdate?.currentQuantity ??
+                          product.currentQuantity;
+                      final isOutOfStock = effectiveStock <= 0;
                       final canIncrement =
-                          currentStock == null || currentStock > line.quantity;
+                          !isOutOfStock && effectiveStock > line.quantity;
 
                       return CartItemCard(
                         imageUrl: product.media.isNotEmpty
@@ -118,6 +122,7 @@ class CheckoutScreen extends ConsumerWidget {
                         hasDiscount: hasDiscount,
                         discountPercentage: product.discountPercentage,
                         isProcessing: checkoutState.isLineProcessing(line.id),
+                        isOutOfStock: isOutOfStock,
                         onIncrement: canIncrement
                             ? () =>
                                   _handleIncrement(ref, line.id, line.quantity)

@@ -1,4 +1,4 @@
-package com.example.new_app
+package com.nexotech.btcfresh
 
 import android.os.Bundle
 import android.webkit.WebView

@@ -172,11 +172,15 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     final currentQuantity = socketQuantity ?? widget.product.currentQuantity;
     // Check stock: socket data > API data > default to product.inStock
     final inStock = hasSocketData ? socketQuantity > 0 : widget.product.inStock;
+    final hasQuantity = currentQuantity != null;
     final quantity = currentQuantity ?? 0;
 
-    // Show stock badge if we have real-time socket data or API stock data
+    // Show stock badge whenever we have a real-time signal, a numeric quantity
+    // from the API, or an explicit `in_stock` boolean from the API.
     final showStockBadge =
-        hasSocketData || widget.product.currentQuantity != null;
+        hasSocketData ||
+        widget.product.currentQuantity != null ||
+        widget.product.apiInStock != null;
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -376,9 +380,11 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                       ),
                       child: AppText(
                         text: inStock
-                            ? quantity > 0
+                            ? (hasQuantity && quantity > 0
                                   ? 'In Stock'
-                                  : 'Only $quantity left'
+                                  : hasQuantity
+                                  ? 'Only $quantity left'
+                                  : 'In Stock')
                             : 'Out of Stock',
                         fontSize: 9.sp,
                         fontWeight: FontWeight.w600,

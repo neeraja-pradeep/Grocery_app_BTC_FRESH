@@ -9,6 +9,7 @@ import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../category/presentation/components/widgets/review_bottom_sheet.dart';
 import '../../../orders/application/providers/orders_provider.dart';
+import '../../../orders/domain/entities/order_entity.dart';
 import '../../../orders/infrastructure/data_sources/orders_api.dart';
 import '../../domain/entities/delivery.dart';
 import '../../infrastructure/data_sources/local/delivery_storage_service.dart';
@@ -32,6 +33,9 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   Timer? _autoHideTimer;
   BuildContext? _context;
   bool _feedbackShown = false;
+  // One-shot flag so the per-launch "any unrated delivered orders?" lookup
+  // only hits the backend once per app launch.
+  bool _unratedScanDone = false;
   static const Duration _pollingInterval = Duration(seconds: 30);
   static const Duration _completedHideDelay = Duration(seconds: 10);
 
@@ -44,6 +48,9 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
   /// Set the BuildContext for showing feedback popup
   void setContext(BuildContext context) {
     _context = context;
+    // The popup may have failed to surface earlier because the bar widget
+    // wasn't mounted yet — retry now that we have a context.
+    _tryShowPendingRatingPopup();
   }
 
   /// Restore delivery tracking from Hive storage
@@ -54,15 +61,94 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
 
     if (savedDelivery == null || !savedDelivery.isActive) {
       Logger.info('No active delivery to restore');
+    } else {
+      Logger.info(
+        'Restoring delivery tracking for order: ${savedDelivery.orderId}',
+      );
+
+      // Start tracking the saved delivery
+      startDeliveryTracking(savedDelivery.orderId);
+    }
+
+    // Independently, surface any rating prompt that was queued by a previous
+    // session but never shown (e.g. app killed right after delivered).
+    _tryShowPendingRatingPopup();
+
+    // And catch orders the polling never had a chance to observe — anything
+    // that was delivered before this app launch will not have a marker yet.
+    _scanForUnratedDeliveredOrder();
+  }
+
+  /// One-shot per-launch scan that finds the most recent delivered order
+  /// the user hasn't been prompted to rate and queues it through the same
+  /// pending-rating marker flow.
+  Future<void> _scanForUnratedDeliveredOrder() async {
+    if (_unratedScanDone || _feedbackShown) return;
+    _unratedScanDone = true;
+
+    // If a marker is already queued (set by the live polling path), just let
+    // the existing flow handle it — don't shadow it with an older order.
+    if (_storageService.loadPendingRatingOrderId() != null) {
+      _tryShowPendingRatingPopup();
       return;
     }
 
-    Logger.info(
-      'Restoring delivery tracking for order: ${savedDelivery.orderId}',
-    );
+    try {
+      final orders = await _ordersApi
+          .getOrders(status: 'delivered')
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => const <OrderEntity>[],
+          );
 
-    // Start tracking the saved delivery
-    startDeliveryTracking(savedDelivery.orderId);
+      if (orders.isEmpty) return;
+
+      // Restrict the scan to orders placed today (user's local timezone).
+      // Older deliveries are intentionally skipped here — the user can rate
+      // them later from Profile → Your Orders. Without this filter, every
+      // cold launch would re-surface a different unrated backlog order.
+      final now = DateTime.now();
+      final ordersPlacedToday = orders.where((order) {
+        final placed = order.createdAt.toLocal();
+        return placed.year == now.year &&
+            placed.month == now.month &&
+            placed.day == now.day;
+      }).toList();
+
+      if (ordersPlacedToday.isEmpty) return;
+
+      // Most recent first.
+      ordersPlacedToday.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      final promptedIds = _storageService.loadPromptedOrderIds().toSet();
+
+      // Only inspect a small window — older delivered orders aren't worth
+      // pestering the user about, and each rating lookup is its own request.
+      for (final order in ordersPlacedToday.take(3)) {
+        if (promptedIds.contains(order.id)) continue;
+
+        final rating = await _ordersApi
+            .getOrderRating(order.id)
+            .timeout(
+              const Duration(seconds: 5),
+              onTimeout: () => null,
+            );
+
+        if (rating != null) {
+          // User already rated this order (e.g. from the orders screen).
+          // Record so we skip the lookup on the next launch.
+          await _storageService.markOrderAsPrompted(order.id);
+          continue;
+        }
+
+        // Found an unrated, unprompted delivered order — surface the sheet.
+        await _storageService.savePendingRatingOrderId(order.id);
+        _tryShowPendingRatingPopup();
+        return;
+      }
+    } catch (e) {
+      Logger.error('Failed to scan for unrated delivered orders', error: e);
+    }
   }
 
   /// Start tracking delivery after successful payment
@@ -121,13 +207,17 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
           orderId: orderId,
           delivery: delivery,
         );
-        // Clear saved tracking data (delivery is complete)
+        // Clear active-delivery tracking data (delivery is complete).
         _storageService.clearDeliveryTracking();
+        // Persist a "needs rating" marker so the popup survives anything
+        // that could stop it from showing right now (no context yet, the
+        // bar widget not mounted, the app being killed before the 1-second
+        // delay fires, user dismissing the bar during the delay, etc.).
+        _storageService.savePendingRatingOrderId(orderId);
         // Stop polling and auto-hide after delay
         _stopPolling();
         _scheduleAutoHide();
-        // Show feedback popup (only once per delivery)
-        _showFeedbackPopup();
+        _tryShowPendingRatingPopup();
         Logger.info('Delivery completed for order: $orderId');
         break;
 
@@ -161,38 +251,43 @@ class DeliveryStatusNotifier extends StateNotifier<DeliveryStatusState> {
     }
   }
 
-  /// Show feedback popup when delivery is completed
-  void _showFeedbackPopup() {
-    // Only show once per delivery and if context is available
-    if (_feedbackShown || _context == null || !_context!.mounted) {
-      return;
-    }
+  /// Attempt to show the rating sheet for any order with a pending-rating
+  /// marker. Safe to call repeatedly — bails out cleanly when there's
+  /// nothing to show or no context yet. The marker is the source of truth,
+  /// so a failed attempt here will simply be retried by the next caller
+  /// (setContext, restoreDeliveryFromStorage, or the next delivered poll).
+  void _tryShowPendingRatingPopup() {
+    if (_feedbackShown) return;
+    if (_context == null || !_context!.mounted) return;
+
+    final pendingOrderId = _storageService.loadPendingRatingOrderId();
+    if (pendingOrderId == null) return;
 
     _feedbackShown = true;
-    final currentOrderId = state.orderId;
-
     // Cancel auto-hide timer while showing rating popup
     _autoHideTimer?.cancel();
 
-    // Show feedback popup after a short delay
-    Future.delayed(const Duration(seconds: 1), () {
-      if (_context != null && _context!.mounted && currentOrderId != null) {
-        ReviewBottomSheet.show(
-          _context!,
-          orderTitle: 'Rate Your Order',
-          orderSubtitle: 'Delivered successfully',
-        ).then((rating) async {
-          if (rating != null && rating > 0) {
-            Logger.info('User rated order: $rating stars');
+    // Record up-front that this order has now been prompted, so that even
+    // if the user dismisses the sheet without rating, the on-launch scan
+    // won't re-surface it next time.
+    _storageService.markOrderAsPrompted(pendingOrderId);
 
-            // Submit rating to backend
-            await _submitRating(currentOrderId, rating);
-          }
+    ReviewBottomSheet.show(
+      _context!,
+      orderTitle: 'Rate Your Order',
+      orderSubtitle: 'Delivered successfully',
+    ).then((rating) async {
+      // The user has seen the sheet — clear the marker regardless of
+      // whether they submitted or dismissed. We don't want to nag.
+      await _storageService.clearPendingRatingOrderId();
 
-          // Reschedule auto-hide after rating sheet closes
-          _scheduleAutoHide();
-        });
+      if (rating != null && rating > 0) {
+        Logger.info('User rated order: $rating stars');
+        await _submitRating(pendingOrderId, rating);
       }
+
+      // Reschedule auto-hide after rating sheet closes
+      _scheduleAutoHide();
     });
   }
 

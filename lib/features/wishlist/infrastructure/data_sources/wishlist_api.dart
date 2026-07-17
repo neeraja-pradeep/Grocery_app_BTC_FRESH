@@ -37,33 +37,12 @@ class WishlistApiImpl implements WishlistRemoteDataSource {
       throw const FormatException('Unexpected wishlist response format');
     }
 
-    // Fetch complete product details for all items in parallel (C6 — was sequential N+1)
-    final futures = responseList.map((item) async {
-      final wishlistData = item as Map<String, dynamic>;
-      final productVariantId = wishlistData['product_variant_id']?.toString();
-
-      if (productVariantId == null) {
-        return WishlistItem.fromJson(wishlistData);
-      }
-
-      try {
-        final productResponse = await _apiClient.get(
-          ApiEndpoints.productVariant(productVariantId),
-        );
-
-        if (productResponse.statusCode == 200 && productResponse.data != null) {
-          return WishlistItem.fromProductVariantResponse(
-            wishlistId: wishlistData['id'] ?? 0,
-            productData: productResponse.data as Map<String, dynamic>,
-          );
-        }
-        return WishlistItem.fromJson(wishlistData);
-      } catch (_) {
-        return WishlistItem.fromJson(wishlistData);
-      }
-    });
-
-    return Future.wait(futures);
+    // The wishlist list endpoint now embeds the display fields we need
+    // (name, price, discounted_price, weight_display, image), so map straight
+    // from each row — no per-item variant fetch.
+    return responseList
+        .map((item) => WishlistItem.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   @override

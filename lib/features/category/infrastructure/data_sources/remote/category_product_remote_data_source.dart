@@ -35,9 +35,37 @@ class CategoryProductRemoteDataSource {
     String? ifNoneMatch,
     String? ifModifiedSince,
   }) async {
+    return _fetch(
+      ApiEndpoints.categoryProducts(categoryId),
+      categoryId: categoryId,
+      ifNoneMatch: ifNoneMatch,
+      ifModifiedSince: ifModifiedSince,
+    );
+  }
+
+  /// Fetches the discount-only variant of the category products endpoint.
+  /// No conditional-request headers — Price Drop is a transient filter view
+  /// the repository does not cache.
+  Future<CategoryProductRemoteResponse?> fetchDiscountedProducts(
+    String categoryId,
+  ) {
+    return _fetch(
+      ApiEndpoints.categoryDiscountedProducts(categoryId),
+      categoryId: categoryId,
+      onlyDiscountedVariants: true,
+    );
+  }
+
+  Future<CategoryProductRemoteResponse?> _fetch(
+    String path, {
+    required String categoryId,
+    String? ifNoneMatch,
+    String? ifModifiedSince,
+    bool onlyDiscountedVariants = false,
+  }) async {
     try {
       final response = await _apiClient.get<dynamic>(
-        ApiEndpoints.categoryProducts(categoryId),
+        path,
         headers: <String, String>{
           if (ifNoneMatch != null) 'If-None-Match': ifNoneMatch,
           if (ifModifiedSince != null) 'If-Modified-Since': ifModifiedSince,
@@ -60,6 +88,7 @@ class CategoryProductRemoteDataSource {
       final products = CategoryProductDto.listFromJson(
         payload,
         filterCategoryId: categoryId,
+        onlyDiscountedVariants: onlyDiscountedVariants,
       );
       final headers = response.headers;
       final eTag = headers.value('etag') ?? headers.value('ETag');

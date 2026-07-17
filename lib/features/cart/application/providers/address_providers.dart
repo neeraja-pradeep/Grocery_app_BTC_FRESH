@@ -7,6 +7,8 @@ import '../../../../core/storage/cache_config.dart';
 
 import '../../../address/application/providers/address_provider.dart'
     as profile_addr;
+import '../../../home/application/providers/home_provider.dart';
+import '../../../home/domain/entities/user_address.dart';
 import '../../domain/entities/address.dart';
 import '../../domain/repositories/address_repository.dart';
 import '../../infrastructure/providers/address_infra_providers.dart';
@@ -189,7 +191,7 @@ class AddressController extends Notifier<AddressState> {
     required String addressType,
   }) async {
     try {
-      await _repository.createAddress(
+      final created = await _repository.createAddress(
         firstName: firstName,
         lastName: lastName,
         streetAddress1: streetAddress1,
@@ -203,8 +205,27 @@ class AddressController extends Notifier<AddressState> {
         addressType: addressType,
       );
 
-      // Refresh list after creating
-      await refresh();
+      // Auto-select the just-created address so the checkout flow uses it
+      // immediately without the user having to tap it from the list.
+      // Best-effort: if the backend rejects this (e.g. already selected),
+      // fall back to a local-only selection so the UI still highlights it.
+      try {
+        await _repository.selectAddress(created.id);
+      } catch (e) {
+        if (kDebugMode) {
+          developer.log(
+            'Auto-select after create failed (non-fatal): $e',
+            name: 'AddressController',
+          );
+        }
+        setLocalSelectedAddress(created);
+      }
+
+      // Force refresh (bypass If-Modified-Since) — server's Last-Modified
+      // header is too coarse to reflect a mutation we just made, so a
+      // conditional GET would 304 and we'd keep stale state.
+      await _forceRefresh();
+      _syncHomeSelectedAddress();
       // Keep the profile address provider in sync so the profile address
       // list reflects the newly created entry.
       await _syncProfileAddressList();
@@ -247,8 +268,11 @@ class AddressController extends Notifier<AddressState> {
         selected: selected,
       );
 
-      // Refresh list after updating
-      await refresh();
+      // Force refresh (bypass If-Modified-Since) — same reason as in
+      // createAddress: a conditional GET right after a mutation would 304
+      // and leave the UI showing pre-edit data.
+      await _forceRefresh();
+      _syncHomeSelectedAddress();
       await _syncProfileAddressList();
     } catch (e) {
       if (kDebugMode) developer.log('Failed to update address: $e', name: 'AddressController');
@@ -261,14 +285,55 @@ class AddressController extends Notifier<AddressState> {
     try {
       await _repository.deleteAddress(id);
 
+      // Drop any local override pointing at the row we just removed so the
+      // subsequent home sync resolves to whatever is actually selected now.
+      if (state.localSelectedAddress?.id == id) {
+        state = state.copyWith(resetLocalSelectedAddress: true);
+      }
+
       // Force refresh to bypass 304 conditional request
       // After delete, we need fresh data from server
       await _forceRefresh();
+      _syncHomeSelectedAddress();
       await _syncProfileAddressList();
     } catch (e) {
       if (kDebugMode) developer.log('Failed to delete address: $e', name: 'AddressController');
       rethrow;
     }
+  }
+
+  /// Public force-refresh entry point so external callers (e.g. the profile
+  /// address provider after a mutation) can bypass the 304-conditional GET.
+  Future<void> forceRefresh() => _forceRefresh();
+
+  /// Push the cart-side selected address into [homeProvider] so the home
+  /// header always mirrors the most recent selection / deletion. Called after
+  /// every mutation that can change which address is selected.
+  void _syncHomeSelectedAddress() {
+    final selected = state.selectedAddress;
+    final homeNotifier = ref.read(homeProvider.notifier);
+    if (selected == null) {
+      homeNotifier.updateAddressInState(null);
+      return;
+    }
+    homeNotifier.updateAddressInState(
+      UserAddress(
+        id: selected.id,
+        firstName: selected.firstName,
+        lastName: selected.lastName,
+        streetAddress1: selected.streetAddress1,
+        streetAddress2: selected.streetAddress2,
+        city: selected.city ?? '',
+        state: selected.state ?? '',
+        postalCode: selected.postalCode ?? '',
+        country: selected.country ?? '',
+        latitude: selected.latitude?.toString(),
+        longitude: selected.longitude?.toString(),
+        addressType: selected.addressType,
+        selected: true,
+        createdAt: selected.createdAt,
+      ),
+    );
   }
 
   /// Force refresh bypassing conditional requests (304)
@@ -294,12 +359,20 @@ class AddressController extends Notifier<AddressState> {
           ? AddressStatus.empty
           : AddressStatus.data;
 
+      // If a previously locally-selected address no longer exists in the list
+      // (e.g. it was deleted from the profile screen), drop the stale local
+      // override so `selectedAddress` doesn't keep pointing at a phantom row.
+      final localSelected = state.localSelectedAddress;
+      final localGone = localSelected != null &&
+          !addressList.results.any((a) => a.id == localSelected.id);
+
       state = state.copyWith(
         status: newStatus,
         addressList: addressList,
         lastSyncedAt: DateTime.now(),
         isRefreshing: false,
         refreshEndedAt: DateTime.now(),
+        resetLocalSelectedAddress: localGone,
       );
 
       _scheduleIndicatorReset();
@@ -318,8 +391,10 @@ class AddressController extends Notifier<AddressState> {
     try {
       await _repository.selectAddress(id);
 
-      // Refresh list after selecting
-      await refresh();
+      // Force-refresh: a conditional GET right after the PATCH can 304 and
+      // leave the UI showing the previously-selected address.
+      await _forceRefresh();
+      _syncHomeSelectedAddress();
     } catch (e) {
       if (kDebugMode) developer.log('Failed to select address: $e', name: 'AddressController');
       rethrow;
@@ -335,11 +410,17 @@ class AddressController extends Notifier<AddressState> {
   /// Refresh the profile address provider so the profile address list
   /// reflects mutations performed via the cart/checkout flow.
   /// Best-effort — failures here must not break the cart mutation.
+  ///
+  /// Uses `refreshAddresses()` rather than `fetchAddresses()` because the
+  /// profile repository's `fetchAddressesWithCache` is cache-first and
+  /// returns stale cached data when present — only profile-side mutations
+  /// invalidate that cache. `refreshAddresses()` always hits the API and
+  /// rewrites the cache, so cross-feature mutations propagate correctly.
   Future<void> _syncProfileAddressList() async {
     try {
       await ref
           .read(profile_addr.profileAddressControllerProvider.notifier)
-          .fetchAddresses();
+          .refreshAddresses();
     } catch (_) {
       // Best-effort — the cart-side data is already correct.
     }

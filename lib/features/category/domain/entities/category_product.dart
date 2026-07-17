@@ -18,6 +18,7 @@ class CategoryProduct {
     this.defaultVariantId,
     this.currentQuantity,
     this.status,
+    this.apiInStock,
   });
 
   final String id;
@@ -41,17 +42,19 @@ class CategoryProduct {
   final int? currentQuantity;
   final bool? status;
 
-  /// Check if product is in stock based on API data
+  /// Variant-level `in_stock` boolean from the products list response.
+  /// Authoritative when present; falls back to `currentQuantity` then to
+  /// "assume in stock" when both are absent.
+  final bool? apiInStock;
+
+  /// Check if product is in stock based on API data.
+  /// Priority: explicit `in_stock` flag > `currentQuantity > 0` > default true.
+  /// `status` is the product's active/published flag, not stock availability,
+  /// so it is intentionally not consulted here.
   bool get inStock {
-    // If we have currentQuantity, check if > 0
-    if (currentQuantity != null) {
-      return currentQuantity! > 0;
-    }
-    // If we have status field, use it
-    if (status != null) {
-      return status!;
-    }
-    // Default to true if no stock info (backend will validate)
+    if (apiInStock != null) return apiInStock!;
+    if (currentQuantity != null) return currentQuantity! > 0;
+    // No stock info — assume in stock; backend will validate on add-to-cart.
     return true;
   }
 }

@@ -218,50 +218,52 @@ class _OTPScreenState extends ConsumerState<OTPScreen>
 
                     SizedBox(height: 10.h),
 
-                    GestureDetector(
-                      onTap: () => goToLogin(context),
-                      child: Container(
-                        height: 60.h,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: AppColors.lightGreen,
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Sign In With Password',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.titleColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    // "Sign In With Password" — hidden from UI.
+                    // GestureDetector(
+                    //   onTap: () => goToLogin(context),
+                    //   child: Container(
+                    //     height: 60.h,
+                    //     width: double.infinity,
+                    //     decoration: BoxDecoration(
+                    //       color: AppColors.lightGreen,
+                    //       borderRadius: BorderRadius.circular(10.r),
+                    //     ),
+                    //     child: Center(
+                    //       child: Text(
+                    //         'Sign In With Password',
+                    //         style: TextStyle(
+                    //           fontSize: 16.sp,
+                    //           fontWeight: FontWeight.w600,
+                    //           color: AppColors.titleColor,
+                    //         ),
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
 
-                    SizedBox(height: 20.h),
+                    // SizedBox(height: 20.h),
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "Don't have an Account?",
-                          style: TextStyle(color: AppColors.darkGrey),
-                        ),
-                        SizedBox(width: 5.w),
-                        GestureDetector(
-                          onTap: () => goToSignup(context),
-                          child: const Text(
-                            'Sign Up',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.titleColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    // "Don't have an Account? Sign Up" — hidden from UI.
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.center,
+                    //   children: [
+                    //     const Text(
+                    //       "Don't have an Account?",
+                    //       style: TextStyle(color: AppColors.darkGrey),
+                    //     ),
+                    //     SizedBox(width: 5.w),
+                    //     GestureDetector(
+                    //       onTap: () => goToSignup(context),
+                    //       child: const Text(
+                    //         'Sign Up',
+                    //         style: TextStyle(
+                    //           fontWeight: FontWeight.bold,
+                    //           color: AppColors.titleColor,
+                    //         ),
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
 
                     SizedBox(height: 20.h),
 
@@ -484,9 +486,8 @@ class _OTPScreenState extends ConsumerState<OTPScreen>
       // When OTP field is shown, only enable if OTP is complete
       isEnabled = _isOtpComplete;
     } else {
-      // When showing phone input, enable if valid phone number
-      final phone = numberController.text.trim();
-      isEnabled = phone.length == 10 && RegExp(r'^\d{10}$').hasMatch(phone);
+      // Phone input: keep "Get OTP" active; the number is validated on tap.
+      isEnabled = true;
     }
 
     return GestureDetector(

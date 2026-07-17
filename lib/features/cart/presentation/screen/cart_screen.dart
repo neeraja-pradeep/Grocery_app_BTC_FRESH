@@ -16,6 +16,7 @@ import '../../../category/application/providers/price_update_notifier.dart';
 import '../components/cart_app_bar.dart';
 import '../components/cart_item_card.dart';
 import '../components/cart_summary.dart';
+import '../components/frequently_bought_strip.dart';
 import '../components/minimum_order_warning.dart';
 import 'checkout_screen.dart';
 
@@ -488,14 +489,18 @@ class _CartScreenState extends ConsumerState<CartScreen>
                         socketPriceUpdate.discountedPrice! > 0)
                   : product.hasDiscount;
 
-              // Get real-time inventory update to check stock
+              // Get real-time inventory update to check stock.
+              // Priority: socket update > API `current_quantity`.
               final inventoryUpdate = inventoryUpdates.getUpdate(
                 line.productVariantId,
               );
-              final currentStock = inventoryUpdate?.currentQuantity;
-              // If we have inventory data, check if in stock; otherwise assume in stock
+              final effectiveStock =
+                  inventoryUpdate?.currentQuantity ?? product.currentQuantity;
+              final isOutOfStock = effectiveStock <= 0;
+              // Increment disabled when out of stock OR existing quantity
+              // already covers the entire remaining stock.
               final canIncrement =
-                  currentStock == null || currentStock > line.quantity;
+                  !isOutOfStock && effectiveStock > line.quantity;
 
               return GestureDetector(
                 onLongPress: () => _showDeleteDialog(line.id, product.name),
@@ -511,6 +516,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
                   hasDiscount: hasDiscount,
                   discountPercentage: product.discountPercentage,
                   isProcessing: checkoutState.isLineProcessing(line.id),
+                  isOutOfStock: isOutOfStock,
                   onIncrement: canIncrement
                       ? () => _handleIncrement(line.id, line.quantity)
                       : null,
@@ -521,8 +527,8 @@ class _CartScreenState extends ConsumerState<CartScreen>
             },
           ),
 
-          // Suggested products row is hidden until the feature is implemented.
-          const SizedBox.shrink(),
+          // "Frequently Bought" strip — hidden for guests / empty / errors.
+          const FrequentlyBoughtStrip(),
 
           // Extra padding for bottom sheet
           SizedBox(height: 100.h),

@@ -20,6 +20,7 @@ class CartItemCard extends StatelessWidget {
     this.hasDiscount = false,
     this.discountPercentage = 0,
     this.isProcessing = false,
+    this.isOutOfStock = false,
   });
 
   final String? imageUrl;
@@ -40,6 +41,12 @@ class CartItemCard extends StatelessWidget {
   // Processing state - disables buttons while API call is in progress
   final bool isProcessing;
 
+  // Out-of-stock state: dims the card, adds "Out of Stock" badge, and applies
+  // strike-through to the name and price texts. `+` is still expected to be
+  // disabled by the caller via `onIncrement: null`; `−` and remove remain
+  // enabled so the user can clean up the line.
+  final bool isOutOfStock;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -53,38 +60,61 @@ class CartItemCard extends StatelessWidget {
           ),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product image with discount badge
-          _buildProductImage(),
-          SizedBox(width: 12.w),
+      child: Opacity(
+        opacity: isOutOfStock ? 0.5 : 1.0,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product image with discount badge
+            _buildProductImage(),
+            SizedBox(width: 12.w),
 
-          // Product info and controls
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildProductName(),
-                SizedBox(height: 4.h),
-                _buildWeightInfo(),
-                SizedBox(height: 6.h),
-                _buildPriceInfo(),
-              ],
+            // Product info and controls
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProductName(),
+                  if (isOutOfStock) ...[
+                    SizedBox(height: 4.h),
+                    _buildOutOfStockBadge(),
+                  ],
+                  SizedBox(height: 4.h),
+                  _buildWeightInfo(),
+                  SizedBox(height: 6.h),
+                  _buildPriceInfo(),
+                ],
+              ),
             ),
-          ),
 
-          SizedBox(width: 12.w),
+            SizedBox(width: 12.w),
 
-          // Quantity controls
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [_buildQuantityControls()],
+            // Quantity controls
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [_buildQuantityControls()],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOutOfStockBadge() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4.r),
+      ),
+      child: AppText(
+        text: 'Out of Stock',
+        fontSize: 10.sp,
+        fontWeight: FontWeight.w600,
+        color: Colors.red,
       ),
     );
   }
@@ -127,6 +157,9 @@ class CartItemCard extends StatelessWidget {
       fontWeight: FontWeight.w500,
       color: AppColors.black,
       maxLines: 2,
+      decoration: isOutOfStock
+          ? TextDecoration.lineThrough
+          : TextDecoration.none,
     );
   }
 
@@ -142,12 +175,15 @@ class CartItemCard extends StatelessWidget {
   Widget _buildPriceInfo() {
     return Row(
       children: [
-        // Effective/Discounted price
+        // Effective/Discounted price (struck through if OOS)
         AppText(
           text: '₹$pricePerKg',
           fontSize: 14.sp,
           fontWeight: FontWeight.w600,
           color: hasDiscount ? AppColors.couponGreen : AppColors.black,
+          decoration: isOutOfStock
+              ? TextDecoration.lineThrough
+              : TextDecoration.none,
         ),
         SizedBox(width: 6.w),
         // Original price with strikethrough if discounted

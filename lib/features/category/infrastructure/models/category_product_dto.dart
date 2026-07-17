@@ -21,6 +21,7 @@ class CategoryProductDto {
     this.defaultVariantId,
     this.currentQuantity,
     this.status,
+    this.apiInStock,
   });
 
   final String id;
@@ -41,6 +42,8 @@ class CategoryProductDto {
   final String? defaultVariantId;
   final int? currentQuantity;
   final bool? status;
+  // Variant-level `in_stock` boolean from the products list response.
+  final bool? apiInStock;
 
   factory CategoryProductDto.fromProduct({
     required Map<String, dynamic> product,
@@ -138,6 +141,14 @@ class CategoryProductDto {
       } else if (mediaEntry is Map) {
         primaryMedia = Map<String, dynamic>.from(mediaEntry);
       }
+    } else {
+      // Fallback to `primary_image` (returned by the is_discounted=true list).
+      final rawPrimaryImage = product['primary_image'];
+      if (rawPrimaryImage is Map<String, dynamic>) {
+        primaryMedia = rawPrimaryImage;
+      } else if (rawPrimaryImage is Map) {
+        primaryMedia = Map<String, dynamic>.from(rawPrimaryImage);
+      }
     }
 
     if (primaryMedia != null) {
@@ -188,10 +199,15 @@ class CategoryProductDto {
     final description =
         product['description_plaintext']?.toString() ?? product['description'];
 
-    // Parse stock information from variant or product
+    // Parse stock information from variant or product.
+    // Products-list endpoint nests variants with `quantity`; the variants
+    // endpoint also exposes `current_quantity`. Accept either.
     int? currentQuantity;
     final quantityValue =
-        variant?['current_quantity'] ?? product['current_quantity'];
+        variant?['current_quantity'] ??
+        variant?['quantity'] ??
+        product['current_quantity'] ??
+        product['quantity'];
     if (quantityValue is int) {
       currentQuantity = quantityValue;
     } else if (quantityValue is String) {
@@ -210,6 +226,11 @@ class CategoryProductDto {
     } else if (statusValue is String) {
       status = statusValue.toLowerCase() == 'true' || statusValue == '1';
     }
+
+    // Parse explicit `in_stock` boolean (variant first, then product).
+    final bool? apiInStock = _parseBoolFlag(
+      variant?['in_stock'] ?? product['in_stock'],
+    );
 
     return CategoryProductDto(
       id: productId,
@@ -230,6 +251,7 @@ class CategoryProductDto {
       defaultVariantId: defaultVariantId,
       currentQuantity: currentQuantity,
       status: status,
+      apiInStock: apiInStock,
     );
   }
 
@@ -275,7 +297,9 @@ class CategoryProductDto {
 
     // Parse stock information
     int? currentQuantity;
-    final quantityValue = json['currentQuantity'] ?? json['current_quantity'];
+    final quantityValue = json['currentQuantity'] ??
+        json['current_quantity'] ??
+        json['quantity'];
     if (quantityValue is int) {
       currentQuantity = quantityValue;
     } else if (quantityValue is String) {
@@ -294,6 +318,10 @@ class CategoryProductDto {
     } else if (statusValue is String) {
       status = statusValue.toLowerCase() == 'true' || statusValue == '1';
     }
+
+    final bool? apiInStock = _parseBoolFlag(
+      json['apiInStock'] ?? json['in_stock'],
+    );
 
     return CategoryProductDto(
       id: rawId.toString(),
@@ -319,6 +347,7 @@ class CategoryProductDto {
           json['default_variant_id']?.toString(),
       currentQuantity: currentQuantity,
       status: status,
+      apiInStock: apiInStock,
     );
   }
 
@@ -341,6 +370,7 @@ class CategoryProductDto {
     if (defaultVariantId != null) 'defaultVariantId': defaultVariantId,
     if (currentQuantity != null) 'currentQuantity': currentQuantity,
     if (status != null) 'status': status,
+    if (apiInStock != null) 'apiInStock': apiInStock,
   };
 
   CategoryProduct toDomain() => CategoryProduct(
@@ -362,11 +392,13 @@ class CategoryProductDto {
     defaultVariantId: defaultVariantId,
     currentQuantity: currentQuantity,
     status: status,
+    apiInStock: apiInStock,
   );
 
   static List<CategoryProductDto> listFromJson(
     dynamic data, {
     String? filterCategoryId,
+    bool onlyDiscountedVariants = false,
   }) {
     final normalizedFilter = filterCategoryId?.trim();
     final hasFilter = normalizedFilter != null && normalizedFilter.isNotEmpty;
@@ -406,6 +438,9 @@ class CategoryProductDto {
           } else {
             throw const FormatException('Invalid variant entry.');
           }
+          if (onlyDiscountedVariants && !_hasDiscount(variantMap)) {
+            continue;
+          }
           yield CategoryProductDto.fromProduct(
             product: product,
             variant: variantMap,
@@ -416,10 +451,16 @@ class CategoryProductDto {
 
       if (product.containsKey('variantId') ||
           product.containsKey('variant_id')) {
+        if (onlyDiscountedVariants && !_hasDiscount(product)) {
+          return;
+        }
         yield CategoryProductDto.fromJson(product);
         return;
       }
 
+      if (onlyDiscountedVariants && !_hasDiscount(product)) {
+        return;
+      }
       yield CategoryProductDto.fromProduct(product: product);
     }
 
@@ -466,6 +507,33 @@ class CategoryProductDto {
 
     throw const FormatException('No products.');
   }
+}
+
+/// Coerces a JSON value into a `bool?`. Accepts native bools, 0/1 ints,
+/// and `"true"` / `"false"` / `"1"` / `"0"` strings (case-insensitive).
+/// Returns null for any other shape (including null), so callers can
+/// distinguish "absent" from "explicitly true/false".
+bool? _parseBoolFlag(dynamic value) {
+  if (value is bool) return value;
+  if (value is int) return value == 1;
+  if (value is String) {
+    final s = value.trim().toLowerCase();
+    if (s == 'true' || s == '1') return true;
+    if (s == 'false' || s == '0') return false;
+  }
+  return null;
+}
+
+/// True when a variant/product payload has a non-null, non-empty
+/// `discounted_price`. Used to drop non-discounted variants in Price Drop mode.
+bool _hasDiscount(Map<String, dynamic> payload) {
+  final value = payload['discounted_price'];
+  if (value == null) return false;
+  final str = value.toString().trim();
+  if (str.isEmpty) return false;
+  final parsed = double.tryParse(str);
+  if (parsed == null) return false;
+  return parsed > 0;
 }
 
 /// Resolve media URL to CDN

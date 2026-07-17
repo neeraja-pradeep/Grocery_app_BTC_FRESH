@@ -17,7 +17,7 @@ import '../product_grid/product_grid.dart';
 /// - Click category → scrolls product grid to that category
 /// - Scroll products → updates selected category in sidebar
 class CategoryScreenBody extends ConsumerStatefulWidget {
-  static const List<String> _filters = ['Brand', 'Price Drop', 'Popular'];
+  static const List<String> _filters = ['Price Drop'];
 
   final CategoryState categoryState;
   final List<CategoryItem> categories;
@@ -139,6 +139,7 @@ class CategoryScreenBodyState extends ConsumerState<CategoryScreenBody> {
                   key: _productGridKey,
                   categories: categories,
                   selectedCategoryIndex: widget.selectedCategoryIndex,
+                  selectedFilterIndex: widget.selectedFilterIndex,
                   onCategoryInViewChanged: widget.onCategorySelected,
                 ),
               ),

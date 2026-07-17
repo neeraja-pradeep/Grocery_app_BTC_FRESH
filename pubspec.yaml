@@ -2,7 +2,7 @@ name: grocery_app
 description: "A new Flutter project."
 publish_to: "none" # Prevent accidental publication to pub.dev
 
-version: 1.0.0+1
+version: 1.0.0+7
 
 environment:
   sdk: ^3.9.0
@@ -65,6 +65,12 @@ dependencies:
   connectivity_plus: ^7.0.0
   hive_ce: ^2.15.1
   hive_ce_flutter: ^2.3.3
+
+  # Observability / Crash Reporting
+  sentry_flutter: ^8.14.2
+
+  # In-app updates (Android only — Google Play In-App Update API)
+  in_app_update: ^4.2.3
 
 dev_dependencies:
   flutter_test:

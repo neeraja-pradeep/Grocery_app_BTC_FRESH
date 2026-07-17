@@ -44,6 +44,30 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     });
   }
 
+  Future<void> _handleDecreaseQuantity(int lineId) async {
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: lineId, delta: -1);
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error(context, 'Unable to update cart');
+      }
+    }
+  }
+
+  Future<void> _handleIncreaseQuantity(int lineId) async {
+    try {
+      await ref
+          .read(checkoutLineControllerProvider.notifier)
+          .updateQuantity(lineId: lineId, delta: 1);
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error(context, 'Unable to update cart');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
@@ -268,12 +292,30 @@ class _ProductCardState extends ConsumerState<ProductCard> {
           ),
         ),
 
-        // --- Floating Add Button (+) ---
+        // --- Floating Add Button (+) / Quantity Selector ---
         Positioned(
           top: -8.h, // Overlaps the top border
           right: -8.w, // Overlaps the right border
           child: Consumer(
             builder: (context, ref, child) {
+              final cartState = ref.watch(checkoutLineControllerProvider);
+              final cartLine = cartState.items
+                  .where((item) => item.productVariantId == product.id)
+                  .toList();
+              final isInCart = cartLine.isNotEmpty;
+
+              if (isInCart) {
+                final lineId = cartLine.first.id;
+                final quantity = cartLine.first.quantity;
+                return _QuantitySelector(
+                  quantity: quantity,
+                  borderColor: borderColor,
+                  iconColor: iconColor,
+                  onDecrease: () => _handleDecreaseQuantity(lineId),
+                  onIncrease: () => _handleIncreaseQuantity(lineId),
+                );
+              }
+
               return GestureDetector(
                 onTap: () async {
                   // Block guests from adding to cart
@@ -341,6 +383,71 @@ class _ProductCardState extends ConsumerState<ProductCard> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Compact horizontal quantity selector ( -  qty  + ) shown in place of the
+/// floating add button once the product is in the cart. Matches the look of
+/// the home `ProductCard` add button: white pill with green border.
+class _QuantitySelector extends StatelessWidget {
+  const _QuantitySelector({
+    required this.quantity,
+    required this.borderColor,
+    required this.iconColor,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  final int quantity;
+  final Color borderColor;
+  final Color iconColor;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 34.h,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: borderColor, width: 1.2.w),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: onDecrease,
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox(
+              width: 28.w,
+              height: 34.h,
+              child: Icon(Icons.remove, color: iconColor, size: 18.sp),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: Text(
+              quantity.toString(),
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: onIncrease,
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox(
+              width: 28.w,
+              height: 34.h,
+              child: Icon(Icons.add, color: iconColor, size: 18.sp),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

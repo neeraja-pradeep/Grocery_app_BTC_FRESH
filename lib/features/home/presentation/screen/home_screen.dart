@@ -46,6 +46,7 @@ import 'package:pull_to_refresh/pull_to_refresh.dart'; // Requires pull_to_refre
 // Core & Domain
 import '../../../../core/error/failure.dart';
 import '../../../../core/location/location_provider.dart';
+import '../../../../core/services/app_update_service.dart';
 import '../../../../core/utils/logger.dart';
 // Components
 import '../../../../core/widgets/app_snackbar.dart';
@@ -105,6 +106,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // Restore delivery tracking from Hive storage
       // This will show DeliveryStatusBar if there's an active delivery
       ref.read(deliveryStatusProvider.notifier).restoreDeliveryFromStorage();
+
+      // Trigger the Play-rendered in-app update pop-up if a newer version
+      // is on Play. No-op on iOS / debug builds. Silent failure.
+      AppUpdateService().checkAndPrompt();
     });
 
     // Listen to scroll for "scroll to top" FAB or animations

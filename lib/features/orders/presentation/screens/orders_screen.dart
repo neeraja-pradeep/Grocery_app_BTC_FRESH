@@ -401,17 +401,22 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
   }
 
   String _formatDate(DateTime date) {
+    // Backend timestamps come back with a `Z` suffix (UTC). The getters
+    // (`hour`, `minute`, etc.) report UTC values unless we explicitly
+    // convert. Without `.toLocal()` an IST user sees a time 5h30m behind
+    // when they actually placed the order.
+    final local = date.toLocal();
     final months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-    final month = months[date.month - 1];
-    final hour = date.hour > 12
-        ? date.hour - 12
-        : (date.hour == 0 ? 12 : date.hour);
-    final minute = date.minute.toString().padLeft(2, '0');
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-    return '${date.day} $month ${date.year} at $hour:$minute $period';
+    final month = months[local.month - 1];
+    final hour = local.hour > 12
+        ? local.hour - 12
+        : (local.hour == 0 ? 12 : local.hour);
+    final minute = local.minute.toString().padLeft(2, '0');
+    final period = local.hour >= 12 ? 'PM' : 'AM';
+    return '${local.day} $month ${local.year} at $hour:$minute $period';
   }
 
   @override

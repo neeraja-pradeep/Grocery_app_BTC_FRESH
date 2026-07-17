@@ -21,6 +21,9 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
   OrdersNotifier(this._ordersApi) : super(const OrdersState());
 
   /// Fetch all orders with optional status filter.
+  /// The orders list endpoint does not currently embed `order_lines` or a
+  /// count, so the card shows "0 Items" unless we hydrate per-order from
+  /// `/api/order/v1/order-lines/?order={id}`. The fanout runs in parallel.
   Future<void> fetchOrders({String? status}) async {
     state = state.copyWith(
       isLoading: true,
@@ -30,7 +33,8 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
 
     try {
       final orders = await _ordersApi.getOrders(status: status);
-      state = state.copyWith(orders: orders, isLoading: false);
+      final hydrated = await Future.wait(orders.map(_hydrateWithLines));
+      state = state.copyWith(orders: hydrated, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
@@ -54,9 +58,11 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
     try {
       final orders = await _ordersApi.getOrders(status: 'delivered');
 
-      final ordersWithRatings = await Future.wait(
+      // Per order, fetch lines + rating in parallel with per-call timeouts.
+      // Worst case: 5s for the slowest order's slowest call.
+      final hydrated = await Future.wait(
         orders.map((order) async {
-          // Per-call timeout — order shown without rating on timeout/error.
+          final lines = await _fetchLinesSafely(order);
           final rating = await _ordersApi
               .getOrderRating(order.id)
               .timeout(
@@ -64,26 +70,61 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
                 onTimeout: () => null,
               );
 
-          if (rating != null) {
-            return OrderEntity(
-              id: order.id,
-              status: order.status,
-              totalAmount: order.totalAmount,
-              createdAt: order.createdAt,
-              updatedAt: order.updatedAt,
-              orderLines: order.orderLines,
-              deliveryAddress: order.deliveryAddress,
-              orderlinesCount: order.orderlinesCount,
-              rating: rating,
-            );
-          }
-          return order;
+          return OrderEntity(
+            id: order.id,
+            status: order.status,
+            totalAmount: order.totalAmount,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+            orderLines: lines,
+            deliveryAddress: order.deliveryAddress,
+            orderlinesCount: lines.length,
+            rating: rating ?? order.rating,
+          );
         }),
       );
 
-      state = state.copyWith(orders: ordersWithRatings, isLoading: false);
+      state = state.copyWith(orders: hydrated, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
+
+  /// Calls `/api/order/v1/order-lines/?order={id}` and returns a new
+  /// OrderEntity with `orderLines` populated and `orderlinesCount` updated.
+  /// Skips the call when the orders-list payload already included a count
+  /// (so a future backend change embedding the field costs nothing here).
+  Future<OrderEntity> _hydrateWithLines(OrderEntity order) async {
+    if (order.orderlinesCount > 0) return order;
+
+    final lines = await _fetchLinesSafely(order);
+    if (lines.isEmpty) return order;
+
+    return OrderEntity(
+      id: order.id,
+      status: order.status,
+      totalAmount: order.totalAmount,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      orderLines: lines,
+      deliveryAddress: order.deliveryAddress,
+      orderlinesCount: lines.length,
+      rating: order.rating,
+    );
+  }
+
+  /// Wrapper that swallows timeouts/errors so a single bad row never breaks
+  /// the whole orders list — returns an empty list instead.
+  Future<List<OrderLineEntity>> _fetchLinesSafely(OrderEntity order) async {
+    try {
+      return await _ordersApi
+          .getOrderLines(order.id.toString())
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => const <OrderLineEntity>[],
+          );
+    } catch (_) {
+      return const <OrderLineEntity>[];
     }
   }
 

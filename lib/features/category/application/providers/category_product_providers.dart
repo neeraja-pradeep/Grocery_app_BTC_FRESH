@@ -6,6 +6,7 @@ import '../../../../core/network/network_exceptions.dart';
 import '../../../../core/polling/polling_manager.dart';
 import '../../../../core/storage/cache_config.dart';
 import '../../../../core/utils/logger.dart';
+import '../../domain/entities/category_product.dart';
 import '../../domain/repositories/category_product_repository.dart';
 import '../../infrastructure/providers/category_infrastructure_providers.dart';
 import '../states/category_product_state.dart';
@@ -266,5 +267,121 @@ class CategoryProductController
     _pollingTimer = null;
     _indicatorTimer = null;
     _initialized = false;
+  }
+}
+
+/// Controller for the Price Drop filter view.
+///
+/// Kept deliberately separate from [CategoryProductController]:
+/// - no local cache (Price Drop is a transient filter, not a base list)
+/// - no polling (the underlying list will also be polled when the filter is off)
+/// - no conditional-request headers
+///
+/// Reuses [CategoryProductState] so the UI can render either provider
+/// interchangeably.
+final categoryDiscountProductControllerProvider = NotifierProviderFamily<
+    CategoryDiscountProductController, CategoryProductState, String>(
+  CategoryDiscountProductController.new,
+);
+
+class CategoryDiscountProductController
+    extends FamilyNotifier<CategoryProductState, String> {
+  bool _initialized = false;
+  bool _disposed = false;
+  late String _categoryId;
+
+  @override
+  CategoryProductState build(String categoryId) {
+    _categoryId = categoryId;
+    _disposed = false;
+
+    if (!_initialized) {
+      _initialized = true;
+      Future<void>.microtask(_loadInitial);
+    }
+
+    ref.onDispose(() {
+      _disposed = true;
+      _initialized = false;
+    });
+
+    return CategoryProductState.initial();
+  }
+
+  Future<void> refresh() async {
+    await _loadInitial(forceRefresh: true);
+  }
+
+  Future<void> _loadInitial({bool forceRefresh = false}) async {
+    if (_disposed) return;
+
+    final hasData = state.hasData;
+    _safeSetState(
+      state.copyWith(
+        status: hasData
+            ? CategoryProductStatus.data
+            : CategoryProductStatus.loading,
+        isRefreshing: true,
+        clearError: true,
+      ),
+    );
+
+    try {
+      final remote = ref.read(categoryProductRemoteDataSourceProvider);
+      final response = await remote.fetchDiscountedProducts(_categoryId);
+      if (_disposed) return;
+
+      final List<CategoryProduct> products = response == null
+          ? const <CategoryProduct>[]
+          : response.products.map((dto) => dto.toDomain()).toList(
+                growable: false,
+              );
+
+      _safeSetState(
+        state.copyWith(
+          status: products.isEmpty
+              ? CategoryProductStatus.empty
+              : CategoryProductStatus.data,
+          products: products,
+          isRefreshing: false,
+          lastSyncedAt: DateTime.now(),
+          totalCount: response?.count,
+          next: response?.next,
+          previous: response?.previous,
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      if (_disposed) return;
+      Logger.error(
+        'Category $_categoryId discount fetch failed',
+        error: error,
+      );
+      final message = _mapError(error);
+      if (!hasData) {
+        _safeSetState(
+          state.copyWith(
+            status: CategoryProductStatus.error,
+            isRefreshing: false,
+            errorMessage: message,
+          ),
+        );
+      } else {
+        _safeSetState(
+          state.copyWith(isRefreshing: false, errorMessage: message),
+        );
+      }
+    }
+  }
+
+  void _safeSetState(CategoryProductState newState) {
+    if (_disposed) return;
+    state = newState;
+  }
+
+  String _mapError(Object error) {
+    if (error is NetworkException) return error.message;
+    if (error is FormatException) return error.message;
+    return 'Something went wrong. Please try again.';
   }
 }

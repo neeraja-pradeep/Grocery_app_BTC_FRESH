@@ -41,26 +41,19 @@ class AddressDto {
       throw const FormatException('Address payload missing `id`.');
     }
 
-    final rawFirstName = json['first_name'];
-    if (rawFirstName == null || rawFirstName.toString().isEmpty) {
-      throw const FormatException('Address payload missing `first_name`.');
-    }
-
-    final rawLastName = json['last_name'];
-    if (rawLastName == null || rawLastName.toString().isEmpty) {
-      throw const FormatException('Address payload missing `last_name`.');
-    }
-
-    final rawStreetAddress1 = json['street_address1'];
-    if (rawStreetAddress1 == null || rawStreetAddress1.toString().isEmpty) {
-      throw const FormatException('Address payload missing `street_address1`.');
-    }
+    // Tolerate empty first_name / last_name / street_address1: addresses
+    // created from the cart/checkout flow before the defensive defaults
+    // landed may have blank names. Falling back keeps them visible in the
+    // profile list instead of breaking the whole fetch.
+    final rawFirstName = json['first_name']?.toString() ?? '';
+    final rawLastName = json['last_name']?.toString() ?? '';
+    final rawStreetAddress1 = json['street_address1']?.toString() ?? '';
 
     return AddressDto(
       id: rawId is int ? rawId : int.parse('$rawId'),
-      firstName: '$rawFirstName',
-      lastName: '$rawLastName',
-      streetAddress1: '$rawStreetAddress1',
+      firstName: rawFirstName,
+      lastName: rawLastName,
+      streetAddress1: rawStreetAddress1,
       streetAddress2: json['street_address2']?.toString(),
       city: json['city']?.toString(),
       state: json['state']?.toString(),

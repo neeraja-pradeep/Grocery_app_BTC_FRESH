@@ -24,7 +24,9 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
     with WidgetsBindingObserver {
   late CategorySelectionManager _selectionManager;
   late final CategoryStateListener _stateListener;
-  int _selectedFilterIndex = 0;
+  // -1 = no filter active. Today only Price Drop (index 1) actually filters;
+  // Brand/Popular are visual placeholders.
+  int _selectedFilterIndex = -1;
   final GlobalKey<CategoryScreenBodyState> _bodyKey = GlobalKey();
 
   @override
@@ -153,7 +155,11 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
                   });
                 },
                 onFilterSelected: (index) {
-                  setState(() => _selectedFilterIndex = index);
+                  setState(() {
+                    // Tap the active chip again to deselect.
+                    _selectedFilterIndex =
+                        _selectedFilterIndex == index ? -1 : index;
+                  });
                 },
               ),
             ),
