@@ -1,16 +1,26 @@
-/// Centralized configuration for all backend URLs and app settings
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+/// Centralized configuration for all backend URLs and app settings.
 ///
-/// Pass build-time values via --dart-define:
-///   IS_PRODUCTION=true
-///   API_BASE_URL=https://your-prod-server.com
-///   SENTRY_DSN=https://PUBLIC_KEY@oORG.ingest.sentry.io/PROJECT_ID
+/// Values resolve in this order for each key:
+///   1. `.env` file (loaded at startup by AppBootstrap via flutter_dotenv)
+///   2. `--dart-define=KEY=value` (compile-time, handy for CI)
+///   3. the committed default below
 ///
-/// Example release command:
+/// Local dev: edit `.env` (see `.env.example`).
+/// CI/release: either ship a `.env` or pass values via --dart-define, e.g.
 ///   flutter build apk --dart-define=IS_PRODUCTION=true \
 ///                     --dart-define=API_BASE_URL=https://prod-server.com \
 ///                     --dart-define=SENTRY_DSN=https://...@sentry.io/...
 class AppConfig {
   AppConfig._();
+
+  /// Reads [key] from the loaded `.env`, returning null when the file was not
+  /// loaded or the key is absent/empty. Safe to call before `dotenv.load`.
+  static String? _env(String key) {
+    final value = dotenv.maybeGet(key);
+    return (value != null && value.isNotEmpty) ? value : null;
+  }
 
   // ============================================================================
   // ENVIRONMENT CONFIGURATION
@@ -30,19 +40,23 @@ class AppConfig {
   // ============================================================================
 
   /// Main backend API server.
-  /// Override for production: --dart-define=API_BASE_URL=https://prod-server.com
+  /// Set via `.env` (API_BASE_URL) or `--dart-define=API_BASE_URL=...`.
   /// WARNING: default value uses HTTP — only acceptable for local dev.
-  /// Production builds MUST pass an HTTPS URL via --dart-define.
-  static const String apiBaseUrl = String.fromEnvironment(
+  /// Production builds MUST supply an HTTPS URL via `.env` or --dart-define.
+  static String get apiBaseUrl =>
+      _env('API_BASE_URL') ?? _apiBaseUrlFromDefine;
+
+  /// Compile-time fallback for [apiBaseUrl] when `.env` has no entry.
+  static const String _apiBaseUrlFromDefine = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'http://156.67.104.149:8080',
   );
 
   /// API base URL with trailing slash (for some endpoints that need it)
-  static const String apiBaseUrlWithSlash = '$apiBaseUrl/';
+  static String get apiBaseUrlWithSlash => '$apiBaseUrl/';
 
   /// WebSocket server URL (if different from API server)
-  static const String webSocketUrl = apiBaseUrl;
+  static String get webSocketUrl => apiBaseUrl;
 
   // ============================================================================
   // CDN / MEDIA URLS
@@ -52,7 +66,7 @@ class AppConfig {
   static const String cdnBaseUrl = 'https://grocery-application.b-cdn.net';
 
   /// Internal server base URL (used for image URL conversion)
-  static const String internalServerBase = apiBaseUrl;
+  static String get internalServerBase => apiBaseUrl;
 
   // ============================================================================
   // APP INFORMATION

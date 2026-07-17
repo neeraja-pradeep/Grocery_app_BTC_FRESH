@@ -1,8 +1,18 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
-/// Razorpay configuration constants
+/// Razorpay configuration.
+///
+/// [keyId] resolves in order: `.env` (RAZORPAY_KEY_ID) → --dart-define →
+/// committed test default. Use rzp_test_* for staging, rzp_live_* for prod.
 class RazorpayConfig {
-  static const String keyId = String.fromEnvironment(
+  static String get keyId {
+    final fromEnv = dotenv.maybeGet('RAZORPAY_KEY_ID');
+    if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+    return _keyIdFromDefine;
+  }
+
+  static const String _keyIdFromDefine = String.fromEnvironment(
     'RAZORPAY_KEY_ID',
     defaultValue: 'rzp_test_RZlZ38QcLdQOEK',
   );

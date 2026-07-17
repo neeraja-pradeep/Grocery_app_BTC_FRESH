@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../core/config/app_config.dart';
@@ -24,6 +25,11 @@ class AppBootstrap {
     // a DSN is configured) or the plain runZonedGuarded fallback below.
     Future<void> bootstrapApp() async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      // Load runtime config from .env. If the file is absent (e.g. CI builds
+      // that pass values via --dart-define), fall back silently — AppConfig
+      // resolves .env → --dart-define → default in that order.
+      await _loadEnv();
 
       // When Sentry is active it installs its own FlutterError handler and
       // chains the previous one, so this assignment is harmless and keeps
@@ -67,6 +73,16 @@ class AppBootstrap {
           // No DSN configured — nothing to report to.
         },
       );
+    }
+  }
+
+  static Future<void> _loadEnv() async {
+    try {
+      await dotenv.load(fileName: '.env');
+    } catch (e) {
+      if (kDebugMode) {
+        log('No .env loaded ($e) — using --dart-define/defaults');
+      }
     }
   }
 

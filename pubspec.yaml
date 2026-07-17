@@ -72,6 +72,9 @@ dependencies:
   # In-app updates (Android only — Google Play In-App Update API)
   in_app_update: ^4.2.3
 
+  # Runtime environment config (.env)
+  flutter_dotenv: ^5.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -107,6 +110,7 @@ flutter_icons:
 flutter:
   uses-material-design: true
   assets:
+    - .env
     - assets/
     - assets/images/
     - assets/svgs/
