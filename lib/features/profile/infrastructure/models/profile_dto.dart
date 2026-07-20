@@ -31,15 +31,9 @@ class ProfileDto {
       throw const FormatException('Profile payload missing `id`.');
     }
 
-    final rawFirstName = json['first_name'];
-    if (rawFirstName == null || rawFirstName.toString().isEmpty) {
-      throw const FormatException('Profile payload missing `first_name`.');
-    }
+    final rawFirstName = json['first_name'] ?? '';
 
-    final rawLastName = json['last_name'];
-    if (rawLastName == null || rawLastName.toString().isEmpty) {
-      throw const FormatException('Profile payload missing `last_name`.');
-    }
+    final rawLastName = json['last_name'] ?? '';
 
     final rawPhone = json['phone_number'];
     if (rawPhone == null || rawPhone.toString().isEmpty) {

@@ -20,12 +20,12 @@ class UserEntity {
   factory UserEntity.fromMap(Map<String, dynamic> map) {
     return UserEntity(
       id: map['id'] as int,
-      username: map['username'] as String,
-      email: map['email'] as String,
-      firstName: map['first_name'] as String,
-      lastName: map['last_name'] as String,
-      phoneNumber: map['phone_number'] as String,
-      role: map['role'] as String,
+      username: (map['username'] as String?) ?? '',
+      email: (map['email'] as String?) ?? '',
+      firstName: (map['first_name'] as String?) ?? '',
+      lastName: (map['last_name'] as String?) ?? '',
+      phoneNumber: (map['phone_number'] as String?) ?? '',
+      role: (map['role'] as String?) ?? '',
     );
   }
 
