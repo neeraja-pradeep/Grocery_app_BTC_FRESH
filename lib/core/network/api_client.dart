@@ -76,6 +76,13 @@ class ApiClient {
             if (csrf != null) {
               options.headers['X-CSRFToken'] = csrf;
             }
+            // Django enforces a Referer/Origin check on unsafe methods over
+            // HTTPS. Mobile clients don't send these automatically, so set them
+            // to the base URL to satisfy CSRF referer checking. Origin must be
+            // the bare scheme://host (no trailing slash) to match Django's
+            // allowed-origins comparison.
+            options.headers['Referer'] = ApiEndpoints.baseUrl;
+            options.headers['Origin'] = AppConfig.apiBaseUrl;
           }
           handler.next(options);
         },
