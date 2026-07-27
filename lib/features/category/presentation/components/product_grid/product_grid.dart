@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../app/theme/colors.dart';
+import '../../../../../core/polling/polling_manager.dart';
 import '../../../../../core/widgets/app_text.dart';
 import '../../../application/providers/category_product_providers.dart'
     as category_products;
@@ -49,11 +52,31 @@ class ProductGridState extends ConsumerState<ProductGrid> {
   /// Prevents scroll detection during programmatic scrolls
   bool _isProgrammaticScroll = false;
 
+  /// Feature name the category product pollers register under.
+  static const String _pollingFeature = 'category_products';
+
+  /// How often the section sweep may run while the user is dragging.
+  ///
+  /// The sweep measures every category heading's position, which walks the
+  /// render tree once per section. At 120 fps with 25 categories that is 3000
+  /// `localToGlobal` calls a second if it runs unthrottled on every scroll
+  /// notification, so it is capped to ~8 sweeps/second instead.
+  static const Duration _scrollThrottle = Duration(milliseconds: 120);
+
+  Timer? _throttleTimer;
+  bool _sweepQueued = false;
+
   @override
   void initState() {
     super.initState();
     _buildSectionKeys();
     _scrollController.addListener(_handleScroll);
+
+    // Establish the initial visible set once the first frame has laid out, so
+    // only on-screen categories start polling.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _sweepSections();
+    });
   }
 
   @override
@@ -61,6 +84,9 @@ class ProductGridState extends ConsumerState<ProductGrid> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.categories.length != widget.categories.length) {
       _buildSectionKeys();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _sweepSections();
+      });
     }
   }
 
@@ -74,8 +100,12 @@ class ProductGridState extends ConsumerState<ProductGrid> {
 
   @override
   void dispose() {
+    _throttleTimer?.cancel();
     _scrollController.removeListener(_handleScroll);
     _scrollController.dispose();
+    // Drop the visibility filter so other screens using this feature are not
+    // constrained by a set this (now gone) grid published.
+    PollingManager.instance.setVisibleResources(_pollingFeature, null);
     super.dispose();
   }
 
@@ -120,19 +150,53 @@ class ProductGridState extends ConsumerState<ProductGrid> {
     _isProgrammaticScroll = false;
   }
 
-  /// Detects which category heading is visible when user scrolls
-  /// Updates parent with visible category index (works in both directions)
+  /// Scroll notification handler.
+  ///
+  /// Scroll notifications arrive once per frame while dragging, but the sweep
+  /// they trigger is O(number of categories) in render-tree walks. This runs
+  /// the sweep immediately, then coalesces everything that arrives during the
+  /// next [_scrollThrottle] window into a single trailing sweep.
   void _handleScroll() {
     if (_isProgrammaticScroll || !_scrollController.hasClients) return;
+
+    if (_throttleTimer != null) {
+      _sweepQueued = true;
+      return;
+    }
+
+    _sweepSections();
+    _throttleTimer = Timer(_scrollThrottle, () {
+      _throttleTimer = null;
+      if (_sweepQueued) {
+        _sweepQueued = false;
+        _handleScroll();
+      }
+    });
+  }
+
+  /// Measures every category section once and derives two things from the
+  /// single pass:
+  ///
+  ///  1. the topmost section in the viewport, to sync the sidebar selection;
+  ///  2. the set of sections near the viewport, so only those keep polling.
+  void _sweepSections() {
+    if (!_scrollController.hasClients) return;
 
     final scrollBox = context.findRenderObject() as RenderBox?;
     if (scrollBox == null) return;
 
+    final viewportHeight = scrollBox.size.height;
+    const viewportTop = 0.0;
+
+    // Sections within one viewport above/below still poll, so data is fresh by
+    // the time the user scrolls onto them.
+    final pollMargin = viewportHeight;
+
     int? visibleIndex;
     double smallestTop = double.infinity;
+    final pollable = <String>{};
+    var measuredAny = false;
 
-    // Find the topmost category heading visible in viewport
-    // (closest to top of screen but still visible)
     for (var i = 0; i < _sectionKeys.length; i++) {
       final sectionContext = _sectionKeys[i].currentContext;
       if (sectionContext == null) continue;
@@ -140,14 +204,14 @@ class ProductGridState extends ConsumerState<ProductGrid> {
       final sectionBox = sectionContext.findRenderObject() as RenderBox?;
       if (sectionBox == null || !sectionBox.attached) continue;
 
+      measuredAny = true;
+
       // Get position relative to viewport top
       final top = sectionBox.localToGlobal(Offset.zero, ancestor: scrollBox).dy;
       final bottom = top + sectionBox.size.height;
-      const viewportTop = 0.0;
-      final viewportBottom = scrollBox.size.height;
 
       // Check if heading is visible in viewport
-      if (top < viewportBottom && bottom > viewportTop) {
+      if (top < viewportHeight && bottom > viewportTop) {
         // Prioritize the one closest to the top (but still visible)
         // If top is negative (above viewport), use 0 for comparison
         final effectiveTop = top < viewportTop ? viewportTop : top;
@@ -157,11 +221,23 @@ class ProductGridState extends ConsumerState<ProductGrid> {
           visibleIndex = i;
         }
       }
+
+      if (top < viewportHeight + pollMargin && bottom > viewportTop - pollMargin) {
+        final id = widget.categories[i].id;
+        if (id != null && id.isNotEmpty) pollable.add(id);
+      }
     }
 
     // Update sidebar if category changed (works for scroll up and down)
     if (visibleIndex != null && visibleIndex != widget.selectedCategoryIndex) {
       widget.onCategoryInViewChanged(visibleIndex);
+    }
+
+    // Only narrow polling once at least one section has actually been laid
+    // out. Before first layout every context is null, and publishing an empty
+    // set then would pause all polling until the next scroll.
+    if (measuredAny) {
+      PollingManager.instance.setVisibleResources(_pollingFeature, pollable);
     }
   }
 

@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Needed for the `DartySocket` extension that provides onConnect/onDisconnect.
+import 'package:socket_io_client/socket_io_client.dart';
 
 import '../../features/category/application/providers/inventory_update_notifier.dart';
 import '../../features/category/application/providers/price_update_notifier.dart';
@@ -108,16 +112,33 @@ final joinDeliveryRoomProvider = FutureProvider.family<void, int>((
   socketService.joinDeliveryRoom(deliveryId);
 });
 
-/// Provider to get connection status
-final socketConnectionStatusProvider = StreamProvider<bool>((ref) async* {
+/// Provider to get connection status.
+///
+/// Event-driven rather than polled. The previous implementation was an
+/// unbounded `while (true) { await Future.delayed(1s); yield ... }` loop, which
+/// emitted every second forever — rebuilding every watcher once a second even
+/// when the connection state had not changed.
+final socketConnectionStatusProvider = StreamProvider<bool>((ref) {
   final socketService = ref.watch(socketServiceProvider);
+  final controller = StreamController<bool>();
 
-  // Emit initial state
-  yield socketService.isConnected;
+  var lastValue = socketService.isConnected;
+  controller.add(lastValue);
 
-  // Listen for changes (polling approach since Socket.IO doesn't provide streams)
-  while (true) {
-    await Future.delayed(const Duration(seconds: 1));
-    yield socketService.isConnected;
+  void emit() {
+    final value = socketService.isConnected;
+    // Distinct: connect/disconnect handlers can fire more than once.
+    if (value == lastValue || controller.isClosed) return;
+    lastValue = value;
+    controller.add(value);
   }
+
+  socketService.socket
+    ..onConnect((_) => emit())
+    ..onDisconnect((_) => emit())
+    ..onConnectError((_) => emit());
+
+  ref.onDispose(controller.close);
+
+  return controller.stream;
 });

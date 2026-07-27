@@ -7,6 +7,7 @@ import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 
 import '../../../domain/entities/product_variant.dart';
+import '../../../../../core/widgets/app_network_image.dart';
 
 /// ============================================================================
 /// PRODUCT IMAGE SECTION - Media List Integration
@@ -248,24 +249,18 @@ class _ProductImageSectionState extends State<ProductImageSection> {
                       height: 188.w,
 
                       child: ClipRRect(
-                        child: Image.network(
-                          _images[_currentImageIndex],
+                        child: AppNetworkImage(
+                          imageUrl: _images[_currentImageIndex],
+                          width: 188.w,
+                          height: 188.w,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            developer.log(
-                              'ProductImageSection: Failed to load main image at index $_currentImageIndex: ${_images[_currentImageIndex]}\nError: $error',
-                              name: 'ImageSection',
-                              error: error,
-                              stackTrace: stackTrace,
-                            );
-                            return Center(
-                              child: Icon(
-                                Icons.image_not_supported_outlined,
-                                size: 60.sp,
-                                color: AppColors.green100,
-                              ),
-                            );
-                          },
+                          errorWidget: Center(
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 60.sp,
+                              color: AppColors.green100,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -309,26 +304,20 @@ class _ProductImageSectionState extends State<ProductImageSection> {
                             child: Center(
                               child: Padding(
                                 padding: const EdgeInsets.all(2),
-                                child: Image.network(
-                                  _images[imageIndex],
+                                child: AppNetworkImage(
+                                  imageUrl: _images[imageIndex],
+                                  width: 60.w,
+                                  height: 60.w,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    developer.log(
-                                      'ProductImageSection: Failed to load thumbnail at index $imageIndex: ${_images[imageIndex]}\nError: $error',
-                                      name: 'ImageSection',
-                                      error: error,
-                                      stackTrace: stackTrace,
-                                    );
-                                    return Container(
-                                      color: const Color(0xFFF0F5E8),
-                                      alignment: Alignment.center,
-                                      child: Icon(
-                                        Icons.image_outlined,
-                                        color: AppColors.grey,
-                                        size: 20.sp,
-                                      ),
-                                    );
-                                  },
+                                  errorWidget: Container(
+                                    color: const Color(0xFFF0F5E8),
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      Icons.image_outlined,
+                                      color: AppColors.grey,
+                                      size: 20.sp,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),

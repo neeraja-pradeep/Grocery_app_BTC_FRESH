@@ -465,6 +465,8 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                         ? CachedNetworkImage(
                             imageUrl: firstProductImage,
                             fit: BoxFit.cover,
+                            memCacheWidth: 150,
+                            maxWidthDiskCache: 1080,
                             errorWidget: (context, url, error) => Icon(
                               Icons.shopping_bag_outlined,
                               color: AppColors.grey,

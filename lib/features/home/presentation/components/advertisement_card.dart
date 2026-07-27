@@ -34,6 +34,8 @@ class AdvertisementCard extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: banner.imageUrl,
                 fit: BoxFit.cover,
+                memCacheWidth: 1080,
+                maxWidthDiskCache: 1080,
                 placeholder: (context, url) =>
                     const Center(child: CircularProgressIndicator()),
                 errorWidget: (context, url, error) =>

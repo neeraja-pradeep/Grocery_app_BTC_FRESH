@@ -20,13 +20,45 @@ class Boxes {
   static late Box homeDataBox;
   static late Box deliveryTrackingBox;
 
+  /// Compaction policy for the boxes we overwrite repeatedly.
+  ///
+  /// Hive boxes are append-only logs: overwriting a key appends a new entry and
+  /// tombstones the old one, and the whole file is read into memory when the
+  /// box is opened. The caches here are rewritten constantly, so without
+  /// compaction the file keeps growing and startup gets slower the longer the
+  /// app has been installed. This compacts once a quarter of the entries are
+  /// dead, which keeps the file proportional to the live data.
+  static bool _compactWhenQuarterDead(int entries, int deletedEntries) =>
+      deletedEntries > 25 && deletedEntries / entries > 0.25;
+
   static Future<void> openHiveBoxes() async {
-    userBox = await Hive.openBox(HiveKeys.userbox);
-    addressBox = await Hive.openBox(HiveKeys.addressBox);
-    cacheBox = await Hive.openBox(cache);
-    profileBox = await Hive.openBox(profile);
-    homeDataBox = await Hive.openBox(homeBox);
-    deliveryTrackingBox = await Hive.openBox(deliveryTracking);
+    // Opened concurrently rather than one after another. Every box is read off
+    // disk before the first frame can render, so serialising six opens put
+    // their full latency directly into cold-start time.
+    final boxes = await Future.wait<Box<dynamic>>([
+      Hive.openBox<dynamic>(HiveKeys.userbox),
+      Hive.openBox<dynamic>(HiveKeys.addressBox),
+      Hive.openBox<dynamic>(
+        cache,
+        compactionStrategy: _compactWhenQuarterDead,
+      ),
+      Hive.openBox<dynamic>(profile),
+      Hive.openBox<dynamic>(
+        homeBox,
+        compactionStrategy: _compactWhenQuarterDead,
+      ),
+      Hive.openBox<dynamic>(
+        deliveryTracking,
+        compactionStrategy: _compactWhenQuarterDead,
+      ),
+    ]);
+
+    userBox = boxes[0];
+    addressBox = boxes[1];
+    cacheBox = boxes[2];
+    profileBox = boxes[3];
+    homeDataBox = boxes[4];
+    deliveryTrackingBox = boxes[5];
   }
 
   /// Close all Hive boxes

@@ -8,6 +8,7 @@ import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../../home/application/providers/delivery_status_provider.dart';
 import '../../../orders/application/providers/orders_provider.dart';
+import '../../../../core/widgets/app_background.dart';
 
 class ConfirmOrderScreen extends ConsumerStatefulWidget {
   const ConfirmOrderScreen({super.key});
@@ -91,13 +92,7 @@ class _ConfirmOrderScreenState extends ConsumerState<ConfirmOrderScreen> {
       },
       child: Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/bg.png'),
-              repeat: ImageRepeat.repeat,
-              opacity: 0.7,
-            ),
-          ),
+          decoration: kPatternBackgroundDecorationNoColor,
           child: SafeArea(
             child: Padding(
               padding: EdgeInsets.all(20.0.w),

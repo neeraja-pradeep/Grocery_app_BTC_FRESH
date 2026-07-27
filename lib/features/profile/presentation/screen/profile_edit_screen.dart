@@ -8,6 +8,7 @@ import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../auth/application/providers/auth_provider.dart';
 import '../../application/providers/profile_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({super.key});
@@ -241,8 +242,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               CircleAvatar(
                 radius: 32.r,
                 backgroundColor: AppColors.grey.withValues(alpha: 0.2),
+                // Disk-cached and decoded at avatar size (64 logical px at 3x)
+                // rather than at the source resolution.
                 backgroundImage: profileImageUrl != null
-                    ? NetworkImage(profileImageUrl)
+                    ? ResizeImage(
+                        CachedNetworkImageProvider(profileImageUrl),
+                        width: 192,
+                      )
                     : null,
                 child: profileImageUrl == null
                     ? Icon(Icons.person, size: 32.sp, color: AppColors.grey)

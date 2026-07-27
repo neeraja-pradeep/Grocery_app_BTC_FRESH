@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../app/theme/colors.dart';
 import '../widgets/app_text.dart';
+import '../widgets/app_background.dart';
 
 /// Error view page displayed when something goes wrong
 class ErrorView extends StatelessWidget {
@@ -15,14 +16,7 @@ class ErrorView extends StatelessWidget {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          image: DecorationImage(
-            image: AssetImage('assets/bg.png'),
-            repeat: ImageRepeat.repeat,
-            opacity: 0.7,
-          ),
-        ),
+        decoration: kPatternBackgroundDecoration,
         child: SafeArea(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

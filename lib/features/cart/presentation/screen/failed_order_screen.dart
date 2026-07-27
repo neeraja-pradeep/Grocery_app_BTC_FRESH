@@ -5,6 +5,7 @@ import '../../../../app/theme/button_styles.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
 import '../../../bottomnavbar/bottom_navbar.dart';
+import '../../../../core/widgets/app_background.dart';
 
 class FailedOrderScreen extends StatelessWidget {
   final String? errorMessage;
@@ -38,13 +39,7 @@ class FailedOrderScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/bg.png'),
-            repeat: ImageRepeat.repeat,
-            opacity: 0.7,
-          ),
-        ),
+        decoration: kPatternBackgroundDecorationNoColor,
         child: SafeArea(
           child: Padding(
             padding: EdgeInsets.all(20.0.w),

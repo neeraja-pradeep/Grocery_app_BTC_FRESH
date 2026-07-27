@@ -38,6 +38,8 @@ class CategoryTile extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: category.backgroundImageUrl!,
                     fit: BoxFit.contain,
+                    memCacheWidth: 240,
+                    maxWidthDiskCache: 1080,
                     errorWidget: (context, url, error) =>
                         const Icon(Icons.category_outlined, color: Colors.grey),
                     placeholder: (context, url) => Padding(

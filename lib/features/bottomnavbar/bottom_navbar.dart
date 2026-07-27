@@ -220,13 +220,16 @@ class _BottomNavBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch cart state to get item count
-    final cartState = ref.watch(checkoutLineControllerProvider);
+    // Only the item count matters here, so select it rather than watching the
+    // whole cart — otherwise every quantity edit rebuilds the nav bar.
+    final cartLineCount = ref.watch(
+      checkoutLineControllerProvider.select((state) => state.items.length),
+    );
     final authState = ref.watch(authProvider);
     final isAuthenticated = authState is! GuestMode;
 
     // Get total number of items in cart (only for authenticated users)
-    final cartItemCount = isAuthenticated ? cartState.items.length : 0;
+    final cartItemCount = isAuthenticated ? cartLineCount : 0;
 
     return DecoratedBox(
       decoration: const BoxDecoration(

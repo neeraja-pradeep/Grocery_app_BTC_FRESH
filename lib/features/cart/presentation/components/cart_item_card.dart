@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../app/theme/colors.dart';
 import '../../../../core/widgets/app_text.dart';
+import '../../../../core/widgets/app_network_image.dart';
 
 /// Cart item card component
 /// Displays product image, name, price, and quantity controls
@@ -130,16 +131,16 @@ class CartItemCard extends StatelessWidget {
       child: imageUrl != null && imageUrl!.isNotEmpty
           ? ClipRRect(
               borderRadius: BorderRadius.circular(8.r),
-              child: Image.network(
-                imageUrl!,
+              child: AppNetworkImage(
+                imageUrl: imageUrl,
+                width: 60.w,
+                height: 60.w,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    Icons.image_not_supported_outlined,
-                    color: AppColors.grey,
-                    size: 30.sp,
-                  );
-                },
+                errorWidget: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: AppColors.grey,
+                  size: 30.sp,
+                ),
               ),
             )
           : Icon(

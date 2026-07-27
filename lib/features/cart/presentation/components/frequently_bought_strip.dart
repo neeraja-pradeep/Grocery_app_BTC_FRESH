@@ -11,6 +11,7 @@ import '../../application/providers/checkout_line_provider.dart';
 import '../../application/providers/frequently_bought_provider.dart';
 import '../../domain/entities/checkout_line.dart';
 import '../../domain/entities/frequently_bought_item.dart';
+import '../../../../core/widgets/app_network_image.dart';
 
 const Color _kBadgeRed = Color(0xFFE81F2B);
 const Color _kImageBg = Color(0xFFD6EEDD);
@@ -266,14 +267,13 @@ class _ProductImageView extends StatelessWidget {
         child: Icon(Icons.shopping_basket_outlined, color: AppColors.grey),
       );
     }
-    return Image.network(
-      imageUrl!,
+    return AppNetworkImage(
+      imageUrl: imageUrl,
       fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        return const Center(
-          child: Icon(Icons.broken_image_outlined, color: AppColors.grey),
-        );
-      },
+      decodeWidth: 120,
+      errorWidget: const Center(
+        child: Icon(Icons.broken_image_outlined, color: AppColors.grey),
+      ),
     );
   }
 }

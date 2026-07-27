@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Centralized configuration for all backend URLs and app settings.
@@ -26,12 +27,21 @@ class AppConfig {
   // ENVIRONMENT CONFIGURATION
   // ============================================================================
 
-  /// Whether this is a production build.
-  /// Set via --dart-define=IS_PRODUCTION=true in CI/CD release pipeline.
-  static const bool isProduction = bool.fromEnvironment(
+  /// Explicit override from the build pipeline:
+  /// `--dart-define=IS_PRODUCTION=true`.
+  static const bool _isProductionFromDefine = bool.fromEnvironment(
     'IS_PRODUCTION',
     defaultValue: false,
   );
+
+  /// Whether this is a production build.
+  ///
+  /// Prefers the `--dart-define`, but falls back to [kReleaseMode] so a release
+  /// APK is treated as production even when the pipeline forgets to pass the
+  /// flag. Previously this was hard-wired to the define's `false` default, and
+  /// since no build script passed it, every shipped build reported itself as
+  /// `development` and ran the Sentry SDK with verbose debug logging enabled.
+  static const bool isProduction = _isProductionFromDefine || kReleaseMode;
 
   static const bool isDevelopment = !isProduction;
 

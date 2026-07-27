@@ -5,6 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/network/socket_provider.dart';
+import '../../../../../core/network/socket_service.dart';
+import '../../../../../core/widgets/app_network_image.dart';
 import '../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../core/widgets/app_text.dart';
 import '../../../../auth/application/providers/auth_provider.dart';
@@ -42,6 +44,11 @@ class ProductCard extends ConsumerStatefulWidget {
 class _ProductCardState extends ConsumerState<ProductCard> {
   late int variantId;
 
+  /// Captured in [initState] rather than read in [dispose]: reading a provider
+  /// while the widget (or the surrounding scope) is being torn down is not
+  /// safe, and the socket service is a singleton so holding it is free.
+  SocketService? _socketService;
+
   @override
   void initState() {
     super.initState();
@@ -49,14 +56,26 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     variantId = int.tryParse(widget.product.variantId) ?? 0;
 
     if (variantId > 0) {
+      _socketService = ref.read(socketServiceProvider);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Check if widget is still mounted before using ref
+        // Check if widget is still mounted before joining
         // The callback may fire after the widget is disposed
         if (mounted) {
-          ref.read(socketServiceProvider).joinVariantRoom(variantId);
+          _socketService?.joinVariantRoom(variantId);
         }
       });
     }
+  }
+
+  @override
+  void dispose() {
+    // Cards are recycled as the grid scrolls, so without this the joined-room
+    // set grows for the whole session and every reconnect re-emits a join for
+    // every variant the user has ever scrolled past.
+    if (variantId > 0) {
+      _socketService?.leaveVariantRoom(variantId);
+    }
+    super.dispose();
   }
 
   /// Handle add to cart with backend integration
@@ -135,23 +154,41 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       widget.product.unit,
     );
 
-    // Watch cart state to check if product is in cart
-    final cartState = ref.watch(checkoutLineControllerProvider);
-    final cartItem = cartState.items.where(
-      (item) => item.productVariantId == variantId,
+    // These three watches are `select`ed down to just this card's variant.
+    //
+    // Watching the providers wholesale meant every cart mutation, every socket
+    // price/inventory event, and every 30s cart poll rebuilt *every* card on
+    // screen — each one also re-scanning the whole cart list. Selecting makes
+    // a card rebuild only when its own line or its own variant changes.
+    //
+    // The selectors return records, which compare structurally, so an
+    // unrelated change produces an equal value and no rebuild.
+    final cartLine = ref.watch(
+      checkoutLineControllerProvider.select((state) {
+        for (final item in state.items) {
+          if (item.productVariantId == variantId) {
+            return (id: item.id, quantity: item.quantity);
+          }
+        }
+        return null;
+      }),
     );
-    final isInCart = cartItem.isNotEmpty;
-    final cartLineId = isInCart ? cartItem.first.id : 0;
-    final cartQuantity = isInCart ? cartItem.first.quantity : 0;
+    final isInCart = cartLine != null;
+    final cartLineId = cartLine?.id ?? 0;
+    final cartQuantity = cartLine?.quantity ?? 0;
 
-    // Watch real-time Socket.IO updates
-    final priceUpdates = ref.watch(priceUpdateNotifierProvider);
-    final inventoryUpdates = ref.watch(inventoryUpdateNotifierProvider);
-
-    // Get real-time price event if available
-    final priceEvent = variantId > 0 ? priceUpdates.getUpdate(variantId) : null;
+    // Watch real-time Socket.IO updates for this variant only
+    final priceEvent = variantId > 0
+        ? ref.watch(
+            priceUpdateNotifierProvider.select((s) => s.getUpdate(variantId)),
+          )
+        : null;
     final inventoryEvent = variantId > 0
-        ? inventoryUpdates.getUpdate(variantId)
+        ? ref.watch(
+            inventoryUpdateNotifierProvider.select(
+              (s) => s.getUpdate(variantId),
+            ),
+          )
         : null;
 
     // Determine display prices: use Socket.IO real-time if available
@@ -411,34 +448,14 @@ class _ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (image == null || image!.isEmpty) {
-      return Container(
-        color: const Color.fromARGB(189, 239, 244, 235),
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.local_grocery_store_outlined,
-          size: 28,
-          color: AppColors.green100,
-        ),
-      );
-    }
-
-    if (image!.startsWith('assets/')) {
-      return Image.asset(image!, fit: BoxFit.cover);
-    }
-
-    return Image(
-      image: NetworkImage(image!, headers: {'User-Agent': 'Mozilla/5.0'}),
+    // The card is 129.w wide with 8.r padding on each side, so the painted
+    // image never exceeds ~115 logical px. Bounding the decode here is what
+    // keeps a full grid of products inside Flutter's image cache budget.
+    return AppNetworkImage(
+      imageUrl: image,
       fit: BoxFit.fitHeight,
-      errorBuilder: (context, error, stackTrace) => Container(
-        color: AppColors.green10,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.broken_image_outlined,
-          size: 28,
-          color: AppColors.green100,
-        ),
-      ),
+      decodeWidth: 120,
+      httpHeaders: const {'User-Agent': 'Mozilla/5.0'},
     );
   }
 }

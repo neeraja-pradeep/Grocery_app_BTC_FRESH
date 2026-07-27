@@ -50,6 +50,18 @@ class PollingManager {
   /// Only pollers matching this feature will be allowed to run
   String? _activeFeature;
 
+  /// Optional per-feature visibility filter: featureName → visible resourceIds.
+  ///
+  /// When a feature has an entry here, only pollers whose resourceId is in the
+  /// set may run; the rest stay paused even though their feature is active.
+  /// Features with no entry keep the original "run everything" behaviour.
+  ///
+  /// This exists because the Categories screen registers one poller per
+  /// category. Without a filter, sitting on that tab polls *every* category
+  /// every 30s — 25 categories is ~50 requests/minute, of which at most a
+  /// couple are for sections the user can actually see.
+  final Map<String, Set<String>> _visibleResources = {};
+
   /// Listeners for poller state changes
   final List<VoidCallback> _listeners = [];
 
@@ -78,6 +90,14 @@ class PollingManager {
       'Poller $key registered twice without unregistering. Call unregisterPoller first.',
     );
 
+    // The assert above is stripped in release builds, where a double
+    // registration would silently replace the entry — orphaning the previous
+    // poller's timer, which then runs forever with no way to stop it. Pause
+    // the outgoing poller first so a stray timer cannot leak in production.
+    if (_pollers.containsKey(key)) {
+      _stopPoller(key);
+    }
+
     _pollers[key] = _PollerInfo(
       featureName: featureName,
       resourceId: resourceId,
@@ -94,7 +114,7 @@ class PollingManager {
     }
 
     // If this poller's feature is currently active, start it immediately
-    if (_activeFeature == featureName) {
+    if (_activeFeature == featureName && _isVisible(featureName, resourceId)) {
       if (kDebugMode) {
         developer.log(
           'Auto-starting poller $key (feature $featureName is active)',
@@ -172,11 +192,58 @@ class PollingManager {
     _notifyListeners();
   }
 
-  /// Start all pollers for a specific feature
+  /// Whether [resourceId] is allowed to poll under [featureName].
+  ///
+  /// True when the feature has no visibility filter registered (the default),
+  /// or when the resource is in the feature's visible set.
+  bool _isVisible(String featureName, String resourceId) {
+    final visible = _visibleResources[featureName];
+    return visible == null || visible.contains(resourceId);
+  }
+
+  /// Declares which resources of [featureName] are currently on screen.
+  ///
+  /// Pollers for resources outside [resourceIds] are paused; those inside are
+  /// started (when the feature is active). Pass null to drop the filter and go
+  /// back to running every poller for the feature.
+  ///
+  /// Safe to call on every scroll frame — it no-ops when the set is unchanged.
+  void setVisibleResources(String featureName, Set<String>? resourceIds) {
+    final previous = _visibleResources[featureName];
+
+    if (resourceIds == null) {
+      if (previous == null) return;
+      _visibleResources.remove(featureName);
+    } else {
+      if (previous != null &&
+          previous.length == resourceIds.length &&
+          previous.containsAll(resourceIds)) {
+        return;
+      }
+      _visibleResources[featureName] = Set<String>.of(resourceIds);
+    }
+
+    // Only the active feature has running timers to reconcile.
+    if (_activeFeature != featureName) return;
+
+    for (final entry in _pollers.entries) {
+      if (entry.value.featureName != featureName) continue;
+      if (_isVisible(featureName, entry.value.resourceId)) {
+        _startPoller(entry.key);
+      } else {
+        _stopPoller(entry.key);
+      }
+    }
+
+    _notifyListeners();
+  }
+
+  /// Start all pollers for a specific feature (respecting any visibility filter)
   void _startAllPollersForFeature(String featureName) {
     int startedCount = 0;
     for (final entry in _pollers.entries) {
-      if (entry.value.featureName == featureName) {
+      if (entry.value.featureName == featureName &&
+          _isVisible(featureName, entry.value.resourceId)) {
         _startPoller(entry.key);
         startedCount++;
       }
@@ -248,7 +315,7 @@ class PollingManager {
     // If switching to a different feature, change the active feature
     if (_activeFeature != featureName) {
       setActiveFeature(featureName);
-    } else {
+    } else if (_isVisible(featureName, resourceId)) {
       // Same feature - just make sure this poller is started
       _startPoller(key);
     }

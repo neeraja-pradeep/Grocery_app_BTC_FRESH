@@ -21,7 +21,10 @@ dependencies:
   # UI/UX
   cupertino_icons: ^1.0.8
   flutter_screenutil: ^5.9.0
-  google_fonts: ^6.1.0
+  # google_fonts removed — Poppins/Inter are bundled under assets/fonts and
+  # declared in the `fonts:` section below. The package fetched each weight
+  # from fonts.gstatic.com at runtime, which delayed first paint on a fresh
+  # install even though the same TTFs already shipped with the app.
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.3.0
   pull_to_refresh: ^2.0.0
@@ -121,10 +124,30 @@ flutter:
     - assets/videos/
     - assets/lottie/
 
+  # All weights are registered so Flutter resolves `fontWeight` against a real
+  # font file. Previously only Regular was declared and typography went through
+  # `google_fonts`, which downloaded each weight from fonts.gstatic.com on
+  # first launch — a network round-trip before text could render correctly.
   fonts:
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Poppins/Poppins-ExtraBold.ttf
+          weight: 800
     - family: Inter
       fonts:
-        - asset: assets/fonts/Inter/Inter-Regular.ttf 
+        - asset: assets/fonts/Inter/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter/Inter-ExtraBold.ttf
+          weight: 800

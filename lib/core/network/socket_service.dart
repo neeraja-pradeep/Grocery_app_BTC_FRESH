@@ -12,8 +12,14 @@ class SocketService {
   late IO.Socket socket;
   bool _isConnected = false;
   bool _listenersRegistered = false;
-  final List<int> _joinedVariantRooms = [];
-  final List<int> _joinedDeliveryRooms = [];
+
+  // Sets, not lists: these are membership-tested once per product card built,
+  // so a linear scan showed up while scrolling a long grid.
+  final Set<int> _joinedVariantRooms = <int>{};
+  final Set<int> _joinedDeliveryRooms = <int>{};
+
+  /// Rooms requested while the socket was down, re-joined on reconnect.
+  final Set<int> _pendingVariantRooms = <int>{};
 
   /// Initialize socket connection
   /// Base URL should be your Django ASGI server URL
@@ -122,7 +128,12 @@ class SocketService {
   /// variant_id: The variant ID to listen for updates
   void joinVariantRoom(int variantId) {
     if (!_isConnected) {
-      logger.w('⚠️ Socket not connected. Cannot join variant room $variantId');
+      // Deliberately NOT logger.w: this is called from every product card's
+      // initState, so a disconnected socket used to emit one Sentry event per
+      // card — a scroll through one category could fire a hundred. Remember
+      // the request instead and join it when the socket comes back.
+      _pendingVariantRooms.add(variantId);
+      logger.d('ℹ️ Socket down; queued variant room $variantId');
       return;
     }
 
@@ -139,12 +150,13 @@ class SocketService {
 
   /// Leave a product variant room
   void leaveVariantRoom(int variantId) {
+    _pendingVariantRooms.remove(variantId);
+
+    if (!_joinedVariantRooms.remove(variantId)) return;
     if (!_isConnected) return;
 
     socket.emit('leave_product_room', {'variant_id': variantId});
-
-    _joinedVariantRooms.remove(variantId);
-    logger.i('📍 Left variant room: $variantId');
+    logger.d('📍 Left variant room: $variantId');
   }
 
   /// Join a delivery room for tracking
@@ -179,9 +191,13 @@ class SocketService {
 
   /// Rejoin all previously joined rooms after reconnection
   void _rejoinAllRooms() {
+    // Rooms requested while the socket was down join for the first time here.
+    _joinedVariantRooms.addAll(_pendingVariantRooms);
+    _pendingVariantRooms.clear();
+
     for (final variantId in _joinedVariantRooms) {
       socket.emit('join_product_room', {'variant_id': variantId});
-      logger.i('🔄 Rejoined variant room: $variantId');
+      logger.d('🔄 Rejoined variant room: $variantId');
     }
 
     for (final deliveryId in _joinedDeliveryRooms) {

@@ -1,6 +1,7 @@
 // lib/features/home/presentation/components/error_view.dart
 
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_background.dart';
 
 class ErrorView extends StatelessWidget {
   final String message;
@@ -13,14 +14,7 @@ class ErrorView extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        image: DecorationImage(
-          image: AssetImage('assets/bg.png'),
-          repeat: ImageRepeat.repeat,
-          opacity: 0.7,
-        ),
-      ),
+      decoration: kPatternBackgroundDecoration,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

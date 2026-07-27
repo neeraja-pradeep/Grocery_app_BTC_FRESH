@@ -6,6 +6,7 @@ import '../../../../../app/theme/colors.dart';
 import '../../../../../core/widgets/app_text.dart';
 import '../../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../../cart/domain/entities/checkout_line.dart';
+import '../../../../../core/widgets/app_network_image.dart';
 
 /// Cart Items Section Component
 ///
@@ -87,16 +88,16 @@ class _CartItemRow extends StatelessWidget {
             child: imageUrl != null && imageUrl.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(6.r),
-                    child: Image.network(
-                      imageUrl,
+                    child: AppNetworkImage(
+                      imageUrl: imageUrl,
+                      width: 50.w,
+                      height: 50.w,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.image_not_supported_outlined,
-                          color: AppColors.grey,
-                          size: 24.sp,
-                        );
-                      },
+                      errorWidget: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: AppColors.grey,
+                        size: 24.sp,
+                      ),
                     ),
                   )
                 : Icon(

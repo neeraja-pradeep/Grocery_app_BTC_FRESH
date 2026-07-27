@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../app/theme/colors.dart';
 import '../../features/bottomnavbar/bottom_navbar.dart';
 import 'app_text.dart';
+import 'app_background.dart';
 
 /// Full screen error widget with box illustration
 /// Use this when a screen fails to load or encounters an error
@@ -33,14 +34,7 @@ class AppErrorScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        image: DecorationImage(
-          image: AssetImage('assets/bg.png'),
-          repeat: ImageRepeat.repeat,
-          opacity: 0.7,
-        ),
-      ),
+      decoration: kPatternBackgroundDecoration,
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 32.w),

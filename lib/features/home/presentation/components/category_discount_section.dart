@@ -177,13 +177,22 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
         : '';
 
     // Cart state: is this variant already in the cart?
-    final cartState = ref.watch(checkoutLineControllerProvider);
-    final cartLine = cartState.items
-        .where((item) => item.productVariantId == product.id)
-        .toList();
-    final isInCart = cartLine.isNotEmpty;
-    final cartLineId = isInCart ? cartLine.first.id : 0;
-    final cartQuantity = isInCart ? cartLine.first.quantity : 0;
+    //
+    // Selected down to this card's own line, so an unrelated cart change (or
+    // the 30s cart poll) does not rebuild every card in the strip.
+    final cartLine = ref.watch(
+      checkoutLineControllerProvider.select((state) {
+        for (final item in state.items) {
+          if (item.productVariantId == product.id) {
+            return (id: item.id, quantity: item.quantity);
+          }
+        }
+        return null;
+      }),
+    );
+    final isInCart = cartLine != null;
+    final cartLineId = cartLine?.id ?? 0;
+    final cartQuantity = cartLine?.quantity ?? 0;
 
     final String? formattedWeight = product.formattedWeight;
 
@@ -219,6 +228,8 @@ class _MegaOfferProductCardState extends ConsumerState<MegaOfferProductCard> {
                           ? CachedNetworkImage(
                               imageUrl: imageUrl,
                               fit: BoxFit.contain,
+                              memCacheWidth: 360,
+                              maxWidthDiskCache: 1080,
                               placeholder: (context, url) => const Center(
                                 child: SizedBox(
                                   height: 20,

@@ -8,6 +8,7 @@ import '../../../auth/application/states/auth_state.dart';
 import '../../../cart/application/providers/checkout_line_provider.dart';
 import '../../../cart/domain/exceptions/cart_exceptions.dart';
 import '../../domain/entities/product_variant.dart';
+import '../../../../core/widgets/app_network_image.dart';
 
 class ProductSearchCard extends ConsumerWidget {
   final ProductVariant variant;
@@ -51,18 +52,21 @@ class ProductSearchCard extends ConsumerWidget {
                     child: variant.media.isNotEmpty
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(8.r),
-                            child: Image.network(
-                              variant.media.first.imageUrl.startsWith('http')
+                            child: AppNetworkImage(
+                              imageUrl:
+                                  variant.media.first.imageUrl.startsWith(
+                                    'http',
+                                  )
                                   ? variant.media.first.imageUrl
                                   : 'https://${variant.media.first.imageUrl}',
+                              width: 80.w,
+                              height: 80.w,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Icon(
-                                  Icons.image_not_supported,
-                                  color: Colors.grey[400],
-                                  size: 32.sp,
-                                );
-                              },
+                              errorWidget: Icon(
+                                Icons.image_not_supported,
+                                color: Colors.grey[400],
+                                size: 32.sp,
+                              ),
                             ),
                           )
                         : Icon(

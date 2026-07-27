@@ -24,14 +24,78 @@ class Logger {
     );
   }
 
+  // ============================================================================
+  // SENTRY RATE LIMITING
+  // ============================================================================
+
+  /// Minimum gap between two reports carrying the same message.
+  ///
+  /// Without this, a repeated condition floods Sentry: the worst offender was
+  /// a "socket not connected" warning raised once per product card, so a
+  /// single scroll through a category could emit a hundred identical events —
+  /// each one building a stack trace (`attachStacktrace: true`) and a network
+  /// request, on the UI isolate, while the user was dragging.
+  static const Duration _dedupeWindow = Duration(minutes: 5);
+
+  /// Ceiling on reports per [_rateLimitWindow], across all messages. A backstop
+  /// for storms of *distinct* messages, which deduping alone cannot catch.
+  static const int _maxReportsPerWindow = 20;
+  static const Duration _rateLimitWindow = Duration(minutes: 1);
+
+  /// Last time each message was forwarded, used for deduping.
+  static final Map<String, DateTime> _lastReportedAt = {};
+
+  /// Guards [_lastReportedAt] against unbounded growth on apps that generate
+  /// many distinct messages.
+  static const int _maxTrackedMessages = 200;
+
+  static DateTime? _windowStartedAt;
+  static int _reportsInWindow = 0;
+
+  /// Whether [message] may be forwarded to Sentry right now.
+  static bool _shouldReport(String message) {
+    final now = DateTime.now();
+
+    // Per-message dedupe.
+    final last = _lastReportedAt[message];
+    if (last != null && now.difference(last) < _dedupeWindow) return false;
+
+    // Global rate limit.
+    final windowStart = _windowStartedAt;
+    if (windowStart == null || now.difference(windowStart) >= _rateLimitWindow) {
+      _windowStartedAt = now;
+      _reportsInWindow = 0;
+    }
+    if (_reportsInWindow >= _maxReportsPerWindow) return false;
+    _reportsInWindow++;
+
+    if (_lastReportedAt.length >= _maxTrackedMessages) _lastReportedAt.clear();
+    _lastReportedAt[message] = now;
+    return true;
+  }
+
+  /// Clears rate-limiter state. Test-only.
+  @visibleForTesting
+  static void resetSentryRateLimit() {
+    _lastReportedAt.clear();
+    _windowStartedAt = null;
+    _reportsInWindow = 0;
+  }
+
   /// Forward an error to Sentry when a DSN is configured. Fire-and-forget;
   /// the SDK no-ops when uninitialized so this is safe to call always.
+  ///
+  /// Deduped and rate limited — see [_shouldReport]. Note this runs in release
+  /// builds even though [_log] does not, so an unthrottled caller in a hot
+  /// path costs real work in production and nothing in development.
   static void _reportToSentry(
     String message, {
     Object? error,
     SentryLevel level = SentryLevel.error,
   }) {
     if (!AppConfig.isSentryEnabled) return;
+    if (!_shouldReport(message)) return;
+
     if (error is Object) {
       Sentry.captureException(
         error,

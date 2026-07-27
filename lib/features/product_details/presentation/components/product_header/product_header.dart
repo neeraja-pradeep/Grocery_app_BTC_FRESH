@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../domain/entities/product_variant.dart';
+import '../../../../../core/widgets/app_network_image.dart';
 
 /// Product header with image gallery and wishlist button
 class ProductHeader extends StatefulWidget {
@@ -176,32 +177,19 @@ class _ProductHeaderState extends State<ProductHeader>
       );
     }
 
-    if (imageUrl.startsWith('assets/')) {
-      return Image.asset(imageUrl, fit: BoxFit.cover);
-    }
-
-    return Image.network(
-      imageUrl,
+    return AppNetworkImage(
+      imageUrl: imageUrl,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Center(
-          child: Icon(
-            Icons.broken_image_outlined,
-            size: 80.sp,
-            color: AppColors.green100,
-          ),
-        );
-      },
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Center(
-          child: CircularProgressIndicator(
-            value: progress.expectedTotalBytes != null
-                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                : null,
-          ),
-        );
-      },
+      // Hero image spans the screen width; a phone is ~430 logical px wide.
+      decodeWidth: 440,
+      placeholder: const Center(child: CircularProgressIndicator()),
+      errorWidget: Center(
+        child: Icon(
+          Icons.broken_image_outlined,
+          size: 80.sp,
+          color: AppColors.green100,
+        ),
+      ),
     );
   }
 

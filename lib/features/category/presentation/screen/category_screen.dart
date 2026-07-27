@@ -11,6 +11,7 @@ import '../components/category_screenbody/category_screen_body.dart';
 import '../helpers/category_mapper.dart';
 import '../helpers/category_selection_manager.dart';
 import '../helpers/category_state_listener.dart';
+import '../../../../core/widgets/app_background.dart';
 
 class CategoryScreen extends ConsumerStatefulWidget {
   final String? initialCategoryId;
@@ -131,13 +132,7 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
           Header(colorScheme: colorScheme),
           Expanded(
             child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/bg.png'),
-                  repeat: ImageRepeat.repeat,
-                  opacity: 0.7,
-                ),
-              ),
+              decoration: kPatternBackgroundDecorationNoColor,
               child: CategoryScreenBody(
                 key: _bodyKey,
                 categoryState: categoryState,

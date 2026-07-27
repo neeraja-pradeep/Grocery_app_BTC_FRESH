@@ -19,6 +19,7 @@ import '../components/cart_summary.dart';
 import '../components/frequently_bought_strip.dart';
 import '../components/minimum_order_warning.dart';
 import 'checkout_screen.dart';
+import '../../../../core/widgets/app_background.dart';
 
 /// Cart Screen - Displays shopping cart with real API data
 ///
@@ -163,13 +164,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/bg.png'),
-          repeat: ImageRepeat.repeat,
-          opacity: 0.7,
-        ),
-      ),
+      decoration: kPatternBackgroundDecorationNoColor,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../../../core/network/api_client.dart';
 import '../../../../../core/network/endpoints.dart';
 import '../../../../../core/network/network_exceptions.dart';
+import '../../../../../core/utils/concurrency_limiter.dart';
 
 import '../../models/category_product_dto.dart';
 
@@ -29,6 +30,13 @@ class CategoryProductRemoteDataSource {
   CategoryProductRemoteDataSource(this._apiClient);
 
   final ApiClient _apiClient;
+
+  /// Caps how many category-product requests are in flight at once.
+  ///
+  /// The Categories screen watches one provider per category, so without this
+  /// every category fetches simultaneously the moment the tab opens (and again
+  /// on every poll tick). Static so the cap is shared across all instances.
+  static final ConcurrencyLimiter _limiter = ConcurrencyLimiter(4);
 
   Future<CategoryProductRemoteResponse?> fetchProducts(
     String categoryId, {
@@ -64,12 +72,14 @@ class CategoryProductRemoteDataSource {
     bool onlyDiscountedVariants = false,
   }) async {
     try {
-      final response = await _apiClient.get<dynamic>(
-        path,
-        headers: <String, String>{
-          if (ifNoneMatch != null) 'If-None-Match': ifNoneMatch,
-          if (ifModifiedSince != null) 'If-Modified-Since': ifModifiedSince,
-        },
+      final response = await _limiter.run(
+        () => _apiClient.get<dynamic>(
+          path,
+          headers: <String, String>{
+            if (ifNoneMatch != null) 'If-None-Match': ifNoneMatch,
+            if (ifModifiedSince != null) 'If-Modified-Since': ifModifiedSince,
+          },
+        ),
       );
 
       final status = response.statusCode ?? 200;

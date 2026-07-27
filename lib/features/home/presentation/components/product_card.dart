@@ -136,6 +136,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                             ? CachedNetworkImage(
                                 imageUrl: imageUrl,
                                 fit: BoxFit.contain,
+                                memCacheWidth: 360,
+                                maxWidthDiskCache: 1080,
                                 placeholder: (context, url) => Center(
                                   child: SizedBox(
                                     height: 20.h,
@@ -298,15 +300,23 @@ class _ProductCardState extends ConsumerState<ProductCard> {
           right: -8.w, // Overlaps the right border
           child: Consumer(
             builder: (context, ref, child) {
-              final cartState = ref.watch(checkoutLineControllerProvider);
-              final cartLine = cartState.items
-                  .where((item) => item.productVariantId == product.id)
-                  .toList();
-              final isInCart = cartLine.isNotEmpty;
+              // Selected down to this card's own line, so an unrelated cart
+              // change (or the 30s cart poll) does not rebuild every card in
+              // the list.
+              final cartLine = ref.watch(
+                checkoutLineControllerProvider.select((state) {
+                  for (final item in state.items) {
+                    if (item.productVariantId == product.id) {
+                      return (id: item.id, quantity: item.quantity);
+                    }
+                  }
+                  return null;
+                }),
+              );
 
-              if (isInCart) {
-                final lineId = cartLine.first.id;
-                final quantity = cartLine.first.quantity;
+              if (cartLine != null) {
+                final lineId = cartLine.id;
+                final quantity = cartLine.quantity;
                 return _QuantitySelector(
                   quantity: quantity,
                   borderColor: borderColor,

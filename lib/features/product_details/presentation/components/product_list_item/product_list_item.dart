@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/widgets/app_text.dart';
+import '../../../../../core/widgets/app_network_image.dart';
 
 /// Product List Item Widget
 /// Displays a product card with image, details, price and quantity selector
@@ -57,18 +58,18 @@ class ProductListItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(10.r),
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Image.network(
-                  imageUrl,
+                child: AppNetworkImage(
+                  imageUrl: imageUrl,
+                  width: 70.w,
+                  height: 70.w,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppColors.grey.withValues(alpha: 0.1),
-                      child: const Icon(
-                        Icons.image_not_supported,
-                        color: AppColors.grey,
-                      ),
-                    );
-                  },
+                  errorWidget: Container(
+                    color: AppColors.grey.withValues(alpha: 0.1),
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      color: AppColors.grey,
+                    ),
+                  ),
                 ),
               ),
             ),

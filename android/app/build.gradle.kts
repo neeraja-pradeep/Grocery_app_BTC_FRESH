@@ -57,6 +57,12 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            // These were declared but never applied: `isMinifyEnabled` defaults
+            // to false, so R8 never ran and the proguard rules below were dead
+            // configuration. Turning them on shrinks and optimises the Java/
+            // Kotlin side and strips unused resources.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

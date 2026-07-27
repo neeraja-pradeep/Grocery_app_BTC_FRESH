@@ -21,6 +21,22 @@ class CategoryProductCacheDto {
   final String? next;
   final String? previous;
 
+  /// Returns a copy with a new [lastSyncedAt], sharing the same product list.
+  ///
+  /// Used on the 304 Not Modified path, where only the "last checked" time
+  /// changes and re-serialising the products would be pure waste.
+  CategoryProductCacheDto withLastSyncedAt(DateTime timestamp) =>
+      CategoryProductCacheDto(
+        categoryId: categoryId,
+        products: products,
+        lastSyncedAt: timestamp,
+        eTag: eTag,
+        lastModified: lastModified,
+        count: count,
+        next: next,
+        previous: previous,
+      );
+
   Map<String, dynamic> toJson() => <String, dynamic>{
     'categoryId': categoryId,
     'products': products.map((dto) => dto.toJson()).toList(),

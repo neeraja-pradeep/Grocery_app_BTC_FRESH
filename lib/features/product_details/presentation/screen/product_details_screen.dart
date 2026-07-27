@@ -32,6 +32,7 @@ import '../../domain/entities/product_variant.dart' as product_variant;
 import '../components/expandable_section/expandable_section.dart';
 import '../components/product_image_section/product_image_section.dart';
 import '../helpers/product_details_helpers.dart';
+import '../../../../core/widgets/app_background.dart';
 
 /// Product Details Screen - Thin Coordinator
 ///
@@ -580,14 +581,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        image: DecorationImage(
-          image: AssetImage('assets/bg.png'),
-          repeat: ImageRepeat.repeat,
-          opacity: 0.7,
-        ),
-      ),
+      decoration: kPatternBackgroundDecoration,
       child: Center(
         child: Padding(
           padding: EdgeInsets.all(24.w),

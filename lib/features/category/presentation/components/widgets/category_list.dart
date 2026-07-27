@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../app/theme/colors.dart';
 import '../../../../../core/widgets/app_text.dart';
+import '../../../../../core/widgets/app_network_image.dart';
 
 /// Category data model with title, id, and optional images (local or network)
 class CategoryItem {
@@ -219,13 +220,14 @@ class _CategoryListState extends State<CategoryList> {
 
     // Network image
     if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
-      return Image.network(
-        item.imageUrl!,
+      return AppNetworkImage(
+        imageUrl: item.imageUrl,
         height: 68.h,
-        width: double.infinity,
+        // Sidebar tile: one third of the screen width at most.
+        decodeWidth: 140,
         fit: BoxFit.fitHeight,
         alignment: Alignment.centerLeft,
-        errorBuilder: (context, error, stackTrace) => Container(
+        errorWidget: Container(
           height: 68.h,
           color: AppColors.green10,
           alignment: Alignment.center,
@@ -235,19 +237,16 @@ class _CategoryListState extends State<CategoryList> {
             size: 20,
           ),
         ),
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            height: 68.h,
-            color: AppColors.green10,
-            alignment: Alignment.center,
-            child: const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          );
-        },
+        placeholder: Container(
+          height: 68.h,
+          color: AppColors.green10,
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
       );
     }
 

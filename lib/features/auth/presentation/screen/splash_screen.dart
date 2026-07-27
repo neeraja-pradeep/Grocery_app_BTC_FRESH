@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../../app/router/app_router.dart';
+import '../../../../core/widgets/app_background.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -37,14 +38,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          image: DecorationImage(
-            image: AssetImage('assets/bg.png'),
-            repeat: ImageRepeat.repeat,
-            opacity: 0.7,
-          ),
-        ),
+        decoration: kPatternBackgroundDecoration,
         child: Lottie.asset(
           'assets/lottie/biker.json',
           controller: _controller,

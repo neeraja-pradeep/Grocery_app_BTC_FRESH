@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Shared text widget that encapsulates the default typography tokens.
 class AppText extends StatelessWidget {
@@ -58,7 +57,12 @@ class AppText extends StatelessWidget {
       maxLines: maxLines,
       overflow: overflow,
       textAlign: textAlign,
-      style: GoogleFonts.poppins(
+      // Poppins is bundled (see pubspec `fonts:`) with the 400/500/600/700/800
+      // weights, so this resolves against a real font file with no network
+      // round-trip. It used to go through `GoogleFonts.poppins`, which fetched
+      // each weight from fonts.gstatic.com on first launch.
+      style: TextStyle(
+        fontFamily: 'Poppins',
         fontSize: fontSize,
         fontWeight: fontWeight,
         fontStyle: fontStyle,

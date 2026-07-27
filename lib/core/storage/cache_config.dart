@@ -146,6 +146,16 @@ class CacheConfig {
   /// Stores: lastSyncedAt, lastModified, eTag, product list
   static const String categoryProductMetadataPrefix = 'cat:products_meta:';
 
+  /// Category Products - "last checked" timestamp, stored separately.
+  /// Format: 'cat:products_synced:{categoryId}' -> ISO-8601 string
+  ///
+  /// WHY SEPARATE: a 304 Not Modified only needs to record *when* we last
+  /// checked. Folding that into the entry above meant re-serialising the whole
+  /// product list and rewriting it to Hive every 30s per category — the single
+  /// most expensive thing the polling loop did, and the reason the cache box
+  /// grew (and cold start slowed) the longer the app was installed.
+  static const String categoryProductSyncedAtPrefix = 'cat:products_synced:';
+
   // ============================================================================
   // WISHLIST FEATURE - Cache Key & TTL
   // ============================================================================

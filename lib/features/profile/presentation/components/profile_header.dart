@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileHeader extends StatelessWidget {
   const ProfileHeader({
@@ -31,8 +32,13 @@ class ProfileHeader extends StatelessWidget {
           CircleAvatar(
             radius: 32.r,
             backgroundColor: AppColors.grey.withValues(alpha: 0.2),
+            // Disk-cached and decoded at avatar size (64 logical px at 3x)
+            // rather than at the source resolution.
             backgroundImage: profileImageUrl != null
-                ? NetworkImage(profileImageUrl!)
+                ? ResizeImage(
+                    CachedNetworkImageProvider(profileImageUrl!),
+                    width: 192,
+                  )
                 : null,
             child: profileImageUrl == null
                 ? Icon(Icons.person, size: 32.sp, color: AppColors.grey)

@@ -54,6 +54,8 @@ class _ProfileIconButtonState extends ConsumerState<ProfileIconButton> {
                 height: 32.h,
                 width: 32.w,
                 fit: BoxFit.cover,
+                memCacheWidth: 96,
+                maxWidthDiskCache: 1080,
                 errorWidget: (context, url, error) => _fallbackIcon(),
               ),
             )
