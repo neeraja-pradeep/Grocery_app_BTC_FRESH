@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../../../core/network/api_client.dart';
 import '../../../../../core/network/endpoints.dart';
 import '../../../../../core/network/network_exceptions.dart';
+import '../../../../../core/network/pagination.dart';
 import '../../../../../core/utils/concurrency_limiter.dart';
 
 import '../../models/category_product_dto.dart';
@@ -43,7 +44,7 @@ class CategoryProductRemoteDataSource {
     String? ifNoneMatch,
     String? ifModifiedSince,
   }) async {
-    return _fetch(
+    return _fetchAllPages(
       ApiEndpoints.categoryProducts(categoryId),
       categoryId: categoryId,
       ifNoneMatch: ifNoneMatch,
@@ -57,16 +58,77 @@ class CategoryProductRemoteDataSource {
   Future<CategoryProductRemoteResponse?> fetchDiscountedProducts(
     String categoryId,
   ) {
-    return _fetch(
+    return _fetchAllPages(
       ApiEndpoints.categoryDiscountedProducts(categoryId),
       categoryId: categoryId,
       onlyDiscountedVariants: true,
     );
   }
 
+  /// Fetches every page of [path], following pagination to the last page.
+  ///
+  /// The products endpoint paginates at a fixed 25 per page, so a category
+  /// with more than 25 products silently lost the remainder when only the
+  /// first page was read.
+  ///
+  /// Conditional headers go on page 1 only; a 304 there short-circuits the
+  /// whole walk. A failure on a later page propagates rather than caching a
+  /// partial list — see [CategoryRemoteDataSource.fetchCategories].
+  ///
+  /// Note each page passes through [_limiter] independently, so a multi-page
+  /// category does not hold a concurrency slot while it walks.
+  Future<CategoryProductRemoteResponse?> _fetchAllPages(
+    String path, {
+    required String categoryId,
+    String? ifNoneMatch,
+    String? ifModifiedSince,
+    bool onlyDiscountedVariants = false,
+  }) async {
+    final first = await _fetch(
+      path,
+      categoryId: categoryId,
+      ifNoneMatch: ifNoneMatch,
+      ifModifiedSince: ifModifiedSince,
+      onlyDiscountedVariants: onlyDiscountedVariants,
+    );
+
+    // 304 Not Modified — nothing changed, skip the remaining pages.
+    if (first == null) return null;
+
+    final products = <CategoryProductDto>[...first.products];
+    var hasNext = first.next != null;
+
+    for (var page = 2; hasNext && page <= kMaxPagesPerFetch; page++) {
+      final next = await _fetch(
+        path,
+        categoryId: categoryId,
+        page: page,
+        onlyDiscountedVariants: onlyDiscountedVariants,
+      );
+      if (next == null) break;
+      products.addAll(next.products);
+      hasNext = next.next != null;
+    }
+
+    return CategoryProductRemoteResponse(
+      products: products,
+      fetchedAt: first.fetchedAt,
+      // Validators come from page 1 — that is the request the next conditional
+      // sync will replay them against.
+      eTag: first.eTag,
+      lastModified: first.lastModified,
+      count: first.count,
+      // Fully drained, so there is nothing left to follow.
+      next: null,
+      previous: null,
+    );
+  }
+
+  /// Fetches a single page. [page] null means page 1 (no explicit param).
   Future<CategoryProductRemoteResponse?> _fetch(
     String path, {
     required String categoryId,
+    int? page,
     String? ifNoneMatch,
     String? ifModifiedSince,
     bool onlyDiscountedVariants = false,
@@ -75,6 +137,11 @@ class CategoryProductRemoteDataSource {
       final response = await _limiter.run(
         () => _apiClient.get<dynamic>(
           path,
+          // `path` already carries a query string, so Dio appends this with
+          // `&`. Page 1 sends no page param at all, matching the original URL.
+          queryParameters: page == null
+              ? null
+              : <String, dynamic>{'page': page},
           headers: <String, String>{
             if (ifNoneMatch != null) 'If-None-Match': ifNoneMatch,
             if (ifModifiedSince != null) 'If-Modified-Since': ifModifiedSince,

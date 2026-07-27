@@ -1,4 +1,5 @@
 import '../../../../core/storage/cache_config.dart';
+import '../../../../core/storage/cache_schema.dart';
 import '../../domain/repositories/category_repository.dart';
 
 import '../../../../core/network/network_exceptions.dart';
@@ -30,7 +31,9 @@ class CategoryRepositoryImpl implements CategoryRepository {
     if (cache == null) return null;
 
     final categories = _mapDtosToDomain(cache.categories);
-    final isStale = _isStale(cache.lastSyncedAt);
+    // A truncated cache counts as stale regardless of age, so the screen
+    // refreshes it immediately instead of showing a short list for up to a TTL.
+    final isStale = _isStale(cache.lastSyncedAt) || _isIncomplete(cache);
 
     return CategoryRepositoryResult(
       categories: categories,
@@ -66,11 +69,18 @@ class CategoryRepositoryImpl implements CategoryRepository {
   }) async {
     final existingCache = _localDataSource.read();
 
+    // A cache written before pagination was followed holds only the first page
+    // but carries perfectly valid validators. Replaying them would get a 304
+    // and pin the truncated list in place forever, so drop the validators and
+    // refetch in full whenever the cache is short of `count`.
+    final skipValidators =
+        forceRemote || (existingCache != null && _isIncomplete(existingCache));
+
     final response = await _remoteDataSource.fetchCategories(
       // If forceRemote, send no headers (get full response)
       // Otherwise, use lastModified from Hive for If-Modified-Since
-      ifNoneMatch: forceRemote ? null : existingCache?.eTag,
-      ifModifiedSince: forceRemote ? null : existingCache?.lastModified,
+      ifNoneMatch: skipValidators ? null : existingCache?.eTag,
+      ifModifiedSince: skipValidators ? null : existingCache?.lastModified,
     );
 
     // Server returned 304 (Not Modified) - data hasn't changed
@@ -103,8 +113,12 @@ class CategoryRepositoryImpl implements CategoryRepository {
       // Save the NEW lastModified from response for next If-Modified-Since
       lastModified: response.lastModified ?? existingCache?.lastModified,
       count: response.count ?? existingCache?.count,
-      next: response.next ?? existingCache?.next,
-      previous: response.previous ?? existingCache?.previous,
+      // The data source drains every page before returning, so there is no
+      // further page. Not `?? existingCache?.next` — that would resurrect a
+      // stale page-2 link written before pagination was followed, leaving the
+      // cache claiming more data exists when it has all of it.
+      next: response.next,
+      previous: response.previous,
     );
 
     await _localDataSource.save(cacheDto);
@@ -125,6 +139,14 @@ class CategoryRepositoryImpl implements CategoryRepository {
     final now = DateTime.now();
     return now.difference(lastSyncedAt) >= _cacheTtl;
   }
+
+  /// True when the entry was written by a build that did not follow
+  /// pagination, so it holds only the first page.
+  ///
+  /// This is what makes the pagination fix self-healing for users upgrading
+  /// with a truncated cache already on disk.
+  bool _isIncomplete(CategoryCacheDto cache) =>
+      cache.schemaVersion < CacheSchema.categoryList;
 
   List<Category> _mapDtosToDomain(List<CategoryDto> dtos) {
     final categories = dtos.map((dto) => dto.toDomain()).toList();

@@ -1,4 +1,5 @@
 import '../../../../core/storage/cache_config.dart';
+import '../../../../core/storage/cache_schema.dart';
 import '../../domain/entities/category_product.dart';
 import '../../domain/repositories/category_product_repository.dart';
 import '../data_sources/local/category_product_cache_dto.dart';
@@ -30,7 +31,9 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
     if (cache == null) return null;
 
     final products = _mapDtosToDomain(cache.products);
-    final isStale = _isStale(cache.lastSyncedAt);
+    // A truncated cache counts as stale regardless of age, so the section
+    // refreshes it immediately instead of showing a short list for up to a TTL.
+    final isStale = _isStale(cache.lastSyncedAt) || _isIncomplete(cache);
 
     return CategoryProductRepositoryResult(
       products: products,
@@ -72,12 +75,19 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
   }) async {
     final existingCache = _localDataSource.read(categoryId);
 
+    // A cache written before pagination was followed holds only the first page
+    // but carries perfectly valid validators. Replaying them would get a 304
+    // and pin the truncated list in place forever, so drop the validators and
+    // refetch in full until the entry has been rewritten by this build.
+    final skipValidators =
+        forceRemote || (existingCache != null && _isIncomplete(existingCache));
+
     final response = await _remoteDataSource.fetchProducts(
       categoryId,
       // If forceRemote, send no headers (get full response)
       // Otherwise, use lastModified from Hive for If-Modified-Since
-      ifNoneMatch: forceRemote ? null : existingCache?.eTag,
-      ifModifiedSince: forceRemote ? null : existingCache?.lastModified,
+      ifNoneMatch: skipValidators ? null : existingCache?.eTag,
+      ifModifiedSince: skipValidators ? null : existingCache?.lastModified,
     );
 
     // Server returned 304 (Not Modified) - products haven't changed
@@ -117,8 +127,12 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
       // Save the NEW lastModified from response for next If-Modified-Since
       lastModified: response.lastModified ?? existingCache?.lastModified,
       count: response.count ?? existingCache?.count,
-      next: response.next ?? existingCache?.next,
-      previous: response.previous ?? existingCache?.previous,
+      // The data source drains every page before returning, so there is no
+      // further page. Not `?? existingCache?.next` — that would resurrect a
+      // stale page-2 link written before pagination was followed, leaving the
+      // cache claiming more data exists when it has all of it.
+      next: response.next,
+      previous: response.previous,
     );
 
     await _localDataSource.save(cacheDto);
@@ -140,6 +154,17 @@ class CategoryProductRepositoryImpl implements CategoryProductRepository {
     final now = DateTime.now();
     return now.difference(lastSyncedAt) >= _cacheTtl;
   }
+
+  /// True when the entry was written by a build that did not follow
+  /// pagination, so it holds only the first 25 products.
+  ///
+  /// Deliberately a schema-version check rather than `products.length < count`:
+  /// `count` counts *products* while the cache stores one entry per *variant*,
+  /// and products with no variants are dropped entirely — so the two numbers
+  /// legitimately disagree and a length comparison would force a full refetch
+  /// on every sync.
+  bool _isIncomplete(CategoryProductCacheDto cache) =>
+      cache.schemaVersion < CacheSchema.categoryProducts;
 
   List<CategoryProduct> _mapDtosToDomain(List<CategoryProductDto> dtos) =>
       dtos.map((dto) => dto.toDomain()).toList(growable: false);
