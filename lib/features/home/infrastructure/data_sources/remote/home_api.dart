@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../../core/error/failure.dart';
 import '../../../../../core/network/api_client.dart';
+import '../../../../../core/network/pagination.dart';
 import '../../../../../core/utils/logger.dart';
 import '../../../domain/entities/banner.dart';
 import '../../../domain/entities/category.dart';
@@ -165,6 +166,50 @@ class HomeApiImpl implements HomeRemoteDataSource {
     }
   }
 
+  /// Like [_fetchPaginated] but keeps requesting `?page=N` until `next` is
+  /// null, returning every page concatenated.
+  ///
+  /// The backend paginates at a fixed 25 and ignores `page_size`, so reading a
+  /// single page silently truncates the list — the Home category grid was
+  /// showing 25 of 40 categories for exactly this reason.
+  Future<PaginatedResult<T>> _fetchAllPages<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    required T Function(Map<String, dynamic>) fromJson,
+    int startPage = 1,
+  }) async {
+    final first = await _fetchPaginated(
+      path,
+      queryParameters: {...?queryParameters, 'page': startPage},
+      fromJson: fromJson,
+    );
+
+    final all = <T>[...first.results];
+    var hasNext = first.next != null;
+
+    for (
+      var page = startPage + 1;
+      hasNext && page < startPage + kMaxPagesPerFetch;
+      page++
+    ) {
+      final next = await _fetchPaginated(
+        path,
+        queryParameters: {...?queryParameters, 'page': page},
+        fromJson: fromJson,
+      );
+      all.addAll(next.results);
+      hasNext = next.next != null;
+    }
+
+    return PaginatedResult(
+      count: first.count,
+      // Fully drained, so there is nothing left to follow.
+      next: null,
+      previous: null,
+      results: all,
+    );
+  }
+
   Future<List<T>> _fetchList<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -215,14 +260,80 @@ class HomeApiImpl implements HomeRemoteDataSource {
     }
   }
 
+  /// Like [_fetchList] but keeps requesting `?page=N` until `next` is null.
+  ///
+  /// Endpoints that return a bare JSON array (no envelope) have no `next`, so
+  /// they resolve after a single request exactly as [_fetchList] would.
+  ///
+  /// The backend paginates at a fixed 25 and ignores `page_size`, so reading a
+  /// single page silently drops everything past the 25th item.
+  Future<List<T>> _fetchListAllPages<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    required T Function(Map<String, dynamic>) fromJson,
+  }) async {
+    final all = <T>[];
+
+    for (var page = 1; page <= kMaxPagesPerFetch; page++) {
+      try {
+        final response = await _apiClient.get(
+          path,
+          queryParameters: {...?queryParameters, 'page': page},
+        );
+
+        if (response.data == null) {
+          throw const ServerException('Empty response from server');
+        }
+
+        final data = response.data;
+        List listData;
+        String? next;
+
+        if (data is Map<String, dynamic> && data.containsKey('results')) {
+          listData = (data['results'] as List?) ?? [];
+          next = nextPageLink(data);
+        } else if (data is List) {
+          // Unpaginated endpoint — everything arrived in one response.
+          listData = data;
+          next = null;
+        } else {
+          throw const DataParsingException('Unexpected response format');
+        }
+
+        all.addAll(
+          listData.map((e) => fromJson(e as Map<String, dynamic>)),
+        );
+
+        if (next == null) break;
+      } on DioException catch (e) {
+        throw _handleDioException(e);
+      } on FormatException catch (e) {
+        throw DataParsingException('Invalid data format: $e');
+      } on TypeError catch (e) {
+        throw DataParsingException('Data type mismatch: $e');
+      } on AppException {
+        rethrow;
+      } catch (e) {
+        throw ServerException('Unexpected error: $e');
+      }
+    }
+
+    return all;
+  }
+
   // --- Implementation ---
 
   @override
+  /// Returns *every* category, not just [page].
+  ///
+  /// [page] is the page to start from (callers pass 1). The list is drained to
+  /// the end so the Home category grid shows the full catalogue — it used to
+  /// render only the first 25 of 40.
   Future<PaginatedResult<Category>> getCategories({int page = 1}) {
-    return _fetchPaginated(
+    return _fetchAllPages(
       '/api/products/v1/category/', // Updated endpoint
-      queryParameters: {'page': page},
       fromJson: Category.fromJson,
+      startPage: page,
     );
   }
 
@@ -250,7 +361,10 @@ class HomeApiImpl implements HomeRemoteDataSource {
       if (maxPrice != null) 'max_price': maxPrice,
     };
 
-    final products = await _fetchList(
+    // Drained across pages: the Home screen groups these by category, so a
+    // single 25-item page meant whole discount sections went missing for
+    // categories whose products happened to sort past the cut.
+    final products = await _fetchListAllPages(
       '/api/products/v1/',
       queryParameters: params,
       fromJson: Product.fromJson,

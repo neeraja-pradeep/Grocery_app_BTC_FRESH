@@ -301,7 +301,13 @@ class _CategorySectionBuilder extends ConsumerWidget {
     // Filter: Don't render if category has no products
     // Check both null and empty conditions
     if (productState.products.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
+      // The key is still attached, to a zero-height box. An empty section has
+      // nothing to show, but it must stay *measurable*: `_sweepSections` finds
+      // the on-screen categories through these keys, and a section with no key
+      // in the tree can never be reported as visible. When every on-screen
+      // category was empty, nothing was measurable at all and the poller
+      // visibility filter silently fell back to "poll everything".
+      return SliverToBoxAdapter(child: SizedBox.shrink(key: sectionKey));
     }
 
     // Category has products - render heading + grid
