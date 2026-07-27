@@ -16,6 +16,17 @@ class CategoryController extends Notifier<CategoryState> {
 
   bool _initialized = false;
 
+  /// Guards against two concurrent syncs.
+  ///
+  /// Deliberately separate from `state.isRefreshing`, which is a *UI* signal
+  /// (drives the refresh indicator) and is also set from cache metadata. Using
+  /// the UI flag as the mutex deadlocked start-up: [_loadInitial] set
+  /// `isRefreshing: true` for a stale cache and then called [_refreshInternal],
+  /// whose guard saw the flag it had just set and returned without fetching —
+  /// leaving `isRefreshing` stuck true so every later refresh was blocked as
+  /// well, and the category list frozen on stale data forever.
+  bool _refreshInFlight = false;
+
   @override
   CategoryState build() {
     if (!_initialized) {
@@ -35,7 +46,9 @@ class CategoryController extends Notifier<CategoryState> {
         categories: cached.categories,
         lastSyncedAt: cached.lastSyncedAt,
         lastModified: cached.lastModified,
-        isRefreshing: cached.isStale,
+        // Not `cached.isStale`: _refreshInternal raises this itself when a
+        // sync actually starts. Setting it here made the sync below no-op.
+        isRefreshing: false,
         totalCount: cached.totalCount,
         next: cached.next,
         previous: cached.previous,
@@ -72,8 +85,18 @@ class CategoryController extends Notifier<CategoryState> {
   }
 
   Future<void> _refreshInternal({required bool forceRemote}) async {
-    if (state.isRefreshing && !forceRemote) return;
+    // A force refresh (user-initiated retry) still overrides an in-flight one.
+    if (_refreshInFlight && !forceRemote) return;
+    _refreshInFlight = true;
 
+    try {
+      await _syncWithRetries(forceRemote: forceRemote);
+    } finally {
+      _refreshInFlight = false;
+    }
+  }
+
+  Future<void> _syncWithRetries({required bool forceRemote}) async {
     final hasData = state.hasData;
     state = state.copyWith(
       status: hasData ? CategoryStatus.data : CategoryStatus.loading,
