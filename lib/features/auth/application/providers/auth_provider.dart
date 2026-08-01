@@ -49,8 +49,9 @@ class Auth extends _$Auth {
             state = Authenticated(user: user, isNewUser: false);
             return;
           }
-          // Server rejected the session — clear stale local data
-          await _repository.logout();
+          // Server rejected the session — clear stale local data.
+          // No server call needed: the session was never actually valid.
+          await _repository.clearLocalSession();
         }
       }
 
@@ -59,9 +60,9 @@ class Auth extends _$Auth {
     } catch (e) {
       // Handle corrupted Hive data or malformed cookies
       try {
-        await _repository.logout();
+        await _repository.clearLocalSession();
       } catch (_) {
-        // If logout fails, still proceed to guest mode for safety
+        // If cleanup fails, still proceed to guest mode for safety
       }
 
       // Always set guest mode to allow app to continue

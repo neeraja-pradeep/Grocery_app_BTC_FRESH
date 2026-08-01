@@ -59,6 +59,12 @@ abstract class AuthRepository {
   /// valid, false if the server returns 401 (session expired/revoked).
   Future<bool> validateSession();
 
-  /// Clears all user data, cookies, and session
+  /// Clears all user data, cookies, and session, notifying the server
   Future<void> logout();
+
+  /// Clears local user data, cookies, and session only — no server call.
+  /// Use this when the local session is already known to be invalid/stale
+  /// (e.g. failed [validateSession] or corrupted local data), so there's
+  /// nothing to log out of server-side.
+  Future<void> clearLocalSession();
 }

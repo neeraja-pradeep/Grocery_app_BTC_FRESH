@@ -248,6 +248,11 @@ class AuthRepositoryImpl implements AuthRepository {
     await local.clearAllUserData();
   }
 
+  @override
+  Future<void> clearLocalSession() async {
+    await local.clearAllUserData();
+  }
+
   // ----------------------------------------------------------
   // VALIDATE SESSION
   // ----------------------------------------------------------
