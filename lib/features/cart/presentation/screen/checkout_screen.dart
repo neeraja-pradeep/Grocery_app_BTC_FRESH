@@ -54,10 +54,8 @@ class CheckoutScreen extends ConsumerWidget {
         ? itemTotal * (appliedCouponState.discountPercentage / 100)
         : 0.0;
 
-    // GST calculation (18% on amount after discount)
-    final gst = (itemTotal - discount) * 0.18;
     const deliveryFee = 0.0; // Free delivery
-    final grandTotal = itemTotal - discount + gst + deliveryFee;
+    final grandTotal = itemTotal - discount + deliveryFee;
 
     return Column(
       children: [
@@ -148,7 +146,6 @@ class CheckoutScreen extends ConsumerWidget {
         CheckoutOrderSummary(
           itemTotal: itemTotal,
           discount: discount,
-          gst: gst,
           deliveryFee: deliveryFee,
           grandTotal: grandTotal,
           appliedCoupon: appliedCouponState.appliedCoupon,

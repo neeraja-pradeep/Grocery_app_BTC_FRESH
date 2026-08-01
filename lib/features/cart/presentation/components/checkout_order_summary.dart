@@ -15,7 +15,6 @@ class CheckoutOrderSummary extends ConsumerWidget {
     super.key,
     required this.itemTotal,
     required this.discount,
-    required this.gst,
     required this.deliveryFee,
     required this.grandTotal,
     required this.onPlaceOrder,
@@ -26,7 +25,6 @@ class CheckoutOrderSummary extends ConsumerWidget {
 
   final double itemTotal;
   final double discount;
-  final double gst;
   final double deliveryFee;
   final double grandTotal;
   final VoidCallback onPlaceOrder;
@@ -189,8 +187,6 @@ class CheckoutOrderSummary extends ConsumerWidget {
             isDiscount: true,
             showMinus: discount > 0,
           ),
-          SizedBox(height: 8.h),
-          _buildSummaryRow('GST (18%)', gst, isRegular: true),
           SizedBox(height: 8.h),
           _buildSummaryRow(
             'Delivery Fee',
