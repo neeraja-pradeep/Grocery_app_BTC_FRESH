@@ -154,7 +154,13 @@ class AuthApi {
   Future<bool> validateSession() async {
     try {
       final res = await _dio.get(ApiEndpoints.profile);
-      return res.statusCode == 200;
+      if (res.statusCode != 200) return false;
+
+      // The backend returns 200 with role "anonymous" for guest/expired
+      // sessions too, so a 200 alone doesn't prove the user is logged in.
+      final data = res.data as Map<String, dynamic>;
+      final role = (data['role'] as String?)?.toLowerCase();
+      return role != null && role != 'anonymous';
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         return false;
